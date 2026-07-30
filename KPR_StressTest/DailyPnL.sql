@@ -6,7 +6,7 @@
            #mapping_table   (Ticker, CurveId, Ticker_CCY3, Days)
 
   Output   #DailyPnL        (Dates, Ticker_CCY3, Delta_USD_USDDirection,
-                             DailyPnL, IsCarried)
+                             DailyPnL, CumDailyPnL, IsCarried)
            #Diagnostics     (Severity, Issue, Ticker_CCY3, Detail)
 
   Method   Today's exposure is held constant and pushed through historical
@@ -169,18 +169,35 @@ FROM    filled f;
       DailyPnL is NULL only where the series had no price to work from --
       those rows are listed in #Diagnostics rather than silently zeroed,
       because a zero would quietly flatter the portfolio total.
+
+      CumDailyPnL is the running total per currency from @StartDate.  SUM()
+      skips NULLs, so an unpriced date leaves the cumulative flat rather
+      than poisoning the rest of the series -- check Days_Unpriced in the
+      summary before reading a cumulative that spans one.
 --------------------------------------------------------------------------*/
 IF OBJECT_ID('tempdb..#DailyPnL') IS NOT NULL DROP TABLE #DailyPnL;
 
-SELECT  pr.Dates,
-        pr.Ticker_CCY3,
-        pr.Delta_USD_USDDirection,
-        CAST(pr.Delta_USD_USDDirection
-             * (1.0 - CAST(pr.PrevValue AS float) / NULLIF(pr.FilledValue, 0))
-             AS decimal(38,10)) AS DailyPnL,
-        pr.IsCarried
+WITH pnl AS (
+    SELECT  pr.Dates,
+            pr.Ticker_CCY3,
+            pr.Days,
+            pr.Delta_USD_USDDirection,
+            CAST(pr.Delta_USD_USDDirection
+                 * (1.0 - CAST(pr.PrevValue AS float) / NULLIF(pr.FilledValue, 0))
+                 AS decimal(38,10)) AS DailyPnL,
+            pr.IsCarried
+    FROM    #priced pr
+)
+SELECT  p.Dates,
+        p.Ticker_CCY3,
+        p.Delta_USD_USDDirection,
+        p.DailyPnL,
+        SUM(p.DailyPnL) OVER (PARTITION BY p.Ticker_CCY3, p.Days
+                              ORDER BY p.Dates
+                              ROWS UNBOUNDED PRECEDING) AS CumDailyPnL,
+        p.IsCarried
 INTO    #DailyPnL
-FROM    #priced pr;
+FROM    pnl p;
 
 CREATE CLUSTERED INDEX ix_dailypnl ON #DailyPnL (Dates, Ticker_CCY3);
 
@@ -280,9 +297,9 @@ WHERE  e.Ticker_CCY3 = 'USD';
 --------------------------------------------------------------------------*/
 
 -- The P&L table.
-SELECT   Dates, Ticker_CCY3, Delta_USD_USDDirection, DailyPnL, IsCarried
+SELECT   Dates, Ticker_CCY3, Delta_USD_USDDirection, DailyPnL, CumDailyPnL, IsCarried
 FROM     #DailyPnL
-ORDER BY Dates, Ticker_CCY3;
+ORDER BY Ticker_CCY3, Dates;
 
 -- Per-currency summary.  CumPnL is the honest period number; SumDailyPnL
 -- is the same figure spread across days.
@@ -302,6 +319,8 @@ ORDER BY Ticker_CCY3;
 -- rectangular -- no currency can go missing from a day's total.
 SELECT   Dates,
          SUM(DailyPnL) AS PortfolioDailyPnL,
+         SUM(SUM(DailyPnL)) OVER (ORDER BY Dates
+                                  ROWS UNBOUNDED PRECEDING) AS PortfolioCumPnL,
          SUM(CASE WHEN DailyPnL IS NULL THEN 1 ELSE 0 END) AS UnpricedCurrencies
 FROM     #DailyPnL
 GROUP BY Dates
