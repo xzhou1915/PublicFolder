@@ -143,8 +143,8 @@ scored AS (
 
 SELECT
     DataDate,
-    SUBSTRING(Ticker1, 4, LEN(Ticker1)) AS CCY1,
-    SUBSTRING(Ticker2, 4, LEN(Ticker2)) AS CCY2,
+    Ticker1 AS CCY1,
+    Ticker2 AS CCY2,
     CAST(Corr_ST   AS DECIMAL(9,4)) AS Corr_ST,
     CAST(Corr_LT   AS DECIMAL(9,4)) AS Corr_LT,
     CAST(Spread    AS DECIMAL(9,4)) AS Spread,
