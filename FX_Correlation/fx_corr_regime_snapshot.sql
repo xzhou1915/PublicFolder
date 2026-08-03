@@ -16,7 +16,9 @@
             3. Spread = Corr_ST - Corr_LT  (full daily series)
             4. ZScore = Spread / STDEV(Spread over trailing 240 obs)
                -- not demeaned: the null is Spread = 0, i.e. ST equals LT
-            5. keep the latest computable row per pair
+            5. keep the latest computable row per pair, then emit the full
+               n x n matrix: upper triangle, its mirror, and the diagonal
+               (n = 30 currencies -> 900 rows, ready to pivot into a heatmap)
 
    Read   : ZScore = size of the regime shift, in the pair's own units.
             Corr_ST = where the correlation actually landed (-1 -> 1 vs 0 -> 1).
@@ -166,8 +168,25 @@ scored AS (
     FROM sprstd
     WHERE nSpread = 240
       AND SpreadStd > 0
+),
+
+/* the computed half: one row per unordered pair, at its latest usable date */
+snap AS (
+    SELECT DataDate, Ccy1, Ccy2, Corr_ST, Corr_LT, Spread, SpreadStd, ZScore
+    FROM scored
+    WHERE rn = 1
+),
+
+/* self-pairs are generated, not computed: corr(x,x) = 1 by identity, and the
+   pipeline would drop them anyway since a zero-variance spread fails
+   SpreadStd > 0 */
+diag AS (
+    SELECT Ccy, MAX(DataDate) AS DataDate
+    FROM px
+    GROUP BY Ccy
 )
 
+/* upper triangle */
 SELECT
     DataDate,
     Ccy1 AS CCY1,
@@ -177,9 +196,35 @@ SELECT
     CAST(Spread    AS DECIMAL(9,4)) AS Spread,
     CAST(SpreadStd AS DECIMAL(9,4)) AS SpreadStd,
     CAST(ZScore    AS DECIMAL(9,3)) AS ZScore
-FROM scored
-WHERE rn = 1
-ORDER BY ABS(ZScore) DESC;
+FROM snap
+
+UNION ALL
+
+/* lower triangle — correlation is symmetric, so mirror rather than recompute */
+SELECT
+    DataDate,
+    Ccy2, Ccy1,
+    CAST(Corr_ST   AS DECIMAL(9,4)),
+    CAST(Corr_LT   AS DECIMAL(9,4)),
+    CAST(Spread    AS DECIMAL(9,4)),
+    CAST(SpreadStd AS DECIMAL(9,4)),
+    CAST(ZScore    AS DECIMAL(9,3))
+FROM snap
+
+UNION ALL
+
+/* diagonal */
+SELECT
+    DataDate,
+    Ccy, Ccy,
+    CAST(1 AS DECIMAL(9,4)),
+    CAST(1 AS DECIMAL(9,4)),
+    CAST(0 AS DECIMAL(9,4)),
+    CAST(0 AS DECIMAL(9,4)),
+    CAST(0 AS DECIMAL(9,3))
+FROM diag
+
+ORDER BY CCY1, CCY2;      -- matrix order; swap to ABS(ZScore) DESC to rank movers
 
 
 /* ----------------------------------------------------------------------------
