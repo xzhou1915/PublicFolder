@@ -112,21 +112,34 @@ def draw_chart(net: pd.DataFrame, output: Path, as_of: pd.Timestamp) -> None:
                 fontsize=8.2, weight="bold", color="white", zorder=4,
             )
             timeline.annotate(
-                f"{row.NetDelta / 1_000:+.1f}k", (row.ExpiryDate, y),
-                xytext=(0, 17 if option_type == "Call" else -18),
-                textcoords="offset points", ha="center", va="center",
-                fontsize=8.2, weight="bold", color="#26384a",
+                f"{row.NetDelta / 1_000:+.0f}m"
+                + (f"\n{row.Positions} netted" if row.Positions > 1 else ""),
+                (row.ExpiryDate, y),
+                xytext=(np.sqrt(bubble_size) / 2 + 12, 0),
+                textcoords="offset points",
+                ha="left",
+                va="center",
+                fontsize=8.2,
+                weight="bold",
+                color="#26384a",
+                bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.88},
+                arrowprops={"arrowstyle": "-", "color": color, "linewidth": 0.8, "shrinkA": 1, "shrinkB": 6},
+                zorder=5,
             )
-            if row.Positions > 1:
-                timeline.annotate(
-                    f"{row.Positions} netted", (row.ExpiryDate, y),
-                    xytext=(0, -6 if option_type == "Call" else 7),
-                    textcoords="offset points", ha="center", va="center",
-                    fontsize=6.8, color="white", zorder=4,
-                )
 
     timeline.axvline(as_of, color="#657588", linewidth=1.1, linestyle="--")
     timeline.axvspan(as_of, as_of + pd.Timedelta(days=30), color="#f3b65c", alpha=0.12)
+    timeline.text(
+        as_of + pd.Timedelta(days=15),
+        1.012,
+        "EXPIRES WITHIN 30 DAYS",
+        transform=timeline.get_xaxis_transform(),
+        ha="center",
+        va="bottom",
+        fontsize=7.5,
+        weight="bold",
+        color="#a76614",
+    )
     timeline.set_yticks(range(len(pair_order)), pair_order)
     timeline.invert_yaxis()
     timeline.set_xlim(
@@ -153,11 +166,11 @@ def draw_chart(net: pd.DataFrame, output: Path, as_of: pd.Timestamp) -> None:
     total_ax.grid(axis="x", alpha=0.14)
     total_ax.spines[["top", "right", "left", "bottom"]].set_visible(False)
     total_ax.set_title("Total net Delta", loc="left", fontsize=12, weight="bold", pad=14)
-    total_ax.set_xlabel("thousands, source units", fontsize=8.5, color="#687789")
+    total_ax.set_xlabel("millions, source units", fontsize=8.5, color="#687789")
     for i, value in enumerate(totals):
         total_ax.text(
             value + (bound * 0.025 if value >= 0 else -bound * 0.025), i,
-            f"{value:+.1f}k", ha="left" if value >= 0 else "right",
+            f"{value:+.0f}m", ha="left" if value >= 0 else "right",
             va="center", fontsize=8.5, weight="bold",
         )
 
@@ -168,7 +181,7 @@ def draw_chart(net: pd.DataFrame, output: Path, as_of: pd.Timestamp) -> None:
     fig.text(
         0.055, 0.943,
         "Each bubble nets positions with the same pair, expiry and type  •  "
-        "Label = net Delta  •  Size = |net Delta|",
+        "Label = net Delta in whole millions  •  Size = |net Delta|",
         fontsize=9.5, color="#687789",
     )
     legend = [
