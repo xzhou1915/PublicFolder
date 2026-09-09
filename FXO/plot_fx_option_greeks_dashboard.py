@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import html
 from pathlib import Path
 
 import matplotlib.dates as mdates
@@ -38,6 +40,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("fx_options_greeks_dashboard.png"),
         help="Combined dashboard PNG (default: fx_options_greeks_dashboard.png)",
+    )
+    parser.add_argument(
+        "--html-output",
+        type=Path,
+        default=None,
+        help="Standalone HTML path (default: same name as --output with .html)",
     )
     parser.add_argument(
         "--as-of",
@@ -366,6 +374,73 @@ def draw_dashboard(
     plt.close(fig)
 
 
+
+def write_html_dashboard(
+    trades: pd.DataFrame,
+    dashboard_image: Path,
+    output: Path,
+    as_of: pd.Timestamp,
+) -> None:
+    image_data = base64.b64encode(dashboard_image.read_bytes()).decode("ascii")
+    headers, rows = format_trade_table(trades)
+    header_html = "".join(
+        f'<th onclick="sortTable({index})">{html.escape(header)} <span>↕</span></th>'
+        for index, header in enumerate(headers)
+    )
+    row_html = []
+    for row in rows:
+        cells = "".join(
+            f'<td data-value="{html.escape(value.replace(",", ""))}">{html.escape(value)}</td>'
+            for value in row
+        )
+        row_html.append(f"<tr>{cells}</tr>")
+
+    template = r'''<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FX Options Greeks Dashboard</title>
+<style>
+:root{--ink:#172433;--muted:#687789;--line:#dfe6ee;--navy:#173151;--bg:#f4f7fb}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+main{max-width:1900px;margin:0 auto;padding:28px}header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:18px}
+h1{margin:0 0 7px;font-size:28px}.subtitle,.asof{color:var(--muted);font-size:13px}.asof{white-space:nowrap}
+.figure,.trades{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 14px rgba(23,49,81,.05)}
+.figure{padding:10px}.figure img{display:block;width:100%;height:auto}.trades{margin-top:24px;overflow:hidden}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px 18px;border-bottom:1px solid var(--line)}
+h2{margin:0;font-size:18px}input{min-width:300px;padding:9px 12px;border:1px solid #bdc9d6;border-radius:7px;font-size:13px}
+.table-wrap{overflow:auto;max-height:620px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+th{position:sticky;top:0;z-index:1;padding:10px;background:var(--navy);color:#fff;text-align:left;cursor:pointer;user-select:none}th span{opacity:.55;font-size:10px}
+td{padding:9px 10px;border-bottom:1px solid #e8edf2}tbody tr:nth-child(even){background:#f7f9fc}tbody tr:hover{background:#edf4ff}
+.footer{padding:12px 18px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+@media(max-width:900px){header,.toolbar{align-items:flex-start;flex-direction:column}input{min-width:100%;width:100%}}
+@media print{body{background:#fff}main{max-width:none;padding:0}.figure,.trades{box-shadow:none}.table-wrap{max-height:none;overflow:visible}input{display:none}}
+</style>
+</head>
+<body><main>
+<header><div><h1>FX Options — Netted Greeks by Expiry and Type</h1><div class="subtitle">Delta · Gamma · Theta · Vega · Values displayed in whole USD millions</div></div><div class="asof">As of __AS_OF__</div></header>
+<section class="figure"><img src="data:image/png;base64,__IMAGE__" alt="Four-Greek FX options dashboard"></section>
+<section class="trades"><div class="toolbar"><h2>Original trades — __COUNT__ rows</h2><input id="search" type="search" placeholder="Filter trades…" oninput="filterTrades()"></div>
+<div class="table-wrap"><table id="tradeTable"><thead><tr>__HEADERS__</tr></thead><tbody>__ROWS__</tbody></table></div>
+<div class="footer">The table contains unnetted trades and raw input amounts. ThetaPortCCY and VegaPortCCY are displayed as Theta and Vega. Click a heading to sort.</div></section>
+</main>
+<script>
+let direction=1;
+function filterTrades(){const q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('#tradeTable tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')}
+function sortTable(c){const b=document.querySelector('#tradeTable tbody'),r=Array.from(b.rows);direction*=-1;r.sort((x,y)=>{const a=x.cells[c].dataset.value,d=y.cells[c].dataset.value,an=Number(a),dn=Number(d);return(a!==''&&d!==''&&Number.isFinite(an)&&Number.isFinite(dn)?an-dn:a.localeCompare(d))*direction});r.forEach(x=>b.appendChild(x))}
+</script></body></html>
+'''
+    document = (
+        template.replace("__AS_OF__", as_of.strftime("%d %b %Y"))
+        .replace("__IMAGE__", image_data)
+        .replace("__COUNT__", str(len(trades)))
+        .replace("__HEADERS__", header_html)
+        .replace("__ROWS__", "\n".join(row_html))
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(document, encoding="utf-8")
+
 def main() -> None:
     args = parse_args()
     as_of = pd.to_datetime(args.as_of, format="%Y-%m-%d", errors="raise")
@@ -375,9 +450,12 @@ def main() -> None:
         raise ValueError("The input contains no trades to plot")
 
     draw_dashboard(trades, netted, args.output, as_of)
+    html_output = args.html_output or args.output.with_suffix(".html")
+    write_html_dashboard(trades, args.output, html_output, as_of)
     netted_output = args.output.with_name(f"{args.output.stem}_netted.csv")
     netted.to_csv(netted_output, index=False, date_format="%Y-%m-%d")
-    print(f"Dashboard: {args.output.resolve()}")
+    print(f"Dashboard image: {args.output.resolve()}")
+    print(f"Dashboard HTML: {html_output.resolve()}")
     print(f"Netted data: {netted_output.resolve()}")
     print(f"{len(trades)} original trades -> {len(netted)} bubbles per Greek panel")
 
