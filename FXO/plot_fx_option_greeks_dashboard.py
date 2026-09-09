@@ -434,7 +434,7 @@ def svg_panel_markup(
         )
         parts.append(
             f'<text x="{width-right+8}" y="{pair_y+4:.2f}" class="total-label" '
-            f'fill="{total_color}">Σ {total_text}</text>'
+            f'font-size="36" font-weight="700" fill="{total_color}">Σ {total_text}</text>'
         )
 
     asof_x = x_position(as_of)
