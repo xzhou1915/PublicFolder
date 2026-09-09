@@ -76,7 +76,7 @@ def draw_chart(net: pd.DataFrame, output: Path, as_of: pd.Timestamp) -> None:
     )
     y_lookup = {pair: i for i, pair in enumerate(pair_order)}
     net = net.assign(Y=net["Pair"].map(y_lookup))
-    totals = net.groupby("Pair")["NetDelta"].sum().reindex(pair_order) / 1_000
+    totals = net.groupby("Pair")["NetDelta"].sum().reindex(pair_order) / 1_000_000
 
     plt.rcParams.update(
         {
@@ -102,6 +102,7 @@ def draw_chart(net: pd.DataFrame, output: Path, as_of: pd.Timestamp) -> None:
         positions = net[net["OptionType"].eq(option_type)]
         for row in positions.itertuples():
             bubble_size = 250 + 900 * abs(row.NetDelta) / max_abs_delta
+            delta_millions = int(round(row.NetDelta / 1_000_000))
             y = row.Y + offset
             timeline.scatter(
                 row.ExpiryDate, y, s=bubble_size, marker="o", color=color,
@@ -112,7 +113,7 @@ def draw_chart(net: pd.DataFrame, output: Path, as_of: pd.Timestamp) -> None:
                 fontsize=8.2, weight="bold", color="white", zorder=4,
             )
             timeline.annotate(
-                f"{row.NetDelta / 1_000:+.0f}m"
+                f"{delta_millions:+d}m"
                 + (f"\n{row.Positions} netted" if row.Positions > 1 else ""),
                 (row.ExpiryDate, y),
                 xytext=(np.sqrt(bubble_size) / 2 + 12, 0),
@@ -166,11 +167,12 @@ def draw_chart(net: pd.DataFrame, output: Path, as_of: pd.Timestamp) -> None:
     total_ax.grid(axis="x", alpha=0.14)
     total_ax.spines[["top", "right", "left", "bottom"]].set_visible(False)
     total_ax.set_title("Total net Delta", loc="left", fontsize=12, weight="bold", pad=14)
-    total_ax.set_xlabel("millions, source units", fontsize=8.5, color="#687789")
+    total_ax.set_xlabel("USD m", fontsize=8.5, color="#687789")
     for i, value in enumerate(totals):
+        rounded_value = int(round(value))
         total_ax.text(
             value + (bound * 0.025 if value >= 0 else -bound * 0.025), i,
-            f"{value:+.0f}m", ha="left" if value >= 0 else "right",
+            f"{rounded_value:+d}m", ha="left" if value >= 0 else "right",
             va="center", fontsize=8.5, weight="bold",
         )
 
@@ -181,7 +183,7 @@ def draw_chart(net: pd.DataFrame, output: Path, as_of: pd.Timestamp) -> None:
     fig.text(
         0.055, 0.943,
         "Each bubble nets positions with the same pair, expiry and type  •  "
-        "Label = net Delta in whole millions  •  Size = |net Delta|",
+        "Label = net Delta in USD m, rounded to an integer  •  Size = |net Delta|",
         fontsize=9.5, color="#687789",
     )
     legend = [
@@ -193,7 +195,7 @@ def draw_chart(net: pd.DataFrame, output: Path, as_of: pd.Timestamp) -> None:
     fig.legend(handles=legend, frameon=False, ncol=4, loc="upper right", bbox_to_anchor=(0.97, 0.975))
     fig.text(
         0.055, 0.018,
-        f"As of {as_of:%d %b %Y}. Delta is shown in supplied source units; "
+        f"As of {as_of:%d %b %Y}. Input Delta is assumed to be an unscaled USD amount; "
         "cross-pair totals are intentionally omitted.",
         fontsize=8.3, color="#718094",
     )
