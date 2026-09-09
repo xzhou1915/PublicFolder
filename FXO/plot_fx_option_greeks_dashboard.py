@@ -191,7 +191,7 @@ def draw_panel(
             transform=ax.get_yaxis_transform(),
             ha="left",
             va="center",
-            fontsize=20.1,
+            fontsize=10.05,
             weight="bold",
             color="#14866d" if total >= 0 else "#d84b5b",
             clip_on=False,
@@ -434,7 +434,7 @@ def svg_panel_markup(
         )
         parts.append(
             f'<text x="{width-right+8}" y="{pair_y+4:.2f}" class="total-label" '
-            f'font-size="36" font-weight="700" fill="{total_color}">Σ {total_text}</text>'
+            f'font-size="18" font-weight="700" fill="{total_color}">Σ {total_text}</text>'
         )
 
     asof_x = x_position(as_of)
@@ -520,7 +520,7 @@ h1{margin:0 0 7px;font-size:28px}.subtitle,.asof{color:var(--muted);font-size:13
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px 18px;border-bottom:1px solid var(--line)}.toolbar h2{margin:0;font-size:18px}input{min-width:300px;padding:9px 12px;border:1px solid #bdc9d6;border-radius:7px;font-size:13px}
 .table-wrap{overflow:auto;max-height:620px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th{position:sticky;top:0;z-index:1;padding:10px;background:var(--navy);color:#fff;text-align:left;cursor:pointer;user-select:none}th span{opacity:.55;font-size:10px}
 td{padding:9px 10px;border-bottom:1px solid #e8edf2}tbody tr:nth-child(even){background:#f7f9fc}tbody tr:hover{background:#edf4ff}.footer{padding:12px 18px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
-.axis-label{font-size:10px;fill:#526273}.pair-label{font-size:12px;fill:#26384a;font-weight:600}.value-label{font-size:13px;fill:#26384a;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:6px;stroke-linejoin:round}.total-label{font-size:36px;font-weight:700}.grid-line{stroke:#e4eaf0;stroke-width:1}.asof-line{stroke:#657588;stroke-width:1.2;stroke-dasharray:5 4}.leader{stroke-width:1;opacity:.75}
+.axis-label{font-size:10px;fill:#526273}.pair-label{font-size:12px;fill:#26384a;font-weight:600}.value-label{font-size:13px;fill:#26384a;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:6px;stroke-linejoin:round}.total-label{font-size:18px;font-weight:700}.grid-line{stroke:#e4eaf0;stroke-width:1}.asof-line{stroke:#657588;stroke-width:1.2;stroke-dasharray:5 4}.leader{stroke-width:1;opacity:.75}
 @media(max-width:1100px){.chart-grid{grid-template-columns:1fr}header,.toolbar{align-items:flex-start;flex-direction:column}input{min-width:100%;width:100%}}
 @media print{body{background:#fff}main{max-width:none;padding:0}.chart-card,.trades{box-shadow:none}.table-wrap{max-height:none;overflow:visible}input{display:none}}
 </style>
