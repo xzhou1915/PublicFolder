@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import html
-import json
+import math
 from pathlib import Path
 
 import matplotlib.dates as mdates
@@ -370,27 +370,126 @@ def draw_dashboard(
 
 
 
+def svg_panel_markup(
+    netted: pd.DataFrame,
+    greek: str,
+    pair_order: list[str],
+    as_of: pd.Timestamp,
+) -> str:
+    metric = f"Net{greek}"
+    width, step = 980, 66
+    left, right, top, bottom = 100, 135, 25, 48
+    height = top + len(pair_order) * step + bottom
+    x_min = min(as_of, netted["ExpiryDate"].min()) - pd.Timedelta(days=12)
+    x_max = max(as_of + pd.Timedelta(days=30), netted["ExpiryDate"].max()) + pd.Timedelta(days=50)
+    span_seconds = max((x_max - x_min).total_seconds(), 1)
+
+    def x_position(value: pd.Timestamp) -> float:
+        return left + (value - x_min).total_seconds() / span_seconds * (width - left - right)
+
+    def y_position(pair: str) -> float:
+        return top + pair_order.index(pair) * step + step / 2
+
+    parts = [
+        f'<svg viewBox="0 0 {width} {height}" role="img" '
+        f'aria-label="{greek} by currency pair and expiry">'
+    ]
+    band_x = x_position(as_of)
+    band_width = x_position(as_of + pd.Timedelta(days=30)) - band_x
+    parts.append(
+        f'<rect x="{band_x:.2f}" y="{top}" width="{band_width:.2f}" '
+        f'height="{height-top-bottom}" fill="#f3b65c" fill-opacity=".18"/>'
+    )
+
+    tick = pd.Timestamp(x_min.year, x_min.month, 1)
+    tick_index = 0
+    while tick <= x_max:
+        if tick_index % 2 == 0:
+            tick_x = x_position(tick)
+            parts.append(
+                f'<line x1="{tick_x:.2f}" y1="{top}" x2="{tick_x:.2f}" '
+                f'y2="{height-bottom}" class="grid-line"/>'
+            )
+            parts.append(
+                f'<text x="{tick_x:.2f}" y="{height-18}" text-anchor="middle" '
+                f'class="axis-label">{tick:%b %y}</text>'
+            )
+        tick = tick + pd.DateOffset(months=1)
+        tick_index += 1
+
+    totals = netted.groupby("Pair")[metric].sum().reindex(pair_order)
+    for pair in pair_order:
+        pair_y = y_position(pair)
+        total = float(totals.loc[pair])
+        total_m = int(round(total / USD_MILLION))
+        total_text = f"{total_m:+d}m"
+        total_color = "#14866d" if total >= 0 else "#d84b5b"
+        parts.append(
+            f'<line x1="{left}" y1="{pair_y:.2f}" x2="{width-right}" '
+            f'y2="{pair_y:.2f}" class="grid-line"/>'
+        )
+        parts.append(
+            f'<text x="{left-9}" y="{pair_y+4:.2f}" text-anchor="end" '
+            f'class="pair-label">{html.escape(pair)}</text>'
+        )
+        parts.append(
+            f'<text x="{width-right+8}" y="{pair_y+4:.2f}" class="total-label" '
+            f'fill="{total_color}">Σ {total_text}</text>'
+        )
+
+    asof_x = x_position(as_of)
+    parts.append(
+        f'<line x1="{asof_x:.2f}" y1="{top}" x2="{asof_x:.2f}" '
+        f'y2="{height-bottom}" class="asof-line"/>'
+    )
+    max_abs = max(float(netted[metric].abs().max()), 1)
+    for row in netted.itertuples():
+        raw_value = float(getattr(row, metric))
+        point_x = x_position(pd.Timestamp(row.ExpiryDate))
+        point_y = y_position(row.Pair) + (-8 if row.OptionType == "Call" else 8)
+        radius = 7 + 17 * math.sqrt(abs(raw_value) / max_abs)
+        color = "#2463eb" if row.OptionType == "Call" else "#8b58c7"
+        letter = "C" if row.OptionType == "Call" else "P"
+        value_m = int(round(raw_value / USD_MILLION))
+        label = f"{value_m:+d}m"
+        if row.Positions > 1:
+            label += f" · {row.Positions} trades"
+        tooltip = html.escape(
+            f"{row.Pair} · {row.OptionType} · {row.ExpiryDate:%Y-%m-%d}\n"
+            f"Net {greek}: {raw_value:,.0f} USD\nPositions netted: {row.Positions}"
+        )
+        parts.append(
+            f'<line x1="{point_x+radius:.2f}" y1="{point_y:.2f}" '
+            f'x2="{point_x+radius+7:.2f}" y2="{point_y:.2f}" '
+            f'class="leader" stroke="{color}"/>'
+        )
+        parts.append(
+            f'<circle cx="{point_x:.2f}" cy="{point_y:.2f}" r="{radius:.2f}" '
+            f'fill="{color}" stroke="#fff" stroke-width="1.5"><title>{tooltip}</title></circle>'
+        )
+        parts.append(
+            f'<text x="{point_x:.2f}" y="{point_y+3:.2f}" text-anchor="middle" '
+            f'fill="#fff" font-size="11" font-weight="700">{letter}</text>'
+        )
+        parts.append(
+            f'<text x="{point_x+radius+10:.2f}" y="{point_y+4:.2f}" '
+            f'class="value-label">{html.escape(label)}</text>'
+        )
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
 def write_html_dashboard(
     trades: pd.DataFrame,
     netted: pd.DataFrame,
     output: Path,
     as_of: pd.Timestamp,
 ) -> None:
-    chart_records = []
-    for row in netted.itertuples():
-        chart_records.append(
-            {
-                "pair": row.Pair,
-                "expiry": row.ExpiryDate.strftime("%Y-%m-%d"),
-                "type": row.OptionType,
-                "positions": int(row.Positions),
-                "Delta": float(row.NetDelta),
-                "Gamma": float(row.NetGamma),
-                "Theta": float(row.NetTheta),
-                "Vega": float(row.NetVega),
-            }
-        )
     pair_order = common_pair_order(netted)
+    chart_svgs = {
+        greek: svg_panel_markup(netted, greek, pair_order, as_of)
+        for greek in GREEK_INPUT_COLUMNS
+    }
     headers, rows = format_trade_table(trades)
     header_html = "".join(
         f'<th onclick="sortTable({index})">{html.escape(header)} <span>↕</span></th>'
@@ -429,34 +528,11 @@ td{padding:9px 10px;border-bottom:1px solid #e8edf2}tbody tr:nth-child(even){bac
 <body><main>
 <header><div><h1>FX Options — Netted Greeks by Expiry and Type</h1><div class="subtitle">Native SVG charts · Whole USD millions · Pair order follows total net Delta from smallest to largest · Hover for exact values</div></div><div class="asof">As of __AS_OF_LABEL__</div></header>
 <div class="legend"><span class="key"><span class="dot" style="background:var(--call)">C</span>Call</span><span class="key"><span class="dot" style="background:var(--put)">P</span>Put</span><span class="key"><span class="band"></span>Expires within 30 calendar days</span><span>Σ = total by currency pair</span></div>
-<section class="chart-grid"><article class="chart-card"><h2>Delta</h2><svg id="chart-Delta"></svg></article><article class="chart-card"><h2>Gamma</h2><svg id="chart-Gamma"></svg></article><article class="chart-card"><h2>Theta</h2><svg id="chart-Theta"></svg></article><article class="chart-card"><h2>Vega</h2><svg id="chart-Vega"></svg></article></section>
+<section class="chart-grid"><article class="chart-card"><h2>Delta</h2>__DELTA_SVG__</article><article class="chart-card"><h2>Gamma</h2>__GAMMA_SVG__</article><article class="chart-card"><h2>Theta</h2>__THETA_SVG__</article><article class="chart-card"><h2>Vega</h2>__VEGA_SVG__</article></section>
 <section class="trades"><div class="toolbar"><h2>Original trades — __COUNT__ rows</h2><input id="search" type="search" placeholder="Filter trades…" oninput="filterTrades()"></div><div class="table-wrap"><table id="tradeTable"><thead><tr>__HEADERS__</tr></thead><tbody>__ROWS__</tbody></table></div><div class="footer">Unnetted trades and raw input amounts. ThetaPortCCY and VegaPortCCY are displayed as Theta and Vega. Click a heading to sort.</div></section>
 </main>
 <script>
-const DATA=__CHART_DATA__;
-const PAIRS=__PAIR_ORDER__;
-const AS_OF=new Date('__AS_OF_ISO__T00:00:00Z');
-const DAY=86400000, NS='http://www.w3.org/2000/svg';
-function el(name,attrs={},text=''){const n=document.createElementNS(NS,name);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));if(text!=='')n.textContent=text;return n}
-function roundedM(raw){const v=raw/1000000;return v>=0?Math.floor(v+.5):Math.ceil(v-.5)}
-function signedM(raw){const v=roundedM(raw);return `${v>=0?'+':''}${v}m`}
-function dateLabel(d){return d.toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'})}
-function renderChart(greek){
- const svg=document.getElementById(`chart-${greek}`),W=980,step=66,M={l:100,r:135,t:25,b:48},H=M.t+PAIRS.length*step+M.b;
- svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('role','img');svg.setAttribute('aria-label',`${greek} by currency pair and expiry`);
- const expiries=DATA.map(d=>new Date(`${d.expiry}T00:00:00Z`).getTime()),minT=Math.min(AS_OF.getTime()-12*DAY,...expiries),maxT=Math.max(AS_OF.getTime()+30*DAY,...expiries)+50*DAY;
- const x=t=>M.l+(t-minT)/(maxT-minT)*(W-M.l-M.r),y=p=>M.t+PAIRS.indexOf(p)*step+step/2;
- const bandX=x(AS_OF.getTime()),bandW=x(AS_OF.getTime()+30*DAY)-bandX;svg.appendChild(el('rect',{x:bandX,y:M.t,width:bandW,height:H-M.t-M.b,fill:'#f3b65c','fill-opacity':'.18'}));
- let tick=new Date(minT);tick=new Date(Date.UTC(tick.getUTCFullYear(),tick.getUTCMonth(),1));let tickIndex=0;
- while(tick.getTime()<=maxT){if(tickIndex%2===0){const tx=x(tick.getTime());svg.appendChild(el('line',{x1:tx,y1:M.t,x2:tx,y2:H-M.b,class:'grid-line'}));svg.appendChild(el('text',{x:tx,y:H-18,'text-anchor':'middle',class:'axis-label'},dateLabel(tick)))}tick=new Date(Date.UTC(tick.getUTCFullYear(),tick.getUTCMonth()+1,1));tickIndex++}
- PAIRS.forEach(pair=>{const py=y(pair);svg.appendChild(el('line',{x1:M.l,y1:py,x2:W-M.r,y2:py,class:'grid-line'}));svg.appendChild(el('text',{x:M.l-9,y:py+4,'text-anchor':'end',class:'pair-label'},pair));const total=DATA.filter(d=>d.pair===pair).reduce((a,d)=>a+d[greek],0),tc=total>=0?'#14866d':'#d84b5b';svg.appendChild(el('text',{x:W-M.r+8,y:py+4,class:'total-label',fill:tc},`Σ ${signedM(total)}`))});
- const nowX=x(AS_OF.getTime());svg.appendChild(el('line',{x1:nowX,y1:M.t,x2:nowX,y2:H-M.b,class:'asof-line'}));
- const maxAbs=Math.max(1,...DATA.map(d=>Math.abs(d[greek])));
- DATA.forEach(d=>{const raw=d[greek],px=x(new Date(`${d.expiry}T00:00:00Z`).getTime()),py=y(d.pair)+(d.type==='Call'?-8:8),radius=7+17*Math.sqrt(Math.abs(raw)/maxAbs),color=d.type==='Call'?'#2463eb':'#8b58c7',label=`${signedM(raw)}${d.positions>1?` · ${d.positions} trades`:''}`;
-  svg.appendChild(el('line',{x1:px+radius,y1:py,x2:px+radius+7,y2:py,class:'leader',stroke:color}));const c=el('circle',{cx:px,cy:py,r:radius,fill:color,stroke:'#fff','stroke-width':'1.5'});c.appendChild(el('title',{},`${d.pair} · ${d.type} · ${d.expiry}\nNet ${greek}: ${raw.toLocaleString()} USD\nPositions netted: ${d.positions}`));svg.appendChild(c);svg.appendChild(el('text',{x:px,y:py+3,'text-anchor':'middle',fill:'#fff','font-size':'11','font-weight':'700'},d.type==='Call'?'C':'P'));svg.appendChild(el('text',{x:px+radius+10,y:py+3,class:'value-label'},label));
- });
-}
-['Delta','Gamma','Theta','Vega'].forEach(renderChart);
+
 let direction=1;
 function filterTrades(){const q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('#tradeTable tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')}
 function sortTable(c){const b=document.querySelector('#tradeTable tbody'),r=Array.from(b.rows);direction*=-1;r.sort((x,y)=>{const a=x.cells[c].dataset.value,d=y.cells[c].dataset.value,an=Number(a),dn=Number(d);return(a!==''&&d!==''&&Number.isFinite(an)&&Number.isFinite(dn)?an-dn:a.localeCompare(d))*direction});r.forEach(x=>b.appendChild(x))}
@@ -464,12 +540,13 @@ function sortTable(c){const b=document.querySelector('#tradeTable tbody'),r=Arra
 '''
     document = (
         template.replace("__AS_OF_LABEL__", as_of.strftime("%d %b %Y"))
-        .replace("__AS_OF_ISO__", as_of.strftime("%Y-%m-%d"))
         .replace("__COUNT__", str(len(trades)))
         .replace("__HEADERS__", header_html)
         .replace("__ROWS__", "\n".join(row_html))
-        .replace("__CHART_DATA__", json.dumps(chart_records, separators=(",", ":")))
-        .replace("__PAIR_ORDER__", json.dumps(pair_order, separators=(",", ":")))
+        .replace("__DELTA_SVG__", chart_svgs["Delta"])
+        .replace("__GAMMA_SVG__", chart_svgs["Gamma"])
+        .replace("__THETA_SVG__", chart_svgs["Theta"])
+        .replace("__VEGA_SVG__", chart_svgs["Vega"])
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(document, encoding="utf-8")
