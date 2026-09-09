@@ -15,7 +15,7 @@ h1{margin:0 0 7px;font-size:28px}.subtitle,.asof{color:var(--muted);font-size:13
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px 18px;border-bottom:1px solid var(--line)}.toolbar h2{margin:0;font-size:18px}input{min-width:300px;padding:9px 12px;border:1px solid #bdc9d6;border-radius:7px;font-size:13px}
 .table-wrap{overflow:auto;max-height:620px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th{position:sticky;top:0;z-index:1;padding:10px;background:var(--navy);color:#fff;text-align:left;cursor:pointer;user-select:none}th span{opacity:.55;font-size:10px}
 td{padding:9px 10px;border-bottom:1px solid #e8edf2}tbody tr:nth-child(even){background:#f7f9fc}tbody tr:hover{background:#edf4ff}.footer{padding:12px 18px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
-.axis-label{font-size:10px;fill:#526273}.pair-label{font-size:12px;fill:#26384a;font-weight:600}.value-label{font-size:13px;fill:#26384a;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:6px;stroke-linejoin:round}.total-label{font-size:12px;font-weight:700}.grid-line{stroke:#e4eaf0;stroke-width:1}.asof-line{stroke:#657588;stroke-width:1.2;stroke-dasharray:5 4}.leader{stroke-width:1;opacity:.75}
+.axis-label{font-size:10px;fill:#526273}.pair-label{font-size:12px;fill:#26384a;font-weight:600}.value-label{font-size:13px;fill:#26384a;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:6px;stroke-linejoin:round}.total-label{font-size:36px;font-weight:700}.grid-line{stroke:#e4eaf0;stroke-width:1}.asof-line{stroke:#657588;stroke-width:1.2;stroke-dasharray:5 4}.leader{stroke-width:1;opacity:.75}
 @media(max-width:1100px){.chart-grid{grid-template-columns:1fr}header,.toolbar{align-items:flex-start;flex-direction:column}input{min-width:100%;width:100%}}
 @media print{body{background:#fff}main{max-width:none;padding:0}.chart-card,.trades{box-shadow:none}.table-wrap{max-height:none;overflow:visible}input{display:none}}
 </style>
@@ -24,541 +24,541 @@ td{padding:9px 10px;border-bottom:1px solid #e8edf2}tbody tr:nth-child(even){bac
 <header><div><h1>FX Options — Netted Greeks by Expiry and Type</h1><div class="subtitle">Native SVG charts · Whole USD millions · Pair order follows total net Delta from smallest to largest · Hover for exact values</div></div><div class="asof">As of 09 Sep 2026</div></header>
 <div class="legend"><span class="key"><span class="dot" style="background:var(--call)">C</span>Call</span><span class="key"><span class="dot" style="background:var(--put)">P</span>Put</span><span class="key"><span class="band"></span>Expires within 30 calendar days</span><span>Σ = total by currency pair</span></div>
 <section class="chart-grid"><article class="chart-card"><h2>Delta</h2><svg viewBox="0 0 980 535" role="img" aria-label="Delta by currency pair and expiry">
-<rect x="125.99" y="25" width="64.97" height="462" fill="#f3b65c" fill-opacity=".18"/>
-<line x1="41.53" y1="25" x2="41.53" y2="487" class="grid-line"/>
-<text x="41.53" y="517" text-anchor="middle" class="axis-label">Aug 26</text>
-<line x1="173.63" y1="25" x2="173.63" y2="487" class="grid-line"/>
-<text x="173.63" y="517" text-anchor="middle" class="axis-label">Oct 26</text>
-<line x1="305.74" y1="25" x2="305.74" y2="487" class="grid-line"/>
-<text x="305.74" y="517" text-anchor="middle" class="axis-label">Dec 26</text>
-<line x1="440.01" y1="25" x2="440.01" y2="487" class="grid-line"/>
-<text x="440.01" y="517" text-anchor="middle" class="axis-label">Feb 27</text>
-<line x1="567.79" y1="25" x2="567.79" y2="487" class="grid-line"/>
-<text x="567.79" y="517" text-anchor="middle" class="axis-label">Apr 27</text>
-<line x1="699.90" y1="25" x2="699.90" y2="487" class="grid-line"/>
-<text x="699.90" y="517" text-anchor="middle" class="axis-label">Jun 27</text>
-<line x1="832.01" y1="25" x2="832.01" y2="487" class="grid-line"/>
-<text x="832.01" y="517" text-anchor="middle" class="axis-label">Aug 27</text>
-<line x1="100" y1="58.00" x2="845" y2="58.00" class="grid-line"/>
+<rect x="123.02" y="25" width="57.56" height="462" fill="#f3b65c" fill-opacity=".18"/>
+<line x1="48.20" y1="25" x2="48.20" y2="487" class="grid-line"/>
+<text x="48.20" y="517" text-anchor="middle" class="axis-label">Aug 26</text>
+<line x1="165.23" y1="25" x2="165.23" y2="487" class="grid-line"/>
+<text x="165.23" y="517" text-anchor="middle" class="axis-label">Oct 26</text>
+<line x1="282.27" y1="25" x2="282.27" y2="487" class="grid-line"/>
+<text x="282.27" y="517" text-anchor="middle" class="axis-label">Dec 26</text>
+<line x1="401.22" y1="25" x2="401.22" y2="487" class="grid-line"/>
+<text x="401.22" y="517" text-anchor="middle" class="axis-label">Feb 27</text>
+<line x1="514.42" y1="25" x2="514.42" y2="487" class="grid-line"/>
+<text x="514.42" y="517" text-anchor="middle" class="axis-label">Apr 27</text>
+<line x1="631.45" y1="25" x2="631.45" y2="487" class="grid-line"/>
+<text x="631.45" y="517" text-anchor="middle" class="axis-label">Jun 27</text>
+<line x1="748.49" y1="25" x2="748.49" y2="487" class="grid-line"/>
+<text x="748.49" y="517" text-anchor="middle" class="axis-label">Aug 27</text>
+<line x1="100" y1="58.00" x2="760" y2="58.00" class="grid-line"/>
 <text x="91" y="62.00" text-anchor="end" class="pair-label">USDZAR</text>
-<text x="853" y="62.00" class="total-label" fill="#d84b5b">Σ -170m</text>
-<line x1="100" y1="124.00" x2="845" y2="124.00" class="grid-line"/>
+<text x="768" y="62.00" class="total-label" fill="#d84b5b">Σ -170m</text>
+<line x1="100" y1="124.00" x2="760" y2="124.00" class="grid-line"/>
 <text x="91" y="128.00" text-anchor="end" class="pair-label">EURGBP</text>
-<text x="853" y="128.00" class="total-label" fill="#d84b5b">Σ -71m</text>
-<line x1="100" y1="190.00" x2="845" y2="190.00" class="grid-line"/>
+<text x="768" y="128.00" class="total-label" fill="#d84b5b">Σ -71m</text>
+<line x1="100" y1="190.00" x2="760" y2="190.00" class="grid-line"/>
 <text x="91" y="194.00" text-anchor="end" class="pair-label">GBPUSD</text>
-<text x="853" y="194.00" class="total-label" fill="#d84b5b">Σ -68m</text>
-<line x1="100" y1="256.00" x2="845" y2="256.00" class="grid-line"/>
+<text x="768" y="194.00" class="total-label" fill="#d84b5b">Σ -68m</text>
+<line x1="100" y1="256.00" x2="760" y2="256.00" class="grid-line"/>
 <text x="91" y="260.00" text-anchor="end" class="pair-label">USDJPY</text>
-<text x="853" y="260.00" class="total-label" fill="#d84b5b">Σ -37m</text>
-<line x1="100" y1="322.00" x2="845" y2="322.00" class="grid-line"/>
+<text x="768" y="260.00" class="total-label" fill="#d84b5b">Σ -37m</text>
+<line x1="100" y1="322.00" x2="760" y2="322.00" class="grid-line"/>
 <text x="91" y="326.00" text-anchor="end" class="pair-label">AUDUSD</text>
-<text x="853" y="326.00" class="total-label" fill="#14866d">Σ +12m</text>
-<line x1="100" y1="388.00" x2="845" y2="388.00" class="grid-line"/>
+<text x="768" y="326.00" class="total-label" fill="#14866d">Σ +12m</text>
+<line x1="100" y1="388.00" x2="760" y2="388.00" class="grid-line"/>
 <text x="91" y="392.00" text-anchor="end" class="pair-label">USDCNH</text>
-<text x="853" y="392.00" class="total-label" fill="#14866d">Σ +32m</text>
-<line x1="100" y1="454.00" x2="845" y2="454.00" class="grid-line"/>
+<text x="768" y="392.00" class="total-label" fill="#14866d">Σ +32m</text>
+<line x1="100" y1="454.00" x2="760" y2="454.00" class="grid-line"/>
 <text x="91" y="458.00" text-anchor="end" class="pair-label">EURUSD</text>
-<text x="853" y="458.00" class="total-label" fill="#14866d">Σ +164m</text>
-<line x1="125.99" y1="25" x2="125.99" y2="487" class="asof-line"/>
-<line x1="253.81" y1="314.00" x2="260.81" y2="314.00" class="leader" stroke="#2463eb"/>
-<circle cx="236.44" cy="314.00" r="17.37" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2026-10-30
+<text x="768" y="458.00" class="total-label" fill="#14866d">Σ +164m</text>
+<line x1="123.02" y1="25" x2="123.02" y2="487" class="asof-line"/>
+<line x1="238.25" y1="314.00" x2="245.25" y2="314.00" class="leader" stroke="#2463eb"/>
+<circle cx="220.87" cy="314.00" r="17.37" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2026-10-30
 Net Delta: 74,500,000 USD
 Positions netted: 1</title></circle>
-<text x="236.44" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="263.81" y="318.00" class="value-label">+74m</text>
-<line x1="571.28" y1="330.00" x2="578.28" y2="330.00" class="leader" stroke="#8b58c7"/>
-<circle cx="554.80" cy="330.00" r="16.49" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-03-26
+<text x="220.87" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="248.25" y="318.00" class="value-label">+74m</text>
+<line x1="519.39" y1="330.00" x2="526.39" y2="330.00" class="leader" stroke="#8b58c7"/>
+<circle cx="502.91" cy="330.00" r="16.49" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-03-26
 Net Delta: -62,300,000 USD
 Positions netted: 1</title></circle>
-<text x="554.80" y="333.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="581.28" y="334.00" class="value-label">-62m</text>
-<line x1="450.67" y1="132.00" x2="457.67" y2="132.00" class="leader" stroke="#8b58c7"/>
-<circle cx="433.52" cy="132.00" r="17.15" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURGBP · Put · 2027-01-29
+<text x="502.91" y="333.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="529.39" y="334.00" class="value-label">-62m</text>
+<line x1="412.61" y1="132.00" x2="419.61" y2="132.00" class="leader" stroke="#8b58c7"/>
+<circle cx="395.47" cy="132.00" r="17.15" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURGBP · Put · 2027-01-29
 Net Delta: -71,300,000 USD
 Positions netted: 1</title></circle>
-<text x="433.52" y="135.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="460.67" y="136.00" class="value-label">-71m</text>
-<line x1="184.01" y1="446.00" x2="191.01" y2="446.00" class="leader" stroke="#2463eb"/>
-<circle cx="160.64" cy="446.00" r="23.38" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-09-25
+<text x="395.47" y="135.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="422.61" y="136.00" class="value-label">-71m</text>
+<line x1="177.10" y1="446.00" x2="184.10" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="153.72" cy="446.00" r="23.38" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-09-25
 Net Delta: 185,600,000 USD
 Positions netted: 2</title></circle>
-<text x="160.64" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="194.01" y="450.00" class="value-label">+186m · 2 trades</text>
-<line x1="301.99" y1="462.00" x2="308.99" y2="462.00" class="leader" stroke="#8b58c7"/>
-<circle cx="281.92" cy="462.00" r="20.07" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURUSD · Put · 2026-11-20
+<text x="153.72" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="187.10" y="450.00" class="value-label">+186m · 2 trades</text>
+<line x1="281.23" y1="462.00" x2="288.23" y2="462.00" class="leader" stroke="#8b58c7"/>
+<circle cx="261.16" cy="462.00" r="20.07" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURUSD · Put · 2026-11-20
 Net Delta: -118,200,000 USD
 Positions netted: 1</title></circle>
-<text x="281.92" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="311.99" y="466.00" class="value-label">-118m</text>
-<line x1="422.00" y1="446.00" x2="429.00" y2="446.00" class="leader" stroke="#2463eb"/>
-<circle cx="403.20" cy="446.00" r="18.80" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2027-01-15
+<text x="261.16" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="291.23" y="466.00" class="value-label">-118m</text>
+<line x1="387.41" y1="446.00" x2="394.41" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="368.60" cy="446.00" r="18.80" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2027-01-15
 Net Delta: 96,400,000 USD
 Positions netted: 1</title></circle>
-<text x="403.20" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="432.00" y="450.00" class="value-label">+96m</text>
-<line x1="167.53" y1="198.00" x2="174.53" y2="198.00" class="leader" stroke="#8b58c7"/>
-<circle cx="145.48" cy="198.00" r="22.05" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-09-18
+<text x="368.60" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="397.41" y="450.00" class="value-label">+96m</text>
+<line x1="162.34" y1="198.00" x2="169.34" y2="198.00" class="leader" stroke="#8b58c7"/>
+<circle cx="140.29" cy="198.00" r="22.05" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-09-18
 Net Delta: -156,800,000 USD
 Positions netted: 1</title></circle>
-<text x="145.48" y="201.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="177.53" y="202.00" class="value-label">-157m</text>
-<line x1="389.07" y1="182.00" x2="396.07" y2="182.00" class="leader" stroke="#2463eb"/>
-<circle cx="370.71" cy="182.00" r="18.36" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Call · 2026-12-31
+<text x="140.29" y="201.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="172.34" y="202.00" class="value-label">-157m</text>
+<line x1="358.18" y1="182.00" x2="365.18" y2="182.00" class="leader" stroke="#2463eb"/>
+<circle cx="339.83" cy="182.00" r="18.36" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Call · 2026-12-31
 Net Delta: 89,300,000 USD
 Positions netted: 1</title></circle>
-<text x="370.71" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="399.07" y="186.00" class="value-label">+89m</text>
-<line x1="272.71" y1="380.00" x2="279.71" y2="380.00" class="leader" stroke="#2463eb"/>
-<circle cx="251.60" cy="380.00" r="21.12" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2026-11-06
+<text x="339.83" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="368.18" y="186.00" class="value-label">+89m</text>
+<line x1="255.42" y1="380.00" x2="262.42" y2="380.00" class="leader" stroke="#2463eb"/>
+<circle cx="234.30" cy="380.00" r="21.12" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2026-11-06
 Net Delta: 137,900,000 USD
 Positions netted: 1</title></circle>
-<text x="251.60" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="282.71" y="384.00" class="value-label">+138m</text>
-<line x1="513.50" y1="396.00" x2="520.50" y2="396.00" class="leader" stroke="#8b58c7"/>
-<circle cx="494.16" cy="396.00" r="19.34" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDCNH · Put · 2027-02-26
+<text x="234.30" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="265.42" y="384.00" class="value-label">+138m</text>
+<line x1="468.53" y1="396.00" x2="475.53" y2="396.00" class="leader" stroke="#8b58c7"/>
+<circle cx="449.19" cy="396.00" r="19.34" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDCNH · Put · 2027-02-26
 Net Delta: -105,400,000 USD
 Positions netted: 1</title></circle>
-<text x="494.16" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="523.50" y="400.00" class="value-label">-105m</text>
-<line x1="213.37" y1="248.00" x2="220.37" y2="248.00" class="leader" stroke="#2463eb"/>
-<circle cx="190.96" cy="248.00" r="22.41" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2026-10-09
+<text x="449.19" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="478.53" y="400.00" class="value-label">-105m</text>
+<line x1="202.99" y1="248.00" x2="209.99" y2="248.00" class="leader" stroke="#2463eb"/>
+<circle cx="180.58" cy="248.00" r="22.41" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2026-10-09
 Net Delta: 164,300,000 USD
 Positions netted: 1</title></circle>
-<text x="190.96" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="223.37" y="252.00" class="value-label">+164m</text>
-<line x1="348.24" y1="264.00" x2="355.24" y2="264.00" class="leader" stroke="#8b58c7"/>
-<circle cx="327.40" cy="264.00" r="20.84" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2026-12-11
+<text x="180.58" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="212.99" y="252.00" class="value-label">+164m</text>
+<line x1="322.29" y1="264.00" x2="329.29" y2="264.00" class="leader" stroke="#8b58c7"/>
+<circle cx="301.45" cy="264.00" r="20.84" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2026-12-11
 Net Delta: -132,600,000 USD
 Positions netted: 1</title></circle>
-<text x="327.40" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="358.24" y="268.00" class="value-label">-133m</text>
-<line x1="753.66" y1="264.00" x2="760.66" y2="264.00" class="leader" stroke="#8b58c7"/>
-<circle cx="736.72" cy="264.00" r="16.95" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-06-18
+<text x="301.45" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="332.29" y="268.00" class="value-label">-133m</text>
+<line x1="681.02" y1="264.00" x2="688.02" y2="264.00" class="leader" stroke="#8b58c7"/>
+<circle cx="664.07" cy="264.00" r="16.95" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-06-18
 Net Delta: -68,500,000 USD
 Positions netted: 1</title></circle>
-<text x="736.72" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="763.66" y="268.00" class="value-label">-68m</text>
-<line x1="245.28" y1="66.00" x2="252.28" y2="66.00" class="leader" stroke="#8b58c7"/>
-<circle cx="221.28" cy="66.00" r="24.00" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2026-10-23
+<text x="664.07" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="691.02" y="268.00" class="value-label">-68m</text>
+<line x1="231.44" y1="66.00" x2="238.44" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="207.44" cy="66.00" r="24.00" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2026-10-23
 Net Delta: -200,032,000 USD
 Positions netted: 2</title></circle>
-<text x="221.28" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="255.28" y="70.00" class="value-label">-200m · 2 trades</text>
-<line x1="362.30" y1="50.00" x2="369.30" y2="50.00" class="leader" stroke="#2463eb"/>
-<circle cx="342.56" cy="50.00" r="19.74" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2026-12-18
+<text x="207.44" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="241.44" y="70.00" class="value-label">-200m · 2 trades</text>
+<line x1="334.63" y1="50.00" x2="341.63" y2="50.00" class="leader" stroke="#2463eb"/>
+<circle cx="314.88" cy="50.00" r="19.74" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2026-12-18
 Net Delta: 112,400,000 USD
 Positions netted: 1</title></circle>
-<text x="342.56" y="53.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="372.30" y="54.00" class="value-label">+112m</text>
-<line x1="557.55" y1="66.00" x2="564.55" y2="66.00" class="leader" stroke="#8b58c7"/>
-<circle cx="539.64" cy="66.00" r="17.91" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2027-03-19
+<text x="314.88" y="53.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="344.63" y="54.00" class="value-label">+112m</text>
+<line x1="507.39" y1="66.00" x2="514.39" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="489.48" cy="66.00" r="17.91" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2027-03-19
 Net Delta: -82,400,000 USD
 Positions netted: 1</title></circle>
-<text x="539.64" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="567.55" y="70.00" class="value-label">-82m</text>
+<text x="489.48" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="517.39" y="70.00" class="value-label">-82m</text>
 </svg></article><article class="chart-card"><h2>Gamma</h2><svg viewBox="0 0 980 535" role="img" aria-label="Gamma by currency pair and expiry">
-<rect x="125.99" y="25" width="64.97" height="462" fill="#f3b65c" fill-opacity=".18"/>
-<line x1="41.53" y1="25" x2="41.53" y2="487" class="grid-line"/>
-<text x="41.53" y="517" text-anchor="middle" class="axis-label">Aug 26</text>
-<line x1="173.63" y1="25" x2="173.63" y2="487" class="grid-line"/>
-<text x="173.63" y="517" text-anchor="middle" class="axis-label">Oct 26</text>
-<line x1="305.74" y1="25" x2="305.74" y2="487" class="grid-line"/>
-<text x="305.74" y="517" text-anchor="middle" class="axis-label">Dec 26</text>
-<line x1="440.01" y1="25" x2="440.01" y2="487" class="grid-line"/>
-<text x="440.01" y="517" text-anchor="middle" class="axis-label">Feb 27</text>
-<line x1="567.79" y1="25" x2="567.79" y2="487" class="grid-line"/>
-<text x="567.79" y="517" text-anchor="middle" class="axis-label">Apr 27</text>
-<line x1="699.90" y1="25" x2="699.90" y2="487" class="grid-line"/>
-<text x="699.90" y="517" text-anchor="middle" class="axis-label">Jun 27</text>
-<line x1="832.01" y1="25" x2="832.01" y2="487" class="grid-line"/>
-<text x="832.01" y="517" text-anchor="middle" class="axis-label">Aug 27</text>
-<line x1="100" y1="58.00" x2="845" y2="58.00" class="grid-line"/>
+<rect x="123.02" y="25" width="57.56" height="462" fill="#f3b65c" fill-opacity=".18"/>
+<line x1="48.20" y1="25" x2="48.20" y2="487" class="grid-line"/>
+<text x="48.20" y="517" text-anchor="middle" class="axis-label">Aug 26</text>
+<line x1="165.23" y1="25" x2="165.23" y2="487" class="grid-line"/>
+<text x="165.23" y="517" text-anchor="middle" class="axis-label">Oct 26</text>
+<line x1="282.27" y1="25" x2="282.27" y2="487" class="grid-line"/>
+<text x="282.27" y="517" text-anchor="middle" class="axis-label">Dec 26</text>
+<line x1="401.22" y1="25" x2="401.22" y2="487" class="grid-line"/>
+<text x="401.22" y="517" text-anchor="middle" class="axis-label">Feb 27</text>
+<line x1="514.42" y1="25" x2="514.42" y2="487" class="grid-line"/>
+<text x="514.42" y="517" text-anchor="middle" class="axis-label">Apr 27</text>
+<line x1="631.45" y1="25" x2="631.45" y2="487" class="grid-line"/>
+<text x="631.45" y="517" text-anchor="middle" class="axis-label">Jun 27</text>
+<line x1="748.49" y1="25" x2="748.49" y2="487" class="grid-line"/>
+<text x="748.49" y="517" text-anchor="middle" class="axis-label">Aug 27</text>
+<line x1="100" y1="58.00" x2="760" y2="58.00" class="grid-line"/>
 <text x="91" y="62.00" text-anchor="end" class="pair-label">USDZAR</text>
-<text x="853" y="62.00" class="total-label" fill="#14866d">Σ +258m</text>
-<line x1="100" y1="124.00" x2="845" y2="124.00" class="grid-line"/>
+<text x="768" y="62.00" class="total-label" fill="#14866d">Σ +258m</text>
+<line x1="100" y1="124.00" x2="760" y2="124.00" class="grid-line"/>
 <text x="91" y="128.00" text-anchor="end" class="pair-label">EURGBP</text>
-<text x="853" y="128.00" class="total-label" fill="#14866d">Σ +43m</text>
-<line x1="100" y1="190.00" x2="845" y2="190.00" class="grid-line"/>
+<text x="768" y="128.00" class="total-label" fill="#14866d">Σ +43m</text>
+<line x1="100" y1="190.00" x2="760" y2="190.00" class="grid-line"/>
 <text x="91" y="194.00" text-anchor="end" class="pair-label">GBPUSD</text>
-<text x="853" y="194.00" class="total-label" fill="#14866d">Σ +169m</text>
-<line x1="100" y1="256.00" x2="845" y2="256.00" class="grid-line"/>
+<text x="768" y="194.00" class="total-label" fill="#14866d">Σ +169m</text>
+<line x1="100" y1="256.00" x2="760" y2="256.00" class="grid-line"/>
 <text x="91" y="260.00" text-anchor="end" class="pair-label">USDJPY</text>
-<text x="853" y="260.00" class="total-label" fill="#14866d">Σ +216m</text>
-<line x1="100" y1="322.00" x2="845" y2="322.00" class="grid-line"/>
+<text x="768" y="260.00" class="total-label" fill="#14866d">Σ +216m</text>
+<line x1="100" y1="322.00" x2="760" y2="322.00" class="grid-line"/>
 <text x="91" y="326.00" text-anchor="end" class="pair-label">AUDUSD</text>
-<text x="853" y="326.00" class="total-label" fill="#14866d">Σ +98m</text>
-<line x1="100" y1="388.00" x2="845" y2="388.00" class="grid-line"/>
+<text x="768" y="326.00" class="total-label" fill="#14866d">Σ +98m</text>
+<line x1="100" y1="388.00" x2="760" y2="388.00" class="grid-line"/>
 <text x="91" y="392.00" text-anchor="end" class="pair-label">USDCNH</text>
-<text x="853" y="392.00" class="total-label" fill="#14866d">Σ +144m</text>
-<line x1="100" y1="454.00" x2="845" y2="454.00" class="grid-line"/>
+<text x="768" y="392.00" class="total-label" fill="#14866d">Σ +144m</text>
+<line x1="100" y1="454.00" x2="760" y2="454.00" class="grid-line"/>
 <text x="91" y="458.00" text-anchor="end" class="pair-label">EURUSD</text>
-<text x="853" y="458.00" class="total-label" fill="#14866d">Σ +246m</text>
-<line x1="125.99" y1="25" x2="125.99" y2="487" class="asof-line"/>
-<line x1="254.52" y1="314.00" x2="261.52" y2="314.00" class="leader" stroke="#2463eb"/>
-<circle cx="236.44" cy="314.00" r="18.08" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2026-10-30
+<text x="768" y="458.00" class="total-label" fill="#14866d">Σ +246m</text>
+<line x1="123.02" y1="25" x2="123.02" y2="487" class="asof-line"/>
+<line x1="238.95" y1="314.00" x2="245.95" y2="314.00" class="leader" stroke="#2463eb"/>
+<circle cx="220.87" cy="314.00" r="18.08" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2026-10-30
 Net Gamma: 60,300,000 USD
 Positions netted: 1</title></circle>
-<text x="236.44" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="264.52" y="318.00" class="value-label">+60m</text>
-<line x1="570.54" y1="330.00" x2="577.54" y2="330.00" class="leader" stroke="#8b58c7"/>
-<circle cx="554.80" cy="330.00" r="15.75" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-03-26
+<text x="220.87" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="248.95" y="318.00" class="value-label">+60m</text>
+<line x1="518.65" y1="330.00" x2="525.65" y2="330.00" class="leader" stroke="#8b58c7"/>
+<circle cx="502.91" cy="330.00" r="15.75" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-03-26
 Net Gamma: 37,600,000 USD
 Positions netted: 1</title></circle>
-<text x="554.80" y="333.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="580.54" y="334.00" class="value-label">+38m</text>
-<line x1="449.86" y1="132.00" x2="456.86" y2="132.00" class="leader" stroke="#8b58c7"/>
-<circle cx="433.52" cy="132.00" r="16.34" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURGBP · Put · 2027-01-29
+<text x="502.91" y="333.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="528.65" y="334.00" class="value-label">+38m</text>
+<line x1="411.81" y1="132.00" x2="418.81" y2="132.00" class="leader" stroke="#8b58c7"/>
+<circle cx="395.47" cy="132.00" r="16.34" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURGBP · Put · 2027-01-29
 Net Gamma: 42,900,000 USD
 Positions netted: 1</title></circle>
-<text x="433.52" y="135.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="459.86" y="136.00" class="value-label">+43m</text>
-<line x1="183.37" y1="446.00" x2="190.37" y2="446.00" class="leader" stroke="#2463eb"/>
-<circle cx="160.64" cy="446.00" r="22.73" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-09-25
+<text x="395.47" y="135.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="421.81" y="136.00" class="value-label">+43m</text>
+<line x1="176.45" y1="446.00" x2="183.45" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="153.72" cy="446.00" r="22.73" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-09-25
 Net Gamma: 121,600,000 USD
 Positions netted: 2</title></circle>
-<text x="160.64" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="193.37" y="450.00" class="value-label">+122m · 2 trades</text>
-<line x1="300.98" y1="462.00" x2="307.98" y2="462.00" class="leader" stroke="#8b58c7"/>
-<circle cx="281.92" cy="462.00" r="19.06" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURUSD · Put · 2026-11-20
+<text x="153.72" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="186.45" y="450.00" class="value-label">+122m · 2 trades</text>
+<line x1="280.22" y1="462.00" x2="287.22" y2="462.00" class="leader" stroke="#8b58c7"/>
+<circle cx="261.16" cy="462.00" r="19.06" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURUSD · Put · 2026-11-20
 Net Gamma: 71,500,000 USD
 Positions netted: 1</title></circle>
-<text x="281.92" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="310.98" y="466.00" class="value-label">+72m</text>
-<line x1="420.54" y1="446.00" x2="427.54" y2="446.00" class="leader" stroke="#2463eb"/>
-<circle cx="403.20" cy="446.00" r="17.35" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2027-01-15
+<text x="261.16" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="290.22" y="466.00" class="value-label">+72m</text>
+<line x1="385.95" y1="446.00" x2="392.95" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="368.60" cy="446.00" r="17.35" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2027-01-15
 Net Gamma: 52,600,000 USD
 Positions netted: 1</title></circle>
-<text x="403.20" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="430.54" y="450.00" class="value-label">+53m</text>
-<line x1="168.06" y1="198.00" x2="175.06" y2="198.00" class="leader" stroke="#8b58c7"/>
-<circle cx="145.48" cy="198.00" r="22.58" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-09-18
+<text x="368.60" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="395.95" y="450.00" class="value-label">+53m</text>
+<line x1="162.87" y1="198.00" x2="169.87" y2="198.00" class="leader" stroke="#8b58c7"/>
+<circle cx="140.29" cy="198.00" r="22.58" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-09-18
 Net Gamma: 119,300,000 USD
 Positions netted: 1</title></circle>
-<text x="145.48" y="201.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="178.06" y="202.00" class="value-label">+119m</text>
-<line x1="387.78" y1="182.00" x2="394.78" y2="182.00" class="leader" stroke="#2463eb"/>
-<circle cx="370.71" cy="182.00" r="17.07" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Call · 2026-12-31
+<text x="140.29" y="201.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="172.87" y="202.00" class="value-label">+119m</text>
+<line x1="356.89" y1="182.00" x2="363.89" y2="182.00" class="leader" stroke="#2463eb"/>
+<circle cx="339.83" cy="182.00" r="17.07" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Call · 2026-12-31
 Net Gamma: 49,800,000 USD
 Positions netted: 1</title></circle>
-<text x="370.71" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="397.78" y="186.00" class="value-label">+50m</text>
-<line x1="272.04" y1="380.00" x2="279.04" y2="380.00" class="leader" stroke="#2463eb"/>
-<circle cx="251.60" cy="380.00" r="20.44" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2026-11-06
+<text x="339.83" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="366.89" y="186.00" class="value-label">+50m</text>
+<line x1="254.74" y1="380.00" x2="261.74" y2="380.00" class="leader" stroke="#2463eb"/>
+<circle cx="234.30" cy="380.00" r="20.44" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2026-11-06
 Net Gamma: 88,800,000 USD
 Positions netted: 1</title></circle>
-<text x="251.60" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="282.04" y="384.00" class="value-label">+89m</text>
-<line x1="511.80" y1="396.00" x2="518.80" y2="396.00" class="leader" stroke="#8b58c7"/>
-<circle cx="494.16" cy="396.00" r="17.65" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDCNH · Put · 2027-02-26
+<text x="234.30" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="264.74" y="384.00" class="value-label">+89m</text>
+<line x1="466.83" y1="396.00" x2="473.83" y2="396.00" class="leader" stroke="#8b58c7"/>
+<circle cx="449.19" cy="396.00" r="17.65" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDCNH · Put · 2027-02-26
 Net Gamma: 55,700,000 USD
 Positions netted: 1</title></circle>
-<text x="494.16" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="521.80" y="400.00" class="value-label">+56m</text>
-<line x1="212.31" y1="248.00" x2="219.31" y2="248.00" class="leader" stroke="#2463eb"/>
-<circle cx="190.96" cy="248.00" r="21.35" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2026-10-09
+<text x="449.19" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="476.83" y="400.00" class="value-label">+56m</text>
+<line x1="201.93" y1="248.00" x2="208.93" y2="248.00" class="leader" stroke="#2463eb"/>
+<circle cx="180.58" cy="248.00" r="21.35" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2026-10-09
 Net Gamma: 101,200,000 USD
 Positions netted: 1</title></circle>
-<text x="190.96" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="222.31" y="252.00" class="value-label">+101m</text>
-<line x1="347.49" y1="264.00" x2="354.49" y2="264.00" class="leader" stroke="#8b58c7"/>
-<circle cx="327.40" cy="264.00" r="20.09" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2026-12-11
+<text x="180.58" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="211.93" y="252.00" class="value-label">+101m</text>
+<line x1="321.54" y1="264.00" x2="328.54" y2="264.00" class="leader" stroke="#8b58c7"/>
+<circle cx="301.45" cy="264.00" r="20.09" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2026-12-11
 Net Gamma: 84,200,000 USD
 Positions netted: 1</title></circle>
-<text x="327.40" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="357.49" y="268.00" class="value-label">+84m</text>
-<line x1="751.67" y1="264.00" x2="758.67" y2="264.00" class="leader" stroke="#8b58c7"/>
-<circle cx="736.72" cy="264.00" r="14.95" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-06-18
+<text x="301.45" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="331.54" y="268.00" class="value-label">+84m</text>
+<line x1="679.02" y1="264.00" x2="686.02" y2="264.00" class="leader" stroke="#8b58c7"/>
+<circle cx="664.07" cy="264.00" r="14.95" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-06-18
 Net Gamma: 31,100,000 USD
 Positions netted: 1</title></circle>
-<text x="736.72" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="761.67" y="268.00" class="value-label">+31m</text>
-<line x1="245.28" y1="66.00" x2="252.28" y2="66.00" class="leader" stroke="#8b58c7"/>
-<circle cx="221.28" cy="66.00" r="24.00" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2026-10-23
+<text x="664.07" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="689.02" y="268.00" class="value-label">+31m</text>
+<line x1="231.44" y1="66.00" x2="238.44" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="207.44" cy="66.00" r="24.00" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2026-10-23
 Net Gamma: 142,042,000 USD
 Positions netted: 2</title></circle>
-<text x="221.28" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="255.28" y="70.00" class="value-label">+142m · 2 trades</text>
-<line x1="361.36" y1="50.00" x2="368.36" y2="50.00" class="leader" stroke="#2463eb"/>
-<circle cx="342.56" cy="50.00" r="18.80" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2026-12-18
+<text x="207.44" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="241.44" y="70.00" class="value-label">+142m · 2 trades</text>
+<line x1="333.68" y1="50.00" x2="340.68" y2="50.00" class="leader" stroke="#2463eb"/>
+<circle cx="314.88" cy="50.00" r="18.80" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2026-12-18
 Net Gamma: 68,400,000 USD
 Positions netted: 1</title></circle>
-<text x="342.56" y="53.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="371.36" y="54.00" class="value-label">+68m</text>
-<line x1="556.44" y1="66.00" x2="563.44" y2="66.00" class="leader" stroke="#8b58c7"/>
-<circle cx="539.64" cy="66.00" r="16.80" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2027-03-19
+<text x="314.88" y="53.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="343.68" y="54.00" class="value-label">+68m</text>
+<line x1="506.28" y1="66.00" x2="513.28" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="489.48" cy="66.00" r="16.80" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2027-03-19
 Net Gamma: 47,200,000 USD
 Positions netted: 1</title></circle>
-<text x="539.64" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="566.44" y="70.00" class="value-label">+47m</text>
+<text x="489.48" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="516.28" y="70.00" class="value-label">+47m</text>
 </svg></article><article class="chart-card"><h2>Theta</h2><svg viewBox="0 0 980 535" role="img" aria-label="Theta by currency pair and expiry">
-<rect x="125.99" y="25" width="64.97" height="462" fill="#f3b65c" fill-opacity=".18"/>
-<line x1="41.53" y1="25" x2="41.53" y2="487" class="grid-line"/>
-<text x="41.53" y="517" text-anchor="middle" class="axis-label">Aug 26</text>
-<line x1="173.63" y1="25" x2="173.63" y2="487" class="grid-line"/>
-<text x="173.63" y="517" text-anchor="middle" class="axis-label">Oct 26</text>
-<line x1="305.74" y1="25" x2="305.74" y2="487" class="grid-line"/>
-<text x="305.74" y="517" text-anchor="middle" class="axis-label">Dec 26</text>
-<line x1="440.01" y1="25" x2="440.01" y2="487" class="grid-line"/>
-<text x="440.01" y="517" text-anchor="middle" class="axis-label">Feb 27</text>
-<line x1="567.79" y1="25" x2="567.79" y2="487" class="grid-line"/>
-<text x="567.79" y="517" text-anchor="middle" class="axis-label">Apr 27</text>
-<line x1="699.90" y1="25" x2="699.90" y2="487" class="grid-line"/>
-<text x="699.90" y="517" text-anchor="middle" class="axis-label">Jun 27</text>
-<line x1="832.01" y1="25" x2="832.01" y2="487" class="grid-line"/>
-<text x="832.01" y="517" text-anchor="middle" class="axis-label">Aug 27</text>
-<line x1="100" y1="58.00" x2="845" y2="58.00" class="grid-line"/>
+<rect x="123.02" y="25" width="57.56" height="462" fill="#f3b65c" fill-opacity=".18"/>
+<line x1="48.20" y1="25" x2="48.20" y2="487" class="grid-line"/>
+<text x="48.20" y="517" text-anchor="middle" class="axis-label">Aug 26</text>
+<line x1="165.23" y1="25" x2="165.23" y2="487" class="grid-line"/>
+<text x="165.23" y="517" text-anchor="middle" class="axis-label">Oct 26</text>
+<line x1="282.27" y1="25" x2="282.27" y2="487" class="grid-line"/>
+<text x="282.27" y="517" text-anchor="middle" class="axis-label">Dec 26</text>
+<line x1="401.22" y1="25" x2="401.22" y2="487" class="grid-line"/>
+<text x="401.22" y="517" text-anchor="middle" class="axis-label">Feb 27</text>
+<line x1="514.42" y1="25" x2="514.42" y2="487" class="grid-line"/>
+<text x="514.42" y="517" text-anchor="middle" class="axis-label">Apr 27</text>
+<line x1="631.45" y1="25" x2="631.45" y2="487" class="grid-line"/>
+<text x="631.45" y="517" text-anchor="middle" class="axis-label">Jun 27</text>
+<line x1="748.49" y1="25" x2="748.49" y2="487" class="grid-line"/>
+<text x="748.49" y="517" text-anchor="middle" class="axis-label">Aug 27</text>
+<line x1="100" y1="58.00" x2="760" y2="58.00" class="grid-line"/>
 <text x="91" y="62.00" text-anchor="end" class="pair-label">USDZAR</text>
-<text x="853" y="62.00" class="total-label" fill="#d84b5b">Σ -1m</text>
-<line x1="100" y1="124.00" x2="845" y2="124.00" class="grid-line"/>
+<text x="768" y="62.00" class="total-label" fill="#d84b5b">Σ -1m</text>
+<line x1="100" y1="124.00" x2="760" y2="124.00" class="grid-line"/>
 <text x="91" y="128.00" text-anchor="end" class="pair-label">EURGBP</text>
-<text x="853" y="128.00" class="total-label" fill="#14866d">Σ +5m</text>
-<line x1="100" y1="190.00" x2="845" y2="190.00" class="grid-line"/>
+<text x="768" y="128.00" class="total-label" fill="#14866d">Σ +5m</text>
+<line x1="100" y1="190.00" x2="760" y2="190.00" class="grid-line"/>
 <text x="91" y="194.00" text-anchor="end" class="pair-label">GBPUSD</text>
-<text x="853" y="194.00" class="total-label" fill="#d84b5b">Σ -8m</text>
-<line x1="100" y1="256.00" x2="845" y2="256.00" class="grid-line"/>
+<text x="768" y="194.00" class="total-label" fill="#d84b5b">Σ -8m</text>
+<line x1="100" y1="256.00" x2="760" y2="256.00" class="grid-line"/>
 <text x="91" y="260.00" text-anchor="end" class="pair-label">USDJPY</text>
-<text x="853" y="260.00" class="total-label" fill="#d84b5b">Σ -26m</text>
-<line x1="100" y1="322.00" x2="845" y2="322.00" class="grid-line"/>
+<text x="768" y="260.00" class="total-label" fill="#d84b5b">Σ -26m</text>
+<line x1="100" y1="322.00" x2="760" y2="322.00" class="grid-line"/>
 <text x="91" y="326.00" text-anchor="end" class="pair-label">AUDUSD</text>
-<text x="853" y="326.00" class="total-label" fill="#d84b5b">Σ -12m</text>
-<line x1="100" y1="388.00" x2="845" y2="388.00" class="grid-line"/>
+<text x="768" y="326.00" class="total-label" fill="#d84b5b">Σ -12m</text>
+<line x1="100" y1="388.00" x2="760" y2="388.00" class="grid-line"/>
 <text x="91" y="392.00" text-anchor="end" class="pair-label">USDCNH</text>
-<text x="853" y="392.00" class="total-label" fill="#d84b5b">Σ -17m</text>
-<line x1="100" y1="454.00" x2="845" y2="454.00" class="grid-line"/>
+<text x="768" y="392.00" class="total-label" fill="#d84b5b">Σ -17m</text>
+<line x1="100" y1="454.00" x2="760" y2="454.00" class="grid-line"/>
 <text x="91" y="458.00" text-anchor="end" class="pair-label">EURUSD</text>
-<text x="853" y="458.00" class="total-label" fill="#d84b5b">Σ -17m</text>
-<line x1="125.99" y1="25" x2="125.99" y2="487" class="asof-line"/>
-<line x1="255.41" y1="314.00" x2="262.41" y2="314.00" class="leader" stroke="#2463eb"/>
-<circle cx="236.44" cy="314.00" r="18.97" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2026-10-30
+<text x="768" y="458.00" class="total-label" fill="#d84b5b">Σ -17m</text>
+<line x1="123.02" y1="25" x2="123.02" y2="487" class="asof-line"/>
+<line x1="239.84" y1="314.00" x2="246.84" y2="314.00" class="leader" stroke="#2463eb"/>
+<circle cx="220.87" cy="314.00" r="18.97" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2026-10-30
 Net Theta: -7,236,000 USD
 Positions netted: 1</title></circle>
-<text x="236.44" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="265.41" y="318.00" class="value-label">-7m</text>
-<line x1="571.25" y1="330.00" x2="578.25" y2="330.00" class="leader" stroke="#8b58c7"/>
-<circle cx="554.80" cy="330.00" r="16.45" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-03-26
+<text x="220.87" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="249.84" y="318.00" class="value-label">-7m</text>
+<line x1="519.36" y1="330.00" x2="526.36" y2="330.00" class="leader" stroke="#8b58c7"/>
+<circle cx="502.91" cy="330.00" r="16.45" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-03-26
 Net Theta: -4,512,000 USD
 Positions netted: 1</title></circle>
-<text x="554.80" y="333.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="581.25" y="334.00" class="value-label">-5m</text>
-<line x1="450.61" y1="132.00" x2="457.61" y2="132.00" class="leader" stroke="#8b58c7"/>
-<circle cx="433.52" cy="132.00" r="17.10" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURGBP · Put · 2027-01-29
+<text x="502.91" y="333.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="529.36" y="334.00" class="value-label">-5m</text>
+<line x1="412.56" y1="132.00" x2="419.56" y2="132.00" class="leader" stroke="#8b58c7"/>
+<circle cx="395.47" cy="132.00" r="17.10" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURGBP · Put · 2027-01-29
 Net Theta: 5,148,000 USD
 Positions netted: 1</title></circle>
-<text x="433.52" y="135.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="460.61" y="136.00" class="value-label">+5m</text>
-<line x1="184.64" y1="446.00" x2="191.64" y2="446.00" class="leader" stroke="#2463eb"/>
-<circle cx="160.64" cy="446.00" r="24.00" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-09-25
+<text x="395.47" y="135.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="422.56" y="136.00" class="value-label">+5m</text>
+<line x1="177.72" y1="446.00" x2="184.72" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="153.72" cy="446.00" r="24.00" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-09-25
 Net Theta: -14,592,000 USD
 Positions netted: 2</title></circle>
-<text x="160.64" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="194.64" y="450.00" class="value-label">-15m · 2 trades</text>
-<line x1="301.95" y1="462.00" x2="308.95" y2="462.00" class="leader" stroke="#8b58c7"/>
-<circle cx="281.92" cy="462.00" r="20.04" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURUSD · Put · 2026-11-20
+<text x="153.72" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="187.72" y="450.00" class="value-label">-15m · 2 trades</text>
+<line x1="281.20" y1="462.00" x2="288.20" y2="462.00" class="leader" stroke="#8b58c7"/>
+<circle cx="261.16" cy="462.00" r="20.04" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURUSD · Put · 2026-11-20
 Net Theta: -8,580,000 USD
 Positions netted: 1</title></circle>
-<text x="281.92" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="311.95" y="466.00" class="value-label">-9m</text>
-<line x1="421.38" y1="446.00" x2="428.38" y2="446.00" class="leader" stroke="#2463eb"/>
-<circle cx="403.20" cy="446.00" r="18.18" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2027-01-15
+<text x="261.16" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="291.20" y="466.00" class="value-label">-9m</text>
+<line x1="386.79" y1="446.00" x2="393.79" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="368.60" cy="446.00" r="18.18" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2027-01-15
 Net Theta: 6,312,000 USD
 Positions netted: 1</title></circle>
-<text x="403.20" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="431.38" y="450.00" class="value-label">+6m</text>
-<line x1="169.32" y1="198.00" x2="176.32" y2="198.00" class="leader" stroke="#8b58c7"/>
-<circle cx="145.48" cy="198.00" r="23.84" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-09-18
+<text x="368.60" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="396.79" y="450.00" class="value-label">+6m</text>
+<line x1="164.13" y1="198.00" x2="171.13" y2="198.00" class="leader" stroke="#8b58c7"/>
+<circle cx="140.29" cy="198.00" r="23.84" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-09-18
 Net Theta: -14,316,000 USD
 Positions netted: 1</title></circle>
-<text x="145.48" y="201.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="179.32" y="202.00" class="value-label">-14m</text>
-<line x1="388.59" y1="182.00" x2="395.59" y2="182.00" class="leader" stroke="#2463eb"/>
-<circle cx="370.71" cy="182.00" r="17.88" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Call · 2026-12-31
+<text x="140.29" y="201.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="174.13" y="202.00" class="value-label">-14m</text>
+<line x1="357.70" y1="182.00" x2="364.70" y2="182.00" class="leader" stroke="#2463eb"/>
+<circle cx="339.83" cy="182.00" r="17.88" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Call · 2026-12-31
 Net Theta: 5,976,000 USD
 Positions netted: 1</title></circle>
-<text x="370.71" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="398.59" y="186.00" class="value-label">+6m</text>
-<line x1="273.13" y1="380.00" x2="280.13" y2="380.00" class="leader" stroke="#2463eb"/>
-<circle cx="251.60" cy="380.00" r="21.53" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2026-11-06
+<text x="339.83" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="367.70" y="186.00" class="value-label">+6m</text>
+<line x1="255.83" y1="380.00" x2="262.83" y2="380.00" class="leader" stroke="#2463eb"/>
+<circle cx="234.30" cy="380.00" r="21.53" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2026-11-06
 Net Theta: -10,656,000 USD
 Positions netted: 1</title></circle>
-<text x="251.60" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="283.13" y="384.00" class="value-label">-11m</text>
-<line x1="512.66" y1="396.00" x2="519.66" y2="396.00" class="leader" stroke="#8b58c7"/>
-<circle cx="494.16" cy="396.00" r="18.51" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDCNH · Put · 2027-02-26
+<text x="234.30" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="265.83" y="384.00" class="value-label">-11m</text>
+<line x1="467.69" y1="396.00" x2="474.69" y2="396.00" class="leader" stroke="#8b58c7"/>
+<circle cx="449.19" cy="396.00" r="18.51" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDCNH · Put · 2027-02-26
 Net Theta: -6,684,000 USD
 Positions netted: 1</title></circle>
-<text x="494.16" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="522.66" y="400.00" class="value-label">-7m</text>
-<line x1="213.47" y1="248.00" x2="220.47" y2="248.00" class="leader" stroke="#2463eb"/>
-<circle cx="190.96" cy="248.00" r="22.51" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2026-10-09
+<text x="449.19" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="477.69" y="400.00" class="value-label">-7m</text>
+<line x1="203.09" y1="248.00" x2="210.09" y2="248.00" class="leader" stroke="#2463eb"/>
+<circle cx="180.58" cy="248.00" r="22.51" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2026-10-09
 Net Theta: -12,144,000 USD
 Positions netted: 1</title></circle>
-<text x="190.96" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="223.47" y="252.00" class="value-label">-12m</text>
-<line x1="348.54" y1="264.00" x2="355.54" y2="264.00" class="leader" stroke="#8b58c7"/>
-<circle cx="327.40" cy="264.00" r="21.15" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2026-12-11
+<text x="180.58" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="213.09" y="252.00" class="value-label">-12m</text>
+<line x1="322.60" y1="264.00" x2="329.60" y2="264.00" class="leader" stroke="#8b58c7"/>
+<circle cx="301.45" cy="264.00" r="21.15" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2026-12-11
 Net Theta: -10,104,000 USD
 Positions netted: 1</title></circle>
-<text x="327.40" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="358.54" y="268.00" class="value-label">-10m</text>
-<line x1="752.31" y1="264.00" x2="759.31" y2="264.00" class="leader" stroke="#8b58c7"/>
-<circle cx="736.72" cy="264.00" r="15.60" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-06-18
+<text x="301.45" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="332.60" y="268.00" class="value-label">-10m</text>
+<line x1="679.67" y1="264.00" x2="686.67" y2="264.00" class="leader" stroke="#8b58c7"/>
+<circle cx="664.07" cy="264.00" r="15.60" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-06-18
 Net Theta: -3,732,000 USD
 Positions netted: 1</title></circle>
-<text x="736.72" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="762.31" y="268.00" class="value-label">-4m</text>
-<line x1="244.05" y1="66.00" x2="251.05" y2="66.00" class="leader" stroke="#8b58c7"/>
-<circle cx="221.28" cy="66.00" r="22.77" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2026-10-23
+<text x="664.07" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="689.67" y="268.00" class="value-label">-4m</text>
+<line x1="230.21" y1="66.00" x2="237.21" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="207.44" cy="66.00" r="22.77" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2026-10-23
 Net Theta: 12,557,040 USD
 Positions netted: 2</title></circle>
-<text x="221.28" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="254.05" y="70.00" class="value-label">+13m · 2 trades</text>
-<line x1="362.31" y1="50.00" x2="369.31" y2="50.00" class="leader" stroke="#2463eb"/>
-<circle cx="342.56" cy="50.00" r="19.75" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2026-12-18
+<text x="207.44" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="240.21" y="70.00" class="value-label">+13m · 2 trades</text>
+<line x1="334.63" y1="50.00" x2="341.63" y2="50.00" class="leader" stroke="#2463eb"/>
+<circle cx="314.88" cy="50.00" r="19.75" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2026-12-18
 Net Theta: -8,208,000 USD
 Positions netted: 1</title></circle>
-<text x="342.56" y="53.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="372.31" y="54.00" class="value-label">-8m</text>
-<line x1="557.23" y1="66.00" x2="564.23" y2="66.00" class="leader" stroke="#8b58c7"/>
-<circle cx="539.64" cy="66.00" r="17.59" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2027-03-19
+<text x="314.88" y="53.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="344.63" y="54.00" class="value-label">-8m</text>
+<line x1="507.07" y1="66.00" x2="514.07" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="489.48" cy="66.00" r="17.59" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2027-03-19
 Net Theta: -5,664,000 USD
 Positions netted: 1</title></circle>
-<text x="539.64" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="567.23" y="70.00" class="value-label">-6m</text>
+<text x="489.48" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="517.07" y="70.00" class="value-label">-6m</text>
 </svg></article><article class="chart-card"><h2>Vega</h2><svg viewBox="0 0 980 535" role="img" aria-label="Vega by currency pair and expiry">
-<rect x="125.99" y="25" width="64.97" height="462" fill="#f3b65c" fill-opacity=".18"/>
-<line x1="41.53" y1="25" x2="41.53" y2="487" class="grid-line"/>
-<text x="41.53" y="517" text-anchor="middle" class="axis-label">Aug 26</text>
-<line x1="173.63" y1="25" x2="173.63" y2="487" class="grid-line"/>
-<text x="173.63" y="517" text-anchor="middle" class="axis-label">Oct 26</text>
-<line x1="305.74" y1="25" x2="305.74" y2="487" class="grid-line"/>
-<text x="305.74" y="517" text-anchor="middle" class="axis-label">Dec 26</text>
-<line x1="440.01" y1="25" x2="440.01" y2="487" class="grid-line"/>
-<text x="440.01" y="517" text-anchor="middle" class="axis-label">Feb 27</text>
-<line x1="567.79" y1="25" x2="567.79" y2="487" class="grid-line"/>
-<text x="567.79" y="517" text-anchor="middle" class="axis-label">Apr 27</text>
-<line x1="699.90" y1="25" x2="699.90" y2="487" class="grid-line"/>
-<text x="699.90" y="517" text-anchor="middle" class="axis-label">Jun 27</text>
-<line x1="832.01" y1="25" x2="832.01" y2="487" class="grid-line"/>
-<text x="832.01" y="517" text-anchor="middle" class="axis-label">Aug 27</text>
-<line x1="100" y1="58.00" x2="845" y2="58.00" class="grid-line"/>
+<rect x="123.02" y="25" width="57.56" height="462" fill="#f3b65c" fill-opacity=".18"/>
+<line x1="48.20" y1="25" x2="48.20" y2="487" class="grid-line"/>
+<text x="48.20" y="517" text-anchor="middle" class="axis-label">Aug 26</text>
+<line x1="165.23" y1="25" x2="165.23" y2="487" class="grid-line"/>
+<text x="165.23" y="517" text-anchor="middle" class="axis-label">Oct 26</text>
+<line x1="282.27" y1="25" x2="282.27" y2="487" class="grid-line"/>
+<text x="282.27" y="517" text-anchor="middle" class="axis-label">Dec 26</text>
+<line x1="401.22" y1="25" x2="401.22" y2="487" class="grid-line"/>
+<text x="401.22" y="517" text-anchor="middle" class="axis-label">Feb 27</text>
+<line x1="514.42" y1="25" x2="514.42" y2="487" class="grid-line"/>
+<text x="514.42" y="517" text-anchor="middle" class="axis-label">Apr 27</text>
+<line x1="631.45" y1="25" x2="631.45" y2="487" class="grid-line"/>
+<text x="631.45" y="517" text-anchor="middle" class="axis-label">Jun 27</text>
+<line x1="748.49" y1="25" x2="748.49" y2="487" class="grid-line"/>
+<text x="748.49" y="517" text-anchor="middle" class="axis-label">Aug 27</text>
+<line x1="100" y1="58.00" x2="760" y2="58.00" class="grid-line"/>
 <text x="91" y="62.00" text-anchor="end" class="pair-label">USDZAR</text>
-<text x="853" y="62.00" class="total-label" fill="#14866d">Σ +8m</text>
-<line x1="100" y1="124.00" x2="845" y2="124.00" class="grid-line"/>
+<text x="768" y="62.00" class="total-label" fill="#14866d">Σ +8m</text>
+<line x1="100" y1="124.00" x2="760" y2="124.00" class="grid-line"/>
 <text x="91" y="128.00" text-anchor="end" class="pair-label">EURGBP</text>
-<text x="853" y="128.00" class="total-label" fill="#14866d">Σ +31m</text>
-<line x1="100" y1="190.00" x2="845" y2="190.00" class="grid-line"/>
+<text x="768" y="128.00" class="total-label" fill="#14866d">Σ +31m</text>
+<line x1="100" y1="190.00" x2="760" y2="190.00" class="grid-line"/>
 <text x="91" y="194.00" text-anchor="end" class="pair-label">GBPUSD</text>
-<text x="853" y="194.00" class="total-label" fill="#14866d">Σ +122m</text>
-<line x1="100" y1="256.00" x2="845" y2="256.00" class="grid-line"/>
+<text x="768" y="194.00" class="total-label" fill="#14866d">Σ +122m</text>
+<line x1="100" y1="256.00" x2="760" y2="256.00" class="grid-line"/>
 <text x="91" y="260.00" text-anchor="end" class="pair-label">USDJPY</text>
-<text x="853" y="260.00" class="total-label" fill="#14866d">Σ +111m</text>
-<line x1="100" y1="322.00" x2="845" y2="322.00" class="grid-line"/>
+<text x="768" y="260.00" class="total-label" fill="#14866d">Σ +111m</text>
+<line x1="100" y1="322.00" x2="760" y2="322.00" class="grid-line"/>
 <text x="91" y="326.00" text-anchor="end" class="pair-label">AUDUSD</text>
-<text x="853" y="326.00" class="total-label" fill="#14866d">Σ +70m</text>
-<line x1="100" y1="388.00" x2="845" y2="388.00" class="grid-line"/>
+<text x="768" y="326.00" class="total-label" fill="#14866d">Σ +70m</text>
+<line x1="100" y1="388.00" x2="760" y2="388.00" class="grid-line"/>
 <text x="91" y="392.00" text-anchor="end" class="pair-label">USDCNH</text>
-<text x="853" y="392.00" class="total-label" fill="#14866d">Σ +24m</text>
-<line x1="100" y1="454.00" x2="845" y2="454.00" class="grid-line"/>
+<text x="768" y="392.00" class="total-label" fill="#14866d">Σ +24m</text>
+<line x1="100" y1="454.00" x2="760" y2="454.00" class="grid-line"/>
 <text x="91" y="458.00" text-anchor="end" class="pair-label">EURUSD</text>
-<text x="853" y="458.00" class="total-label" fill="#14866d">Σ +33m</text>
-<line x1="125.99" y1="25" x2="125.99" y2="487" class="asof-line"/>
-<line x1="255.53" y1="314.00" x2="262.53" y2="314.00" class="leader" stroke="#2463eb"/>
-<circle cx="236.44" cy="314.00" r="19.09" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2026-10-30
+<text x="768" y="458.00" class="total-label" fill="#14866d">Σ +33m</text>
+<line x1="123.02" y1="25" x2="123.02" y2="487" class="asof-line"/>
+<line x1="239.96" y1="314.00" x2="246.96" y2="314.00" class="leader" stroke="#2463eb"/>
+<circle cx="220.87" cy="314.00" r="19.09" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2026-10-30
 Net Vega: 43,416,000 USD
 Positions netted: 1</title></circle>
-<text x="236.44" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="265.53" y="318.00" class="value-label">+43m</text>
-<line x1="571.34" y1="330.00" x2="578.34" y2="330.00" class="leader" stroke="#8b58c7"/>
-<circle cx="554.80" cy="330.00" r="16.54" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-03-26
+<text x="220.87" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="249.96" y="318.00" class="value-label">+43m</text>
+<line x1="519.45" y1="330.00" x2="526.45" y2="330.00" class="leader" stroke="#8b58c7"/>
+<circle cx="502.91" cy="330.00" r="16.54" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-03-26
 Net Vega: 27,072,000 USD
 Positions netted: 1</title></circle>
-<text x="554.80" y="333.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="581.34" y="334.00" class="value-label">+27m</text>
-<line x1="450.71" y1="132.00" x2="457.71" y2="132.00" class="leader" stroke="#8b58c7"/>
-<circle cx="433.52" cy="132.00" r="17.19" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURGBP · Put · 2027-01-29
+<text x="502.91" y="333.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="529.45" y="334.00" class="value-label">+27m</text>
+<line x1="412.66" y1="132.00" x2="419.66" y2="132.00" class="leader" stroke="#8b58c7"/>
+<circle cx="395.47" cy="132.00" r="17.19" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURGBP · Put · 2027-01-29
 Net Vega: 30,888,000 USD
 Positions netted: 1</title></circle>
-<text x="433.52" y="135.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="460.71" y="136.00" class="value-label">+31m</text>
-<line x1="180.21" y1="446.00" x2="187.21" y2="446.00" class="leader" stroke="#2463eb"/>
-<circle cx="160.64" cy="446.00" r="19.57" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-09-25
+<text x="395.47" y="135.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="422.66" y="136.00" class="value-label">+31m</text>
+<line x1="173.29" y1="446.00" x2="180.29" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="153.72" cy="446.00" r="19.57" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-09-25
 Net Vega: 46,944,000 USD
 Positions netted: 2</title></circle>
-<text x="160.64" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="190.21" y="450.00" class="value-label">+47m · 2 trades</text>
-<line x1="302.08" y1="462.00" x2="309.08" y2="462.00" class="leader" stroke="#8b58c7"/>
-<circle cx="281.92" cy="462.00" r="20.16" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURUSD · Put · 2026-11-20
+<text x="153.72" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="183.29" y="450.00" class="value-label">+47m · 2 trades</text>
+<line x1="281.32" y1="462.00" x2="288.32" y2="462.00" class="leader" stroke="#8b58c7"/>
+<circle cx="261.16" cy="462.00" r="20.16" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>EURUSD · Put · 2026-11-20
 Net Vega: -51,480,000 USD
 Positions netted: 1</title></circle>
-<text x="281.92" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="312.08" y="466.00" class="value-label">-51m</text>
-<line x1="421.49" y1="446.00" x2="428.49" y2="446.00" class="leader" stroke="#2463eb"/>
-<circle cx="403.20" cy="446.00" r="18.29" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2027-01-15
+<text x="261.16" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="291.32" y="466.00" class="value-label">-51m</text>
+<line x1="386.89" y1="446.00" x2="393.89" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="368.60" cy="446.00" r="18.29" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2027-01-15
 Net Vega: 37,872,000 USD
 Positions netted: 1</title></circle>
-<text x="403.20" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="431.49" y="450.00" class="value-label">+38m</text>
-<line x1="169.48" y1="198.00" x2="176.48" y2="198.00" class="leader" stroke="#8b58c7"/>
-<circle cx="145.48" cy="198.00" r="24.00" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-09-18
+<text x="368.60" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="396.89" y="450.00" class="value-label">+38m</text>
+<line x1="164.29" y1="198.00" x2="171.29" y2="198.00" class="leader" stroke="#8b58c7"/>
+<circle cx="140.29" cy="198.00" r="24.00" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-09-18
 Net Vega: 85,896,000 USD
 Positions netted: 1</title></circle>
-<text x="145.48" y="201.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="179.48" y="202.00" class="value-label">+86m</text>
-<line x1="388.70" y1="182.00" x2="395.70" y2="182.00" class="leader" stroke="#2463eb"/>
-<circle cx="370.71" cy="182.00" r="17.98" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Call · 2026-12-31
+<text x="140.29" y="201.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="174.29" y="202.00" class="value-label">+86m</text>
+<line x1="357.81" y1="182.00" x2="364.81" y2="182.00" class="leader" stroke="#2463eb"/>
+<circle cx="339.83" cy="182.00" r="17.98" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Call · 2026-12-31
 Net Vega: 35,856,000 USD
 Positions netted: 1</title></circle>
-<text x="370.71" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="398.70" y="186.00" class="value-label">+36m</text>
-<line x1="273.27" y1="380.00" x2="280.27" y2="380.00" class="leader" stroke="#2463eb"/>
-<circle cx="251.60" cy="380.00" r="21.67" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2026-11-06
+<text x="339.83" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="367.81" y="186.00" class="value-label">+36m</text>
+<line x1="255.97" y1="380.00" x2="262.97" y2="380.00" class="leader" stroke="#2463eb"/>
+<circle cx="234.30" cy="380.00" r="21.67" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2026-11-06
 Net Vega: 63,936,000 USD
 Positions netted: 1</title></circle>
-<text x="251.60" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="283.27" y="384.00" class="value-label">+64m</text>
-<line x1="512.77" y1="396.00" x2="519.77" y2="396.00" class="leader" stroke="#8b58c7"/>
-<circle cx="494.16" cy="396.00" r="18.62" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDCNH · Put · 2027-02-26
+<text x="234.30" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="265.97" y="384.00" class="value-label">+64m</text>
+<line x1="467.80" y1="396.00" x2="474.80" y2="396.00" class="leader" stroke="#8b58c7"/>
+<circle cx="449.19" cy="396.00" r="18.62" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDCNH · Put · 2027-02-26
 Net Vega: -40,104,000 USD
 Positions netted: 1</title></circle>
-<text x="494.16" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="522.77" y="400.00" class="value-label">-40m</text>
-<line x1="213.62" y1="248.00" x2="220.62" y2="248.00" class="leader" stroke="#2463eb"/>
-<circle cx="190.96" cy="248.00" r="22.66" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2026-10-09
+<text x="449.19" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="477.80" y="400.00" class="value-label">-40m</text>
+<line x1="203.24" y1="248.00" x2="210.24" y2="248.00" class="leader" stroke="#2463eb"/>
+<circle cx="180.58" cy="248.00" r="22.66" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2026-10-09
 Net Vega: 72,864,000 USD
 Positions netted: 1</title></circle>
-<text x="190.96" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="223.62" y="252.00" class="value-label">+73m</text>
-<line x1="348.68" y1="264.00" x2="355.68" y2="264.00" class="leader" stroke="#8b58c7"/>
-<circle cx="327.40" cy="264.00" r="21.28" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2026-12-11
+<text x="180.58" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="213.24" y="252.00" class="value-label">+73m</text>
+<line x1="322.74" y1="264.00" x2="329.74" y2="264.00" class="leader" stroke="#8b58c7"/>
+<circle cx="301.45" cy="264.00" r="21.28" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2026-12-11
 Net Vega: 60,624,000 USD
 Positions netted: 1</title></circle>
-<text x="327.40" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="358.68" y="268.00" class="value-label">+61m</text>
-<line x1="752.39" y1="264.00" x2="759.39" y2="264.00" class="leader" stroke="#8b58c7"/>
-<circle cx="736.72" cy="264.00" r="15.68" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-06-18
+<text x="301.45" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="332.74" y="268.00" class="value-label">+61m</text>
+<line x1="679.75" y1="264.00" x2="686.75" y2="264.00" class="leader" stroke="#8b58c7"/>
+<circle cx="664.07" cy="264.00" r="15.68" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-06-18
 Net Vega: -22,392,000 USD
 Positions netted: 1</title></circle>
-<text x="736.72" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="762.39" y="268.00" class="value-label">-22m</text>
-<line x1="244.20" y1="66.00" x2="251.20" y2="66.00" class="leader" stroke="#8b58c7"/>
-<circle cx="221.28" cy="66.00" r="22.92" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2026-10-23
+<text x="664.07" y="267.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="689.75" y="268.00" class="value-label">-22m</text>
+<line x1="230.36" y1="66.00" x2="237.36" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="207.44" cy="66.00" r="22.92" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2026-10-23
 Net Vega: -75,342,240 USD
 Positions netted: 2</title></circle>
-<text x="221.28" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="254.20" y="70.00" class="value-label">-75m · 2 trades</text>
-<line x1="362.43" y1="50.00" x2="369.43" y2="50.00" class="leader" stroke="#2463eb"/>
-<circle cx="342.56" cy="50.00" r="19.87" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2026-12-18
+<text x="207.44" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="240.36" y="70.00" class="value-label">-75m · 2 trades</text>
+<line x1="334.76" y1="50.00" x2="341.76" y2="50.00" class="leader" stroke="#2463eb"/>
+<circle cx="314.88" cy="50.00" r="19.87" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2026-12-18
 Net Vega: 49,248,000 USD
 Positions netted: 1</title></circle>
-<text x="342.56" y="53.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
-<text x="372.43" y="54.00" class="value-label">+49m</text>
-<line x1="557.33" y1="66.00" x2="564.33" y2="66.00" class="leader" stroke="#8b58c7"/>
-<circle cx="539.64" cy="66.00" r="17.69" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2027-03-19
+<text x="314.88" y="53.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="344.76" y="54.00" class="value-label">+49m</text>
+<line x1="507.17" y1="66.00" x2="514.17" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="489.48" cy="66.00" r="17.69" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDZAR · Put · 2027-03-19
 Net Vega: 33,984,000 USD
 Positions netted: 1</title></circle>
-<text x="539.64" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
-<text x="567.33" y="70.00" class="value-label">+34m</text>
+<text x="489.48" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="517.17" y="70.00" class="value-label">+34m</text>
 </svg></article></section>
 <section class="trades"><div class="toolbar"><h2>Original trades — 18 rows</h2><input id="search" type="search" placeholder="Filter trades…" oninput="filterTrades()"></div><div class="table-wrap"><table id="tradeTable"><thead><tr><th onclick="sortTable(0)">Underlying <span>↕</span></th><th onclick="sortTable(1)">Shore <span>↕</span></th><th onclick="sortTable(2)">OptionType <span>↕</span></th><th onclick="sortTable(3)">Strike <span>↕</span></th><th onclick="sortTable(4)">ExpiryDate <span>↕</span></th><th onclick="sortTable(5)">Delta <span>↕</span></th><th onclick="sortTable(6)">Gamma <span>↕</span></th><th onclick="sortTable(7)">Theta <span>↕</span></th><th onclick="sortTable(8)">Vega <span>↕</span></th><th onclick="sortTable(9)">Notional <span>↕</span></th><th onclick="sortTable(10)">NotionalCCY <span>↕</span></th><th onclick="sortTable(11)">PnL <span>↕</span></th></tr></thead><tbody><tr><td data-value="USDZAR Curncy">USDZAR Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Put">Put</td><td data-value="16.35">16.35</td><td data-value="2026-10-23">2026-10-23</td><td data-value="-177732000">-177,732,000</td><td data-value="123342000">123,342,000</td><td data-value="14801040">14,801,040</td><td data-value="-88806240">-88,806,240</td><td data-value="250000000">250,000,000</td><td data-value="USD">USD</td><td data-value="123211">123,211</td></tr>
 <tr><td data-value="USDZAR Curncy">USDZAR Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="18.1">18.1</td><td data-value="2026-12-18">2026-12-18</td><td data-value="112400000">112,400,000</td><td data-value="68400000">68,400,000</td><td data-value="-8208000">-8,208,000</td><td data-value="49248000">49,248,000</td><td data-value="180000000">180,000,000</td><td data-value="USD">USD</td><td data-value="-420000">-420,000</td></tr>
