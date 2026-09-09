@@ -92,16 +92,10 @@ def net_trades(trades: pd.DataFrame) -> pd.DataFrame:
 
 
 def common_pair_order(netted: pd.DataFrame) -> list[str]:
-    score = pd.Series(0.0, index=netted.index)
-    for greek in GREEK_INPUT_COLUMNS:
-        values = netted[f"Net{greek}"].abs()
-        denominator = max(values.max(), 1)
-        score = score + values / denominator
     return (
-        netted.assign(ExposureScore=score)
-        .groupby("Pair")["ExposureScore"]
+        netted.groupby("Pair")["NetDelta"]
         .sum()
-        .sort_values(ascending=False)
+        .sort_values(ascending=True)
         .index.tolist()
     )
 
@@ -155,12 +149,12 @@ def draw_panel(
                 (row.ExpiryDate, y),
                 ha="center",
                 va="center",
-                fontsize=6.5,
+                fontsize=8.5,
                 weight="bold",
                 color="white",
                 zorder=4,
             )
-            count_text = f" · n={row.Positions}" if row.Positions > 1 else ""
+            count_text = f"\n{row.Positions} trades netted" if row.Positions > 1 else ""
             ax.annotate(
                 f"{displayed_value:+d}m{count_text}",
                 (row.ExpiryDate, y),
@@ -168,7 +162,7 @@ def draw_panel(
                 textcoords="offset points",
                 ha="left",
                 va="center",
-                fontsize=6.4,
+                fontsize=9.2,
                 weight="bold",
                 color="#26384a",
                 bbox={
@@ -352,7 +346,8 @@ def draw_dashboard(
         0.045,
         0.974,
         "Bubble label = net Greek in whole USD m  •  Bubble size = absolute net Greek  •  "
-        "Σ = total by currency pair  •  Yellow band = expires within 30 calendar days",
+        "Σ = total by currency pair  •  Yellow band = expires within 30 calendar days  •  "
+        "Pairs ordered by total net Delta, smallest to largest",
         fontsize=9.5,
         color="#687789",
     )
@@ -426,13 +421,13 @@ h1{margin:0 0 7px;font-size:28px}.subtitle,.asof{color:var(--muted);font-size:13
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px 18px;border-bottom:1px solid var(--line)}.toolbar h2{margin:0;font-size:18px}input{min-width:300px;padding:9px 12px;border:1px solid #bdc9d6;border-radius:7px;font-size:13px}
 .table-wrap{overflow:auto;max-height:620px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th{position:sticky;top:0;z-index:1;padding:10px;background:var(--navy);color:#fff;text-align:left;cursor:pointer;user-select:none}th span{opacity:.55;font-size:10px}
 td{padding:9px 10px;border-bottom:1px solid #e8edf2}tbody tr:nth-child(even){background:#f7f9fc}tbody tr:hover{background:#edf4ff}.footer{padding:12px 18px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
-.axis-label{font-size:10px;fill:#526273}.pair-label{font-size:11px;fill:#26384a;font-weight:600}.value-label{font-size:9px;fill:#26384a;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}.total-label{font-size:10px;font-weight:700}.grid-line{stroke:#e4eaf0;stroke-width:1}.asof-line{stroke:#657588;stroke-width:1.2;stroke-dasharray:5 4}.leader{stroke-width:1;opacity:.75}
+.axis-label{font-size:10px;fill:#526273}.pair-label{font-size:12px;fill:#26384a;font-weight:600}.value-label{font-size:13px;fill:#26384a;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:6px;stroke-linejoin:round}.total-label{font-size:12px;font-weight:700}.grid-line{stroke:#e4eaf0;stroke-width:1}.asof-line{stroke:#657588;stroke-width:1.2;stroke-dasharray:5 4}.leader{stroke-width:1;opacity:.75}
 @media(max-width:1100px){.chart-grid{grid-template-columns:1fr}header,.toolbar{align-items:flex-start;flex-direction:column}input{min-width:100%;width:100%}}
 @media print{body{background:#fff}main{max-width:none;padding:0}.chart-card,.trades{box-shadow:none}.table-wrap{max-height:none;overflow:visible}input{display:none}}
 </style>
 </head>
 <body><main>
-<header><div><h1>FX Options — Netted Greeks by Expiry and Type</h1><div class="subtitle">Native SVG charts · Values displayed in whole USD millions · Hover over a bubble for exact values</div></div><div class="asof">As of __AS_OF_LABEL__</div></header>
+<header><div><h1>FX Options — Netted Greeks by Expiry and Type</h1><div class="subtitle">Native SVG charts · Whole USD millions · Pair order follows total net Delta from smallest to largest · Hover for exact values</div></div><div class="asof">As of __AS_OF_LABEL__</div></header>
 <div class="legend"><span class="key"><span class="dot" style="background:var(--call)">C</span>Call</span><span class="key"><span class="dot" style="background:var(--put)">P</span>Put</span><span class="key"><span class="band"></span>Expires within 30 calendar days</span><span>Σ = total by currency pair</span></div>
 <section class="chart-grid"><article class="chart-card"><h2>Delta</h2><svg id="chart-Delta"></svg></article><article class="chart-card"><h2>Gamma</h2><svg id="chart-Gamma"></svg></article><article class="chart-card"><h2>Theta</h2><svg id="chart-Theta"></svg></article><article class="chart-card"><h2>Vega</h2><svg id="chart-Vega"></svg></article></section>
 <section class="trades"><div class="toolbar"><h2>Original trades — __COUNT__ rows</h2><input id="search" type="search" placeholder="Filter trades…" oninput="filterTrades()"></div><div class="table-wrap"><table id="tradeTable"><thead><tr>__HEADERS__</tr></thead><tbody>__ROWS__</tbody></table></div><div class="footer">Unnetted trades and raw input amounts. ThetaPortCCY and VegaPortCCY are displayed as Theta and Vega. Click a heading to sort.</div></section>
@@ -447,7 +442,7 @@ function roundedM(raw){const v=raw/1000000;return v>=0?Math.floor(v+.5):Math.cei
 function signedM(raw){const v=roundedM(raw);return `${v>=0?'+':''}${v}m`}
 function dateLabel(d){return d.toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'})}
 function renderChart(greek){
- const svg=document.getElementById(`chart-${greek}`),W=930,step=58,M={l:92,r:100,t:25,b:48},H=M.t+PAIRS.length*step+M.b;
+ const svg=document.getElementById(`chart-${greek}`),W=980,step=66,M={l:100,r:135,t:25,b:48},H=M.t+PAIRS.length*step+M.b;
  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('role','img');svg.setAttribute('aria-label',`${greek} by currency pair and expiry`);
  const expiries=DATA.map(d=>new Date(`${d.expiry}T00:00:00Z`).getTime()),minT=Math.min(AS_OF.getTime()-12*DAY,...expiries),maxT=Math.max(AS_OF.getTime()+30*DAY,...expiries)+50*DAY;
  const x=t=>M.l+(t-minT)/(maxT-minT)*(W-M.l-M.r),y=p=>M.t+PAIRS.indexOf(p)*step+step/2;
@@ -457,8 +452,8 @@ function renderChart(greek){
  PAIRS.forEach(pair=>{const py=y(pair);svg.appendChild(el('line',{x1:M.l,y1:py,x2:W-M.r,y2:py,class:'grid-line'}));svg.appendChild(el('text',{x:M.l-9,y:py+4,'text-anchor':'end',class:'pair-label'},pair));const total=DATA.filter(d=>d.pair===pair).reduce((a,d)=>a+d[greek],0),tc=total>=0?'#14866d':'#d84b5b';svg.appendChild(el('text',{x:W-M.r+8,y:py+4,class:'total-label',fill:tc},`Σ ${signedM(total)}`))});
  const nowX=x(AS_OF.getTime());svg.appendChild(el('line',{x1:nowX,y1:M.t,x2:nowX,y2:H-M.b,class:'asof-line'}));
  const maxAbs=Math.max(1,...DATA.map(d=>Math.abs(d[greek])));
- DATA.forEach(d=>{const raw=d[greek],px=x(new Date(`${d.expiry}T00:00:00Z`).getTime()),py=y(d.pair)+(d.type==='Call'?-8:8),radius=7+17*Math.sqrt(Math.abs(raw)/maxAbs),color=d.type==='Call'?'#2463eb':'#8b58c7',label=`${signedM(raw)}${d.positions>1?` · n=${d.positions}`:''}`;
-  svg.appendChild(el('line',{x1:px+radius,y1:py,x2:px+radius+7,y2:py,class:'leader',stroke:color}));const c=el('circle',{cx:px,cy:py,r:radius,fill:color,stroke:'#fff','stroke-width':'1.5'});c.appendChild(el('title',{},`${d.pair} · ${d.type} · ${d.expiry}\nNet ${greek}: ${raw.toLocaleString()} USD\nPositions netted: ${d.positions}`));svg.appendChild(c);svg.appendChild(el('text',{x:px,y:py+3,'text-anchor':'middle',fill:'#fff','font-size':'9','font-weight':'700'},d.type==='Call'?'C':'P'));svg.appendChild(el('text',{x:px+radius+10,y:py+3,class:'value-label'},label));
+ DATA.forEach(d=>{const raw=d[greek],px=x(new Date(`${d.expiry}T00:00:00Z`).getTime()),py=y(d.pair)+(d.type==='Call'?-8:8),radius=7+17*Math.sqrt(Math.abs(raw)/maxAbs),color=d.type==='Call'?'#2463eb':'#8b58c7',label=`${signedM(raw)}${d.positions>1?` · ${d.positions} trades`:''}`;
+  svg.appendChild(el('line',{x1:px+radius,y1:py,x2:px+radius+7,y2:py,class:'leader',stroke:color}));const c=el('circle',{cx:px,cy:py,r:radius,fill:color,stroke:'#fff','stroke-width':'1.5'});c.appendChild(el('title',{},`${d.pair} · ${d.type} · ${d.expiry}\nNet ${greek}: ${raw.toLocaleString()} USD\nPositions netted: ${d.positions}`));svg.appendChild(c);svg.appendChild(el('text',{x:px,y:py+3,'text-anchor':'middle',fill:'#fff','font-size':'11','font-weight':'700'},d.type==='Call'?'C':'P'));svg.appendChild(el('text',{x:px+radius+10,y:py+3,class:'value-label'},label));
  });
 }
 ['Delta','Gamma','Theta','Vega'].forEach(renderChart);
