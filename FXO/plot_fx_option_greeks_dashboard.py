@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import html
+import json
 from pathlib import Path
 
 import matplotlib.dates as mdates
@@ -377,11 +377,25 @@ def draw_dashboard(
 
 def write_html_dashboard(
     trades: pd.DataFrame,
-    dashboard_image: Path,
+    netted: pd.DataFrame,
     output: Path,
     as_of: pd.Timestamp,
 ) -> None:
-    image_data = base64.b64encode(dashboard_image.read_bytes()).decode("ascii")
+    chart_records = []
+    for row in netted.itertuples():
+        chart_records.append(
+            {
+                "pair": row.Pair,
+                "expiry": row.ExpiryDate.strftime("%Y-%m-%d"),
+                "type": row.OptionType,
+                "positions": int(row.Positions),
+                "Delta": float(row.NetDelta),
+                "Gamma": float(row.NetGamma),
+                "Theta": float(row.NetTheta),
+                "Vega": float(row.NetVega),
+            }
+        )
+    pair_order = common_pair_order(netted)
     headers, rows = format_trade_table(trades)
     header_html = "".join(
         f'<th onclick="sortTable({index})">{html.escape(header)} <span>↕</span></th>'
@@ -402,41 +416,65 @@ def write_html_dashboard(
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FX Options Greeks Dashboard</title>
 <style>
-:root{--ink:#172433;--muted:#687789;--line:#dfe6ee;--navy:#173151;--bg:#f4f7fb}
+:root{--ink:#172433;--muted:#687789;--line:#dfe6ee;--navy:#173151;--bg:#f4f7fb;--call:#2463eb;--put:#8b58c7;--pos:#14866d;--neg:#d84b5b}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
-main{max-width:1900px;margin:0 auto;padding:28px}header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:18px}
+main{max-width:1900px;margin:0 auto;padding:28px}header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:17px}
 h1{margin:0 0 7px;font-size:28px}.subtitle,.asof{color:var(--muted);font-size:13px}.asof{white-space:nowrap}
-.figure,.trades{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 14px rgba(23,49,81,.05)}
-.figure{padding:10px}.figure img{display:block;width:100%;height:auto}.trades{margin-top:24px;overflow:hidden}
-.toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px 18px;border-bottom:1px solid var(--line)}
-h2{margin:0;font-size:18px}input{min-width:300px;padding:9px 12px;border:1px solid #bdc9d6;border-radius:7px;font-size:13px}
-.table-wrap{overflow:auto;max-height:620px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
-th{position:sticky;top:0;z-index:1;padding:10px;background:var(--navy);color:#fff;text-align:left;cursor:pointer;user-select:none}th span{opacity:.55;font-size:10px}
-td{padding:9px 10px;border-bottom:1px solid #e8edf2}tbody tr:nth-child(even){background:#f7f9fc}tbody tr:hover{background:#edf4ff}
-.footer{padding:12px 18px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
-@media(max-width:900px){header,.toolbar{align-items:flex-start;flex-direction:column}input{min-width:100%;width:100%}}
-@media print{body{background:#fff}main{max-width:none;padding:0}.figure,.trades{box-shadow:none}.table-wrap{max-height:none;overflow:visible}input{display:none}}
+.legend{display:flex;gap:17px;align-items:center;margin:0 0 15px;font-size:12px;color:var(--muted)}.key{display:flex;align-items:center;gap:6px}.dot{width:14px;height:14px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-size:8px;font-weight:bold}.band{width:22px;height:12px;background:rgba(243,182,92,.28);border:1px solid rgba(167,102,20,.25)}
+.chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.chart-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 12px 8px;box-shadow:0 4px 14px rgba(23,49,81,.05);overflow:visible}
+.chart-card h2{margin:0 0 4px 10px;font-size:18px}.chart-card svg{display:block;width:100%;height:auto;overflow:visible}.trades{margin-top:24px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(23,49,81,.05)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px 18px;border-bottom:1px solid var(--line)}.toolbar h2{margin:0;font-size:18px}input{min-width:300px;padding:9px 12px;border:1px solid #bdc9d6;border-radius:7px;font-size:13px}
+.table-wrap{overflow:auto;max-height:620px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th{position:sticky;top:0;z-index:1;padding:10px;background:var(--navy);color:#fff;text-align:left;cursor:pointer;user-select:none}th span{opacity:.55;font-size:10px}
+td{padding:9px 10px;border-bottom:1px solid #e8edf2}tbody tr:nth-child(even){background:#f7f9fc}tbody tr:hover{background:#edf4ff}.footer{padding:12px 18px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+.axis-label{font-size:10px;fill:#526273}.pair-label{font-size:11px;fill:#26384a;font-weight:600}.value-label{font-size:9px;fill:#26384a;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}.total-label{font-size:10px;font-weight:700}.grid-line{stroke:#e4eaf0;stroke-width:1}.asof-line{stroke:#657588;stroke-width:1.2;stroke-dasharray:5 4}.leader{stroke-width:1;opacity:.75}
+@media(max-width:1100px){.chart-grid{grid-template-columns:1fr}header,.toolbar{align-items:flex-start;flex-direction:column}input{min-width:100%;width:100%}}
+@media print{body{background:#fff}main{max-width:none;padding:0}.chart-card,.trades{box-shadow:none}.table-wrap{max-height:none;overflow:visible}input{display:none}}
 </style>
 </head>
 <body><main>
-<header><div><h1>FX Options — Netted Greeks by Expiry and Type</h1><div class="subtitle">Delta · Gamma · Theta · Vega · Values displayed in whole USD millions</div></div><div class="asof">As of __AS_OF__</div></header>
-<section class="figure"><img src="data:image/png;base64,__IMAGE__" alt="Four-Greek FX options dashboard"></section>
-<section class="trades"><div class="toolbar"><h2>Original trades — __COUNT__ rows</h2><input id="search" type="search" placeholder="Filter trades…" oninput="filterTrades()"></div>
-<div class="table-wrap"><table id="tradeTable"><thead><tr>__HEADERS__</tr></thead><tbody>__ROWS__</tbody></table></div>
-<div class="footer">The table contains unnetted trades and raw input amounts. ThetaPortCCY and VegaPortCCY are displayed as Theta and Vega. Click a heading to sort.</div></section>
+<header><div><h1>FX Options — Netted Greeks by Expiry and Type</h1><div class="subtitle">Native SVG charts · Values displayed in whole USD millions · Hover over a bubble for exact values</div></div><div class="asof">As of __AS_OF_LABEL__</div></header>
+<div class="legend"><span class="key"><span class="dot" style="background:var(--call)">C</span>Call</span><span class="key"><span class="dot" style="background:var(--put)">P</span>Put</span><span class="key"><span class="band"></span>Expires within 30 calendar days</span><span>Σ = total by currency pair</span></div>
+<section class="chart-grid"><article class="chart-card"><h2>Delta</h2><svg id="chart-Delta"></svg></article><article class="chart-card"><h2>Gamma</h2><svg id="chart-Gamma"></svg></article><article class="chart-card"><h2>Theta</h2><svg id="chart-Theta"></svg></article><article class="chart-card"><h2>Vega</h2><svg id="chart-Vega"></svg></article></section>
+<section class="trades"><div class="toolbar"><h2>Original trades — __COUNT__ rows</h2><input id="search" type="search" placeholder="Filter trades…" oninput="filterTrades()"></div><div class="table-wrap"><table id="tradeTable"><thead><tr>__HEADERS__</tr></thead><tbody>__ROWS__</tbody></table></div><div class="footer">Unnetted trades and raw input amounts. ThetaPortCCY and VegaPortCCY are displayed as Theta and Vega. Click a heading to sort.</div></section>
 </main>
 <script>
+const DATA=__CHART_DATA__;
+const PAIRS=__PAIR_ORDER__;
+const AS_OF=new Date('__AS_OF_ISO__T00:00:00Z');
+const DAY=86400000, NS='http://www.w3.org/2000/svg';
+function el(name,attrs={},text=''){const n=document.createElementNS(NS,name);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));if(text!=='')n.textContent=text;return n}
+function roundedM(raw){const v=raw/1000000;return v>=0?Math.floor(v+.5):Math.ceil(v-.5)}
+function signedM(raw){const v=roundedM(raw);return `${v>=0?'+':''}${v}m`}
+function dateLabel(d){return d.toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'})}
+function renderChart(greek){
+ const svg=document.getElementById(`chart-${greek}`),W=930,step=58,M={l:92,r:100,t:25,b:48},H=M.t+PAIRS.length*step+M.b;
+ svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('role','img');svg.setAttribute('aria-label',`${greek} by currency pair and expiry`);
+ const expiries=DATA.map(d=>new Date(`${d.expiry}T00:00:00Z`).getTime()),minT=Math.min(AS_OF.getTime()-12*DAY,...expiries),maxT=Math.max(AS_OF.getTime()+30*DAY,...expiries)+50*DAY;
+ const x=t=>M.l+(t-minT)/(maxT-minT)*(W-M.l-M.r),y=p=>M.t+PAIRS.indexOf(p)*step+step/2;
+ const bandX=x(AS_OF.getTime()),bandW=x(AS_OF.getTime()+30*DAY)-bandX;svg.appendChild(el('rect',{x:bandX,y:M.t,width:bandW,height:H-M.t-M.b,fill:'#f3b65c','fill-opacity':'.18'}));
+ let tick=new Date(minT);tick=new Date(Date.UTC(tick.getUTCFullYear(),tick.getUTCMonth(),1));let tickIndex=0;
+ while(tick.getTime()<=maxT){if(tickIndex%2===0){const tx=x(tick.getTime());svg.appendChild(el('line',{x1:tx,y1:M.t,x2:tx,y2:H-M.b,class:'grid-line'}));svg.appendChild(el('text',{x:tx,y:H-18,'text-anchor':'middle',class:'axis-label'},dateLabel(tick)))}tick=new Date(Date.UTC(tick.getUTCFullYear(),tick.getUTCMonth()+1,1));tickIndex++}
+ PAIRS.forEach(pair=>{const py=y(pair);svg.appendChild(el('line',{x1:M.l,y1:py,x2:W-M.r,y2:py,class:'grid-line'}));svg.appendChild(el('text',{x:M.l-9,y:py+4,'text-anchor':'end',class:'pair-label'},pair));const total=DATA.filter(d=>d.pair===pair).reduce((a,d)=>a+d[greek],0),tc=total>=0?'#14866d':'#d84b5b';svg.appendChild(el('text',{x:W-M.r+8,y:py+4,class:'total-label',fill:tc},`Σ ${signedM(total)}`))});
+ const nowX=x(AS_OF.getTime());svg.appendChild(el('line',{x1:nowX,y1:M.t,x2:nowX,y2:H-M.b,class:'asof-line'}));
+ const maxAbs=Math.max(1,...DATA.map(d=>Math.abs(d[greek])));
+ DATA.forEach(d=>{const raw=d[greek],px=x(new Date(`${d.expiry}T00:00:00Z`).getTime()),py=y(d.pair)+(d.type==='Call'?-8:8),radius=7+17*Math.sqrt(Math.abs(raw)/maxAbs),color=d.type==='Call'?'#2463eb':'#8b58c7',label=`${signedM(raw)}${d.positions>1?` · n=${d.positions}`:''}`;
+  svg.appendChild(el('line',{x1:px+radius,y1:py,x2:px+radius+7,y2:py,class:'leader',stroke:color}));const c=el('circle',{cx:px,cy:py,r:radius,fill:color,stroke:'#fff','stroke-width':'1.5'});c.appendChild(el('title',{},`${d.pair} · ${d.type} · ${d.expiry}\nNet ${greek}: ${raw.toLocaleString()} USD\nPositions netted: ${d.positions}`));svg.appendChild(c);svg.appendChild(el('text',{x:px,y:py+3,'text-anchor':'middle',fill:'#fff','font-size':'9','font-weight':'700'},d.type==='Call'?'C':'P'));svg.appendChild(el('text',{x:px+radius+10,y:py+3,class:'value-label'},label));
+ });
+}
+['Delta','Gamma','Theta','Vega'].forEach(renderChart);
 let direction=1;
 function filterTrades(){const q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('#tradeTable tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')}
 function sortTable(c){const b=document.querySelector('#tradeTable tbody'),r=Array.from(b.rows);direction*=-1;r.sort((x,y)=>{const a=x.cells[c].dataset.value,d=y.cells[c].dataset.value,an=Number(a),dn=Number(d);return(a!==''&&d!==''&&Number.isFinite(an)&&Number.isFinite(dn)?an-dn:a.localeCompare(d))*direction});r.forEach(x=>b.appendChild(x))}
 </script></body></html>
 '''
     document = (
-        template.replace("__AS_OF__", as_of.strftime("%d %b %Y"))
-        .replace("__IMAGE__", image_data)
+        template.replace("__AS_OF_LABEL__", as_of.strftime("%d %b %Y"))
+        .replace("__AS_OF_ISO__", as_of.strftime("%Y-%m-%d"))
         .replace("__COUNT__", str(len(trades)))
         .replace("__HEADERS__", header_html)
         .replace("__ROWS__", "\n".join(row_html))
+        .replace("__CHART_DATA__", json.dumps(chart_records, separators=(",", ":")))
+        .replace("__PAIR_ORDER__", json.dumps(pair_order, separators=(",", ":")))
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(document, encoding="utf-8")
@@ -451,7 +489,7 @@ def main() -> None:
 
     draw_dashboard(trades, netted, args.output, as_of)
     html_output = args.html_output or args.output.with_suffix(".html")
-    write_html_dashboard(trades, args.output, html_output, as_of)
+    write_html_dashboard(trades, netted, html_output, as_of)
     netted_output = args.output.with_name(f"{args.output.stem}_netted.csv")
     netted.to_csv(netted_output, index=False, date_format="%Y-%m-%d")
     print(f"Dashboard image: {args.output.resolve()}")
