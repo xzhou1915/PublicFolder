@@ -350,6 +350,25 @@
 .hbar-track.na{background:repeating-linear-gradient(135deg,#f4f6f8,#f4f6f8 5px,#e9edf1 5px,#e9edf1 6px)}
 .table-panel th:last-child,.table-panel td:last-child{display:table-cell}
 </style>
+<style>
+.history-panel{margin-top:18px;overflow:hidden}
+.history-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.history-head h2{margin:0;font-size:18px}
+.history-head p{margin:5px 0 0;color:var(--muted);font-size:12px}
+.history-dates{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.history-dates span{padding:6px 9px;border:1px solid var(--line);border-radius:6px;color:var(--muted);background:#f7f9fc;font-size:11px}
+.history-wrap{overflow:auto;max-height:620px}
+.history-table th:last-child,.history-table td:last-child{display:table-cell}
+.history-table tr.strategy-total td{font-weight:700;background:#eef3f8;border-top:1px solid #d7e0e9}
+.history-table tr.strategy-total:first-child td{border-top:0}
+.history-table .currency-child{padding-left:28px;color:var(--muted)}
+.change-cell{min-width:145px}
+.change-number{margin-bottom:4px;font-size:11px;font-weight:600}
+.change-track{position:relative;width:120px;height:6px;margin-left:auto;overflow:hidden;border-radius:2px;background:#edf1f5}
+.change-track:after{position:absolute;z-index:2;top:0;bottom:0;left:50%;width:1px;background:#9aa6b2;content:""}
+.change-fill{position:absolute;top:1px;height:4px;border-radius:1px;opacity:.78}
+(max-width:760px){.history-head{align-items:flex-start;flex-direction:column}.history-dates{justify-content:flex-start}}
+</style>
 </head>
 <body>
   <main class="shell">
@@ -438,6 +457,19 @@
           </table>
         </div>
       </article>
+    </section>
+
+    <section class="card history-panel">
+      <div class="history-head">
+        <div><h2>Change vs history</h2><p>Latest value minus comparison value</p></div>
+        <div class="history-dates"><span id="weekComparison">1W · —</span><span id="monthComparison">1M · —</span></div>
+      </div>
+      <div class="history-wrap">
+        <table class="history-table">
+          <thead><tr><th>Strategy</th><th>Currency</th><th class="num">1W Δ Delta</th><th class="num">1W Δ VaR</th><th class="num">1M Δ Delta</th><th class="num">1M Δ VaR</th></tr></thead>
+          <tbody id="historyRows"></tbody>
+        </table>
+      </div>
     </section>
 
     <footer class="footnote">
@@ -839,6 +871,64 @@
       row.appendChild(n("td","ccy",item.display));row.appendChild(n("td","num "+(item.delta<0?"negative":"positive"),formatMoney(item.delta,true)));row.appendChild(n("td","num",riskMoney(item.var)));body.appendChild(row);
     });
     document.getElementById("tableSubtitle").textContent=currencies.length+" currencies · "+(selectedBU==="ALL"?"all business units":selectedBU);
+  };
+  document.getElementById("buFilter").addEventListener("change",function(){window.render()});
+  if(rawRows.length>0)window.render();
+})();
+</script>
+<script>
+(function(){
+  var historyRender=render;
+  window.render=function(){
+    historyRender();
+    var selectedBU=document.getElementById("buFilter").value;
+    var currentDate=latestDate(rawRows);
+    var eligibleDates=Array.from(new Set(rawRows.filter(function(row){return selectedBU==="ALL"||row.bu===selectedBU}).map(function(row){return row.date}))).filter(function(date){return date<currentDate}).sort();
+    function iso(date){return date.toISOString().slice(0,10)}
+    function comparisonDate(target){var choices=eligibleDates.filter(function(date){return date<=target});return choices.length===0?null:choices[choices.length-1]}
+    var current=new Date(currentDate+"T00:00:00Z");
+    var weekTarget=new Date(current.getTime());weekTarget.setUTCDate(weekTarget.getUTCDate()-7);
+    var monthFirst=new Date(Date.UTC(current.getUTCFullYear(),current.getUTCMonth()-1,1));
+    var monthLastDay=new Date(Date.UTC(monthFirst.getUTCFullYear(),monthFirst.getUTCMonth()+1,0)).getUTCDate();
+    var monthTarget=new Date(Date.UTC(monthFirst.getUTCFullYear(),monthFirst.getUTCMonth(),Math.min(current.getUTCDate(),monthLastDay)));
+    var weekDate=comparisonDate(iso(weekTarget));
+    var monthDate=comparisonDate(iso(monthTarget));
+    function snapshot(date){
+      if(date===null)return null;
+      var positions=buildPositions(rawRows,date,selectedBU);
+      var currencyMap=new Map();
+      positions.forEach(function(position){
+        var key=position.strategy+"|"+position.display;var item=currencyMap.get(key);
+        if(item===undefined){item={strategy:position.strategy,display:position.display,delta:0,var:position.strategy==="Basis"?null:0,hasVar:false};currencyMap.set(key,item)}
+        item.delta+=position.delta;if(position.var===null){}else{item.var+=position.var;item.hasVar=true}
+      });
+      currencyMap.forEach(function(item){if(item.strategy==="Basis"){}else if(item.hasVar===false)item.var=null});
+      return {summary:summarize(positions),currencies:currencyMap};
+    }
+    var latestSnapshot=snapshot(currentDate);var weekSnapshot=snapshot(weekDate);var monthSnapshot=snapshot(monthDate);
+    function difference(value,prior){return value===null||prior===null||prior===undefined?null:value-prior}
+    var rows=[];
+    ORDER.forEach(function(strategy){
+      var latestTotal=latestSnapshot.summary[strategy];var weekTotal=weekSnapshot===null?null:weekSnapshot.summary[strategy];var monthTotal=monthSnapshot===null?null:monthSnapshot.summary[strategy];
+      rows.push({strategy:strategy,currency:"Total",total:true,wd:difference(latestTotal.net,weekTotal===null?null:weekTotal.net),wv:difference(latestTotal.var,weekTotal===null?null:weekTotal.var),md:difference(latestTotal.net,monthTotal===null?null:monthTotal.net),mv:difference(latestTotal.var,monthTotal===null?null:monthTotal.var)});
+      Array.from(latestSnapshot.currencies.values()).filter(function(item){return item.strategy===strategy}).sort(function(a,b){return Math.abs(b.delta)-Math.abs(a.delta)}).forEach(function(item){
+        var key=item.strategy+"|"+item.display;var weekItem=weekSnapshot===null?null:weekSnapshot.currencies.get(key);var monthItem=monthSnapshot===null?null:monthSnapshot.currencies.get(key);
+        rows.push({strategy:"",currency:item.display,total:false,color:COLORS[strategy],wd:difference(item.delta,weekItem===null||weekItem===undefined?null:weekItem.delta),wv:difference(item.var,weekItem===null||weekItem===undefined?null:weekItem.var),md:difference(item.delta,monthItem===null||monthItem===undefined?null:monthItem.delta),mv:difference(item.var,monthItem===null||monthItem===undefined?null:monthItem.var)});
+      });
+    });
+    var keys=["wd","wv","md","mv"];var scales={};keys.forEach(function(key){scales[key]=Math.max.apply(null,rows.map(function(row){return row[key]===null?0:Math.abs(row[key])}).concat([1]))});
+    function changeMoney(value){if(value===null)return "N/A";var amount=Math.abs(value)/1000000;var digits=amount>=100?0:(amount>=10?1:2);return (value<0?"−":"+")+String.fromCharCode(36)+amount.toFixed(digits)+"m"}
+    function cell(value,key,color){
+      var td=document.createElement("td");td.className="num change-cell";var number=document.createElement("div");number.className="change-number";number.textContent=changeMoney(value);td.appendChild(number);
+      if(value===null){}else{var track=document.createElement("div");track.className="change-track";var fill=document.createElement("i");fill.className="change-fill";fill.style.backgroundColor=color;var width=Math.abs(value)/scales[key]*50;fill.style.width=width+"%";fill.style.left=(value>=0?50:50-width)+"%";track.appendChild(fill);td.appendChild(track)}
+      return td;
+    }
+    var tbody=document.getElementById("historyRows");tbody.innerHTML="";
+    rows.forEach(function(item){
+      var tr=document.createElement("tr");if(item.total)tr.className="strategy-total";var strategyCell=document.createElement("td");strategyCell.textContent=item.strategy;tr.appendChild(strategyCell);var currencyCell=document.createElement("td");currencyCell.textContent=item.currency;if(item.total===false)currencyCell.className="currency-child";tr.appendChild(currencyCell);var color=item.total?COLORS[item.strategy]:item.color;tr.appendChild(cell(item.wd,"wd",color));tr.appendChild(cell(item.wv,"wv",color));tr.appendChild(cell(item.md,"md",color));tr.appendChild(cell(item.mv,"mv",color));tbody.appendChild(tr);
+    });
+    document.getElementById("weekComparison").textContent="1W · "+(weekDate===null?"no comparison":formatDate(weekDate));
+    document.getElementById("monthComparison").textContent="1M · "+(monthDate===null?"no comparison":formatDate(monthDate));
   };
   document.getElementById("buFilter").addEventListener("change",function(){window.render()});
   if(rawRows.length>0)window.render();
