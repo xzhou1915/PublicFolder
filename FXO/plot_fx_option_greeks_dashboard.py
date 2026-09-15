@@ -212,6 +212,7 @@ def draw_panel(
 
 def format_trade_table(trades: pd.DataFrame) -> tuple[list[str], list[list[str]]]:
     preferred = [
+        "CobDate",
         "Underlying",
         "Shore",
         "OptionType",
@@ -224,6 +225,11 @@ def format_trade_table(trades: pd.DataFrame) -> tuple[list[str], list[list[str]]
         "Notional",
         "NotionalCCY",
         "PnL",
+        "PositionName",
+        "Portfolio",
+        "AssetType",
+        "TradeDate",
+        "UniqueID",
     ]
     columns = [column for column in preferred if column in trades.columns]
     display_names = {
@@ -236,7 +242,7 @@ def format_trade_table(trades: pd.DataFrame) -> tuple[list[str], list[list[str]]
         row: list[str] = []
         for column in columns:
             value = trade[column]
-            if column == "ExpiryDate":
+            if column in {"CobDate", "ExpiryDate", "TradeDate"}:
                 row.append(pd.Timestamp(value).strftime("%Y-%m-%d"))
             elif column in GREEK_INPUT_COLUMNS.values() or column in {"Notional", "PnL"}:
                 row.append(f"{float(value):,.0f}")
