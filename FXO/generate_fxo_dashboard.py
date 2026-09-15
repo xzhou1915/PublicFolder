@@ -475,6 +475,7 @@ def inject_ytd_pnl(
 .pnl-contribution-head{display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line)}
 .pnl-contribution-head h3{margin:0;font-size:15px}.pnl-contribution-head span{color:var(--muted);font-size:11px}
 .pnl-contribution-card table{font-size:12px}.pnl-contribution-card th{position:static;padding:9px 16px;cursor:default}.pnl-contribution-card td{padding:9px 16px}
+.pnl-contribution-card td.num{font-size:18px}
 .pnl-total-row td{background:#edf3f9;border-top:2px solid #cbd6e2;font-weight:700}
 .pnl-positive{color:var(--pos)}.pnl-negative{color:var(--neg)}.pnl-no-change{text-align:center;color:var(--muted)}
 .pnl-card-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 10px 2px}
