@@ -40,7 +40,6 @@ INPUT_COLUMNS = [
 NUMERIC_COLUMNS = [
     "Strike",
     *GREEK_INPUT_COLUMNS.values(),
-    "Notional",
     "PnL",
 ]
 PAIR_COLORS = [
@@ -98,6 +97,7 @@ def load_position_history(
         trades[column] = pd.to_numeric(trades[column], errors="raise")
         if trades[column].isna().any():
             raise ValueError(f"{column} contains blank values")
+    trades["Notional"] = pd.to_numeric(trades["Notional"], errors="raise")
 
     trades["UniqueID"] = trades["UniqueID"].astype("string").str.strip()
     if trades["UniqueID"].isna().any() or trades["UniqueID"].eq("").any():

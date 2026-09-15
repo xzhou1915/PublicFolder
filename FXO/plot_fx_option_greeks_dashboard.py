@@ -242,7 +242,9 @@ def format_trade_table(trades: pd.DataFrame) -> tuple[list[str], list[list[str]]
         row: list[str] = []
         for column in columns:
             value = trade[column]
-            if column in {"CobDate", "ExpiryDate", "TradeDate"}:
+            if column == "Notional" and pd.isna(value):
+                row.append("—")
+            elif column in {"CobDate", "ExpiryDate", "TradeDate"}:
                 row.append(pd.Timestamp(value).strftime("%Y-%m-%d"))
             elif column in GREEK_INPUT_COLUMNS.values() or column in {"Notional", "PnL"}:
                 row.append(f"{float(value):,.0f}")
