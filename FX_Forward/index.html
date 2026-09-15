@@ -369,6 +369,14 @@
 .change-fill{position:absolute;top:1px;height:4px;border-radius:1px;opacity:.78}
 (max-width:760px){.history-head{align-items:flex-start;flex-direction:column}.history-dates{justify-content:flex-start}}
 </style>
+<style>
+.history-panel{margin-top:0;margin-bottom:18px}
+.strategy-summary-wrap{overflow:auto;border-bottom:1px solid var(--line)}
+.strategy-summary-table th:last-child,.strategy-summary-table td:last-child{display:table-cell}
+.strategy-summary-table td{font-weight:600}
+.strategy-summary-table td:first-child{font-weight:700}
+.history-detail-label{padding:12px 18px 9px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+</style>
 </head>
 <body>
   <main class="shell">
@@ -428,6 +436,26 @@
 
     <section class="strategy-grid" id="strategyGrid" aria-label="Exposure by strategy"></section>
 
+    <section class="card history-panel">
+      <div class="history-head">
+        <div><h2>Change vs history</h2><p>Latest value minus comparison value</p></div>
+        <div class="history-dates"><span id="weekComparison">1W · —</span><span id="monthComparison">1M · —</span></div>
+      </div>
+      <div class="strategy-summary-wrap">
+        <table class="strategy-summary-table">
+          <thead><tr><th>Strategy</th><th class="num">Current Delta</th><th class="num">Current VaR</th><th class="num">1W Δ Delta</th><th class="num">1W Δ VaR</th><th class="num">1M Δ Delta</th><th class="num">1M Δ VaR</th></tr></thead>
+          <tbody id="strategySummaryRows"></tbody>
+        </table>
+      </div>
+      <div class="history-detail-label">Currency change detail</div>
+      <div class="history-wrap">
+        <table class="history-table">
+          <thead><tr><th>Strategy</th><th>Currency</th><th class="num">1W Δ Delta</th><th class="num">1W Δ VaR</th><th class="num">1M Δ Delta</th><th class="num">1M Δ VaR</th></tr></thead>
+          <tbody id="historyRows"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="main-grid">
       <article class="card chart-panel">
         <div class="panel-head">
@@ -457,19 +485,6 @@
           </table>
         </div>
       </article>
-    </section>
-
-    <section class="card history-panel">
-      <div class="history-head">
-        <div><h2>Change vs history</h2><p>Latest value minus comparison value</p></div>
-        <div class="history-dates"><span id="weekComparison">1W · —</span><span id="monthComparison">1M · —</span></div>
-      </div>
-      <div class="history-wrap">
-        <table class="history-table">
-          <thead><tr><th>Strategy</th><th>Currency</th><th class="num">1W Δ Delta</th><th class="num">1W Δ VaR</th><th class="num">1M Δ Delta</th><th class="num">1M Δ VaR</th></tr></thead>
-          <tbody id="historyRows"></tbody>
-        </table>
-      </div>
     </section>
 
     <footer class="footnote">
@@ -929,6 +944,16 @@
     });
     document.getElementById("weekComparison").textContent="1W · "+(weekDate===null?"no comparison":formatDate(weekDate));
     document.getElementById("monthComparison").textContent="1M · "+(monthDate===null?"no comparison":formatDate(monthDate));
+    function levelMoney(value){if(value===null)return "N/A";var amount=Math.abs(value)/1000000;var digits=amount>=100?0:(amount>=10?1:2);return String.fromCharCode(36)+amount.toFixed(digits)+"m"}
+    function summaryCell(text,className){var td=document.createElement("td");td.className=className||"";td.textContent=text;return td}
+    var summaryBody=document.getElementById("strategySummaryRows");summaryBody.innerHTML="";
+    ORDER.forEach(function(strategy){
+      var level=latestSnapshot.summary[strategy];var weekLevel=weekSnapshot===null?null:weekSnapshot.summary[strategy];var monthLevel=monthSnapshot===null?null:monthSnapshot.summary[strategy];
+      var tr=document.createElement("tr");var strategyCell=document.createElement("td");var badge=document.createElement("span");badge.className="badge";badge.style.setProperty("--badge",COLORS[strategy]);badge.textContent=strategy;strategyCell.appendChild(badge);tr.appendChild(strategyCell);
+      tr.appendChild(summaryCell(formatMoney(level.net,true),"num "+(level.net<0?"negative":"positive")));tr.appendChild(summaryCell(levelMoney(level.var),"num"));
+      tr.appendChild(summaryCell(changeMoney(difference(level.net,weekLevel===null?null:weekLevel.net)),"num"));tr.appendChild(summaryCell(changeMoney(difference(level.var,weekLevel===null?null:weekLevel.var)),"num"));
+      tr.appendChild(summaryCell(changeMoney(difference(level.net,monthLevel===null?null:monthLevel.net)),"num"));tr.appendChild(summaryCell(changeMoney(difference(level.var,monthLevel===null?null:monthLevel.var)),"num"));summaryBody.appendChild(tr);
+    });
   };
   document.getElementById("buFilter").addEventListener("change",function(){window.render()});
   if(rawRows.length>0)window.render();
