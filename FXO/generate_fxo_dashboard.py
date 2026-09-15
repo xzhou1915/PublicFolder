@@ -10,7 +10,6 @@ import pandas as pd
 
 from plot_fx_option_greeks_dashboard import (
     GREEK_INPUT_COLUMNS,
-    draw_dashboard,
     net_trades,
     write_html_dashboard,
 )
@@ -46,12 +45,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        help="Dashboard PNG path (default: <input>_dashboard.png)",
-    )
-    parser.add_argument(
-        "--html-output",
-        type=Path,
-        help="Standalone HTML path (default: same name as PNG with .html)",
+        help="Standalone HTML path (default: <input>_dashboard.html)",
     )
     return parser.parse_args()
 
@@ -102,19 +96,15 @@ def main() -> None:
         raise ValueError("The latest CobDate contains no trades to plot")
 
     output = args.output or args.input_csv.with_name(
-        f"{args.input_csv.stem}_dashboard.png"
+        f"{args.input_csv.stem}_dashboard.html"
     )
-    html_output = args.html_output or output.with_suffix(".html")
-    netted_output = output.with_name(f"{output.stem}_netted.csv")
+    if output.suffix.lower() != ".html":
+        raise ValueError("Output path must use the .html extension")
 
-    draw_dashboard(trades, netted, output, as_of)
-    write_html_dashboard(trades, netted, html_output, as_of)
-    netted.to_csv(netted_output, index=False, date_format="%Y-%m-%d")
+    write_html_dashboard(trades, netted, output, as_of)
 
     print(f"Latest CobDate: {as_of:%Y-%m-%d}")
-    print(f"Dashboard image: {output.resolve()}")
-    print(f"Dashboard HTML: {html_output.resolve()}")
-    print(f"Netted data: {netted_output.resolve()}")
+    print(f"Dashboard HTML: {output.resolve()}")
     print(
         f"{len(trades)} latest-snapshot trades -> "
         f"{len(netted)} bubbles per Greek panel"
