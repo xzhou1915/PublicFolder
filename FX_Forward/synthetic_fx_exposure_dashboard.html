@@ -976,7 +976,14 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     function summaryCell(text,className){var td=document.createElement("td");td.className=className||"";td.textContent=text;return td}
     function historyChangeClass(value,threshold){return "num history-change-value"+(value===null||Math.abs(value)<=threshold?"":" threshold-breach")}
     var summaryBody=document.getElementById("strategySummaryRows");summaryBody.innerHTML="";
-    rows.forEach(function(item){
+    rows.filter(function(item){
+      if(item.total)return true;
+      if(item.strategy==="Carry"||item.strategy==="Basis")return true;
+      return item.strategy==="Directional"&&(
+        (item.currentVar!==null&&item.currentVar>100000)||
+        (item.wd!==null&&Math.abs(item.wd)>5000000)
+      );
+    }).forEach(function(item){
       var tr=document.createElement("tr");if(item.total)tr.className="summary-total";
       var labelCell=document.createElement("td");
       if(item.total){var badge=document.createElement("span");badge.className="badge";badge.style.setProperty("--badge",COLORS[item.strategy]);badge.textContent=item.strategy;labelCell.appendChild(badge)}
