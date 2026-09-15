@@ -344,6 +344,7 @@ def inject_ytd_pnl(
     output: Path,
     book_history: pd.DataFrame,
     pair_history: pd.DataFrame,
+    netted: pd.DataFrame,
 ) -> None:
     book_points = [
         (pd.Timestamp(row.CobDate), float(row.YtdPnL))
@@ -353,46 +354,79 @@ def inject_ytd_pnl(
     comparison_date, current_pnl, wow_change, contributors = build_wow_summary(
         book_history, pair_history
     )
-    current_class = (
-        "pnl-positive"
-        if current_pnl > 0
-        else "pnl-negative"
-        if current_pnl < 0
-        else ""
-    )
+    greek_metrics = [
+        ("Delta", "NetDelta"),
+        ("Gamma", "NetGamma"),
+        ("Vega", "NetVega"),
+        ("Theta", "NetTheta"),
+    ]
+    greek_columns = [column for _, column in greek_metrics]
+    greeks_by_pair = netted.groupby("Pair")[greek_columns].sum()
+    book_greeks = greeks_by_pair.sum()
+
+    def value_class(value: float) -> str:
+        return (
+            "pnl-positive"
+            if value > 0
+            else "pnl-negative"
+            if value < 0
+            else ""
+        )
+
+    def greek_cells(pair: str | None = None) -> str:
+        if pair is None:
+            values = book_greeks
+        elif pair in greeks_by_pair.index:
+            values = greeks_by_pair.loc[pair]
+        else:
+            values = None
+
+        cells = []
+        for _, column in greek_metrics:
+            value = 0.0 if values is None else float(values[column])
+            cells.append(
+                f'<td class="num {value_class(value)}">'
+                f"{html.escape(format_money(value))}</td>"
+            )
+        return "".join(cells)
+
+    current_class = value_class(current_pnl)
     if wow_change is None:
         wow_text = "N/A"
         wow_class = ""
         comparison_label = "No 1-week comparison available"
         contribution_rows = (
-            '<tr><td colspan="3" class="pnl-no-change">'
+            '<tr><td colspan="7" class="pnl-no-change">'
             "No 1-week comparison date is available.</td></tr>"
         )
     else:
         wow_text = format_money(wow_change)
-        wow_class = (
-            "pnl-positive"
-            if wow_change > 0
-            else "pnl-negative"
-            if wow_change < 0
-            else ""
-        )
+        wow_class = value_class(wow_change)
         comparison_label = f"vs {comparison_date:%d %b %Y}"
         contribution_rows = "".join(
             "<tr>"
             f"<td>{html.escape(pair)}</td>"
-            f'<td class="num {"pnl-positive" if current > 0 else "pnl-negative" if current < 0 else ""}">'
+            f'<td class="num {value_class(current)}">'
             f"{html.escape(format_money(current))}</td>"
-            f'<td class="num {"pnl-positive" if change > 0 else "pnl-negative"}">'
+            f'<td class="num {value_class(change)}">'
             f"{html.escape(format_money(change))}</td>"
+            f"{greek_cells(pair)}"
             "</tr>"
             for pair, current, change in contributors
         )
         if not contribution_rows:
             contribution_rows = (
-                '<tr><td colspan="3" class="pnl-no-change">'
+                '<tr><td colspan="7" class="pnl-no-change">'
                 "No currency-pair P&amp;L changes in this window.</td></tr>"
             )
+
+    whole_book_row = (
+        '<tfoot><tr class="pnl-total-row"><td>Whole book</td>'
+        f'<td class="num {current_class}">{html.escape(format_money(current_pnl))}</td>'
+        f'<td class="num {wow_class}">{html.escape(wow_text)}</td>'
+        f"{greek_cells()}"
+        "</tr></tfoot>"
+    )
 
     book_svg = line_chart_svg(
         [("Whole book", "#14866d", book_points)],
@@ -441,6 +475,7 @@ def inject_ytd_pnl(
 .pnl-contribution-head{display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line)}
 .pnl-contribution-head h3{margin:0;font-size:15px}.pnl-contribution-head span{color:var(--muted);font-size:11px}
 .pnl-contribution-card table{font-size:12px}.pnl-contribution-card th{position:static;padding:9px 16px;cursor:default}.pnl-contribution-card td{padding:9px 16px}
+.pnl-total-row td{background:#edf3f9;border-top:2px solid #cbd6e2;font-weight:700}
 .pnl-positive{color:var(--pos)}.pnl-negative{color:var(--neg)}.pnl-no-change{text-align:center;color:var(--muted)}
 .pnl-card-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 10px 2px}
 .pnl-card-head h2{margin:0}.pnl-latest{font-size:19px;font-weight:700;color:var(--pos);white-space:nowrap}
@@ -464,7 +499,7 @@ def inject_ytd_pnl(
   </div>
   <div class="pnl-contribution-card">
     <div class="pnl-contribution-head"><h3>Currency-pair contribution to WoW P&amp;L</h3><span>Only non-zero changes shown</span></div>
-    <table><thead><tr><th>Currency pair</th><th class="num">Current P&amp;L</th><th class="num">WoW contribution</th></tr></thead><tbody>{contribution_rows}</tbody></table>
+    <table><thead><tr><th>Currency pair</th><th class="num">Current P&amp;L</th><th class="num">WoW contribution</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th></tr></thead><tbody>{contribution_rows}</tbody>{whole_book_row}</table>
   </div>
   <div class="chart-grid">
     <article class="chart-card pnl-card">
@@ -510,7 +545,7 @@ def main() -> None:
 
     book_history, pair_history = build_ytd_pnl_streams(history, as_of)
     write_html_dashboard(trades, netted, output, as_of)
-    inject_ytd_pnl(output, book_history, pair_history)
+    inject_ytd_pnl(output, book_history, pair_history, netted)
 
     print(f"Latest CobDate: {as_of:%Y-%m-%d}")
     print(
