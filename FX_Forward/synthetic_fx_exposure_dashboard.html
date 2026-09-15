@@ -378,6 +378,14 @@
 .strategy-summary-table td:first-child{font-weight:700}
 .history-detail-label{padding:12px 18px 9px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
 </style>
+<style>
+.history-detail-label,.history-wrap{display:none}
+.strategy-summary-table{font-size:11px}
+.strategy-summary-table th,.strategy-summary-table td{padding:7px 9px}
+.strategy-summary-table tr.summary-total td{background:#eef3f8;border-top:1px solid #d7e0e9}
+.strategy-summary-table tr.summary-total:first-child td{border-top:0}
+.summary-child-label{display:inline-block;padding-left:24px;color:var(--muted);font-weight:600}
+</style>
 </head>
 <body>
   <main class="shell">
@@ -440,7 +448,7 @@
       </div>
       <div class="strategy-summary-wrap">
         <table class="strategy-summary-table">
-          <thead><tr><th>Strategy</th><th class="num">Current Delta</th><th class="num">Current VaR</th><th class="num">1W Δ Delta</th><th class="num">1W Δ VaR</th><th class="num">1M Δ Delta</th><th class="num">1M Δ VaR</th></tr></thead>
+          <thead><tr><th>Strategy / CCY</th><th class="num">Current Delta</th><th class="num">Current VaR</th><th class="num">1W Δ Delta</th><th class="num">1W Δ VaR</th><th class="num">1M Δ Delta</th><th class="num">1M Δ VaR</th></tr></thead>
           <tbody id="strategySummaryRows"></tbody>
         </table>
       </div>
@@ -871,10 +879,10 @@
     var rows=[];
     ORDER.forEach(function(strategy){
       var latestTotal=latestSnapshot.summary[strategy];var weekTotal=weekSnapshot===null?null:weekSnapshot.summary[strategy];var monthTotal=monthSnapshot===null?null:monthSnapshot.summary[strategy];
-      rows.push({strategy:strategy,currency:"Total",total:true,wd:difference(latestTotal.net,weekTotal===null?null:weekTotal.net),wv:difference(latestTotal.var,weekTotal===null?null:weekTotal.var),md:difference(latestTotal.net,monthTotal===null?null:monthTotal.net),mv:difference(latestTotal.var,monthTotal===null?null:monthTotal.var)});
+      rows.push({strategy:strategy,currency:"Total",total:true,currentDelta:latestTotal.net,currentVar:latestTotal.var,wd:difference(latestTotal.net,weekTotal===null?null:weekTotal.net),wv:difference(latestTotal.var,weekTotal===null?null:weekTotal.var),md:difference(latestTotal.net,monthTotal===null?null:monthTotal.net),mv:difference(latestTotal.var,monthTotal===null?null:monthTotal.var)});
       Array.from(latestSnapshot.currencies.values()).filter(function(item){return item.strategy===strategy}).sort(function(a,b){return Math.abs(b.delta)-Math.abs(a.delta)}).forEach(function(item){
         var key=item.strategy+"|"+item.display;var weekItem=weekSnapshot===null?null:weekSnapshot.currencies.get(key);var monthItem=monthSnapshot===null?null:monthSnapshot.currencies.get(key);
-        rows.push({strategy:"",currency:item.display,total:false,color:COLORS[strategy],wd:difference(item.delta,weekItem===null||weekItem===undefined?null:weekItem.delta),wv:difference(item.var,weekItem===null||weekItem===undefined?null:weekItem.var),md:difference(item.delta,monthItem===null||monthItem===undefined?null:monthItem.delta),mv:difference(item.var,monthItem===null||monthItem===undefined?null:monthItem.var)});
+        rows.push({strategy:strategy,currency:item.display,total:false,currentDelta:item.delta,currentVar:item.var,color:COLORS[strategy],wd:difference(item.delta,weekItem===null||weekItem===undefined?null:weekItem.delta),wv:difference(item.var,weekItem===null||weekItem===undefined?null:weekItem.var),md:difference(item.delta,monthItem===null||monthItem===undefined?null:monthItem.delta),mv:difference(item.var,monthItem===null||monthItem===undefined?null:monthItem.var)});
       });
     });
     var keys=["wd","wv","md","mv"];var scales={};keys.forEach(function(key){scales[key]=Math.max.apply(null,rows.map(function(row){return row[key]===null?0:Math.abs(row[key])}).concat([1]))});
@@ -893,12 +901,17 @@
     function levelMoney(value){if(value===null)return "N/A";var amount=Math.abs(value)/1000000;var digits=amount>=100?0:(amount>=10?1:2);return String.fromCharCode(36)+amount.toFixed(digits)+"m"}
     function summaryCell(text,className){var td=document.createElement("td");td.className=className||"";td.textContent=text;return td}
     var summaryBody=document.getElementById("strategySummaryRows");summaryBody.innerHTML="";
-    ORDER.forEach(function(strategy){
-      var level=latestSnapshot.summary[strategy];var weekLevel=weekSnapshot===null?null:weekSnapshot.summary[strategy];var monthLevel=monthSnapshot===null?null:monthSnapshot.summary[strategy];
-      var tr=document.createElement("tr");var strategyCell=document.createElement("td");var badge=document.createElement("span");badge.className="badge";badge.style.setProperty("--badge",COLORS[strategy]);badge.textContent=strategy;strategyCell.appendChild(badge);tr.appendChild(strategyCell);
-      tr.appendChild(summaryCell(formatMoney(level.net,true),"num "+(level.net<0?"negative":"positive")));tr.appendChild(summaryCell(levelMoney(level.var),"num"));
-      tr.appendChild(summaryCell(changeMoney(difference(level.net,weekLevel===null?null:weekLevel.net)),"num"));tr.appendChild(summaryCell(changeMoney(difference(level.var,weekLevel===null?null:weekLevel.var)),"num"));
-      tr.appendChild(summaryCell(changeMoney(difference(level.net,monthLevel===null?null:monthLevel.net)),"num"));tr.appendChild(summaryCell(changeMoney(difference(level.var,monthLevel===null?null:monthLevel.var)),"num"));summaryBody.appendChild(tr);
+    rows.filter(function(item){
+      if(item.total)return true;
+      if(item.strategy==="Carry"||item.strategy==="Basis")return true;
+      return item.strategy==="Directional"&&(item.currentVar===null?false:item.currentVar>100000);
+    }).forEach(function(item){
+      var tr=document.createElement("tr");if(item.total)tr.className="summary-total";
+      var labelCell=document.createElement("td");
+      if(item.total){var badge=document.createElement("span");badge.className="badge";badge.style.setProperty("--badge",COLORS[item.strategy]);badge.textContent=item.strategy;labelCell.appendChild(badge)}
+      else{var child=document.createElement("span");child.className="summary-child-label";child.textContent=item.currency;labelCell.appendChild(child)}
+      tr.appendChild(labelCell);tr.appendChild(summaryCell(formatMoney(item.currentDelta,true),"num "+(item.currentDelta<0?"negative":"positive")));tr.appendChild(summaryCell(levelMoney(item.currentVar),"num"));
+      tr.appendChild(summaryCell(changeMoney(item.wd),"num"));tr.appendChild(summaryCell(changeMoney(item.wv),"num"));tr.appendChild(summaryCell(changeMoney(item.md),"num"));tr.appendChild(summaryCell(changeMoney(item.mv),"num"));summaryBody.appendChild(tr);
     });
   };
   document.getElementById("buFilter").addEventListener("change",function(){window.render()});
