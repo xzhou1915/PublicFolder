@@ -451,6 +451,11 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 .strategy-summary-table td{font-size:16px;line-height:1.25;padding:13px 15px}
 .strategy-summary-table .badge,.strategy-summary-table .summary-child-label{font-size:16px}
 </style>
+<style>
+/* Historical change emphasis */
+.strategy-summary-table td.history-change-value{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.strategy-summary-table td.threshold-breach{color:#8a4800;background:#fff0d5;box-shadow:inset 3px 0 #e59a34}
+</style>
 </head>
 <body>
   <main class="shell">
@@ -965,6 +970,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     document.getElementById("monthComparison").textContent="1M · "+(monthDate===null?"no comparison":formatDate(monthDate));
     function levelMoney(value){if(value===null)return "N/A";var amount=Math.abs(value)/1000000;var digits=amount>=100?0:(amount>=10?1:2);return String.fromCharCode(36)+amount.toFixed(digits)+"m"}
     function summaryCell(text,className){var td=document.createElement("td");td.className=className||"";td.textContent=text;return td}
+    function historyChangeClass(value,threshold){return "num history-change-value"+(value===null||Math.abs(value)<=threshold?"":" threshold-breach")}
     var summaryBody=document.getElementById("strategySummaryRows");summaryBody.innerHTML="";
     rows.filter(function(item){
       if(item.total)return true;
@@ -976,7 +982,8 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
       if(item.total){var badge=document.createElement("span");badge.className="badge";badge.style.setProperty("--badge",COLORS[item.strategy]);badge.textContent=item.strategy;labelCell.appendChild(badge)}
       else{var child=document.createElement("span");child.className="summary-child-label";child.textContent=item.currency;labelCell.appendChild(child)}
       tr.appendChild(labelCell);tr.appendChild(summaryCell(formatMoney(item.currentDelta,true),"num "+(item.currentDelta<0?"negative":"positive")));tr.appendChild(summaryCell(levelMoney(item.currentVar),"num"));
-      tr.appendChild(summaryCell(changeMoney(item.wd),"num"));tr.appendChild(summaryCell(changeMoney(item.wv),"num"));tr.appendChild(summaryCell(changeMoney(item.md),"num"));tr.appendChild(summaryCell(changeMoney(item.mv),"num"));summaryBody.appendChild(tr);
+      tr.appendChild(summaryCell(changeMoney(item.wd),historyChangeClass(item.wd,5000000)));tr.appendChild(summaryCell(changeMoney(item.wv),historyChangeClass(item.wv,100000)));
+      tr.appendChild(summaryCell(changeMoney(item.md),historyChangeClass(item.md,5000000)));tr.appendChild(summaryCell(changeMoney(item.mv),historyChangeClass(item.mv,100000)));summaryBody.appendChild(tr);
     });
   };
   document.getElementById("buFilter").addEventListener("change",function(){window.render()});
