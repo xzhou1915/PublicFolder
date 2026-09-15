@@ -176,6 +176,51 @@ def build_ytd_pnl_streams(
     return pd.DataFrame(book_rows), pd.DataFrame(pair_rows)
 
 
+def build_wow_summary(
+    book_history: pd.DataFrame,
+    pair_history: pd.DataFrame,
+) -> tuple[pd.Timestamp | None, float, float | None, list[tuple[str, float, float]]]:
+    latest_date = pd.Timestamp(book_history["CobDate"].max())
+    current_pnl = float(
+        book_history.loc[book_history["CobDate"].eq(latest_date), "YtdPnL"].iloc[0]
+    )
+    comparison_dates = book_history.loc[
+        book_history["CobDate"].le(latest_date - pd.Timedelta(days=7)), "CobDate"
+    ]
+    if comparison_dates.empty:
+        return None, current_pnl, None, []
+
+    comparison_date = pd.Timestamp(comparison_dates.max())
+    previous_pnl = float(
+        book_history.loc[
+            book_history["CobDate"].eq(comparison_date), "YtdPnL"
+        ].iloc[0]
+    )
+    wow_change = current_pnl - previous_pnl
+
+    latest_pairs = pair_history.loc[
+        pair_history["CobDate"].eq(latest_date)
+    ].set_index("Pair")["YtdPnL"]
+    previous_pairs = pair_history.loc[
+        pair_history["CobDate"].eq(comparison_date)
+    ].set_index("Pair")["YtdPnL"]
+
+    contributors = []
+    for pair in latest_pairs.index:
+        current = float(latest_pairs.loc[pair])
+        change = current - float(previous_pairs.loc[pair])
+        if change != 0:
+            contributors.append((str(pair), current, change))
+    contributors.sort(key=lambda item: abs(item[2]), reverse=True)
+
+    contribution_total = sum(item[2] for item in contributors)
+    tolerance = max(1e-6, abs(wow_change) * 1e-12)
+    if abs(contribution_total - wow_change) > tolerance:
+        raise RuntimeError("Currency WoW contributions do not match whole-book WoW")
+
+    return comparison_date, current_pnl, wow_change, contributors
+
+
 def format_money(value: float, signed: bool = True) -> str:
     sign = "+" if signed and value > 0 else "-" if value < 0 else ""
     amount = abs(value)
@@ -305,6 +350,50 @@ def inject_ytd_pnl(
         for row in book_history.itertuples()
     ]
     latest_book = book_points[-1][1]
+    comparison_date, current_pnl, wow_change, contributors = build_wow_summary(
+        book_history, pair_history
+    )
+    current_class = (
+        "pnl-positive"
+        if current_pnl > 0
+        else "pnl-negative"
+        if current_pnl < 0
+        else ""
+    )
+    if wow_change is None:
+        wow_text = "N/A"
+        wow_class = ""
+        comparison_label = "No 1-week comparison available"
+        contribution_rows = (
+            '<tr><td colspan="3" class="pnl-no-change">'
+            "No 1-week comparison date is available.</td></tr>"
+        )
+    else:
+        wow_text = format_money(wow_change)
+        wow_class = (
+            "pnl-positive"
+            if wow_change > 0
+            else "pnl-negative"
+            if wow_change < 0
+            else ""
+        )
+        comparison_label = f"vs {comparison_date:%d %b %Y}"
+        contribution_rows = "".join(
+            "<tr>"
+            f"<td>{html.escape(pair)}</td>"
+            f'<td class="num {"pnl-positive" if current > 0 else "pnl-negative" if current < 0 else ""}">'
+            f"{html.escape(format_money(current))}</td>"
+            f'<td class="num {"pnl-positive" if change > 0 else "pnl-negative"}">'
+            f"{html.escape(format_money(change))}</td>"
+            "</tr>"
+            for pair, current, change in contributors
+        )
+        if not contribution_rows:
+            contribution_rows = (
+                '<tr><td colspan="3" class="pnl-no-change">'
+                "No currency-pair P&amp;L changes in this window.</td></tr>"
+            )
+
     book_svg = line_chart_svg(
         [("Whole book", "#14866d", book_points)],
         "book-pnl",
@@ -345,6 +434,14 @@ def inject_ytd_pnl(
     css = """
 .pnl-section{margin:0 0 24px}.pnl-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin:0 0 12px}
 .pnl-section-head h2{margin:0;font-size:21px}.pnl-section-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.pnl-headlines{display:grid;grid-template-columns:repeat(2,minmax(0,260px));gap:12px;margin:0 0 12px}
+.pnl-kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 17px;box-shadow:0 4px 14px rgba(23,49,81,.05)}
+.pnl-kpi span,.pnl-kpi small{display:block;color:var(--muted);font-size:11px}.pnl-kpi strong{display:block;margin:5px 0 3px;font-size:25px}
+.pnl-contribution-card{margin:0 0 18px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(23,49,81,.05)}
+.pnl-contribution-head{display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.pnl-contribution-head h3{margin:0;font-size:15px}.pnl-contribution-head span{color:var(--muted);font-size:11px}
+.pnl-contribution-card table{font-size:12px}.pnl-contribution-card th{position:static;padding:9px 16px;cursor:default}.pnl-contribution-card td{padding:9px 16px}
+.pnl-positive{color:var(--pos)}.pnl-negative{color:var(--neg)}.pnl-no-change{text-align:center;color:var(--muted)}
 .pnl-card-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 10px 2px}
 .pnl-card-head h2{margin:0}.pnl-latest{font-size:19px;font-weight:700;color:var(--pos);white-space:nowrap}
 .pnl-card svg{display:block;width:100%;height:auto}.pnl-grid-line{stroke:#e7ecf2;stroke-width:1}
@@ -353,12 +450,21 @@ def inject_ytd_pnl(
 .pnl-legend{display:flex;flex-wrap:wrap;gap:8px 15px;padding:0 13px 12px;color:var(--muted);font-size:11px}
 .pnl-legend-item{display:inline-flex;align-items:center;gap:5px}.pnl-legend-item i{display:inline-block;width:9px;height:9px;border-radius:50%}
 .pnl-legend-item strong{color:var(--ink);font-weight:600}
-@media(max-width:1100px){.pnl-section-head{align-items:flex-start;flex-direction:column}}
+@media(max-width:1100px){.pnl-section-head{align-items:flex-start;flex-direction:column}.pnl-headlines{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.pnl-headlines{grid-template-columns:1fr}}
 """
     markup = f"""
 <section class="pnl-section">
   <div class="pnl-section-head">
     <div><h2>YTD P&amp;L</h2><p>Rebased to the first available CobDate · Last observed trade P&amp;L is carried forward by UniqueID after disappearance</p></div>
+  </div>
+  <div class="pnl-headlines">
+    <article class="pnl-kpi"><span>Current P&amp;L</span><strong class="{current_class}">{html.escape(format_money(current_pnl))}</strong><small>As of {book_points[-1][0]:%d %b %Y}</small></article>
+    <article class="pnl-kpi"><span>WoW change</span><strong class="{wow_class}">{html.escape(wow_text)}</strong><small>{html.escape(comparison_label)}</small></article>
+  </div>
+  <div class="pnl-contribution-card">
+    <div class="pnl-contribution-head"><h3>Currency-pair contribution to WoW P&amp;L</h3><span>Only non-zero changes shown</span></div>
+    <table><thead><tr><th>Currency pair</th><th class="num">Current P&amp;L</th><th class="num">WoW contribution</th></tr></thead><tbody>{contribution_rows}</tbody></table>
   </div>
   <div class="chart-grid">
     <article class="chart-card pnl-card">
