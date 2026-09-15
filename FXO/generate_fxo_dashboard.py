@@ -390,13 +390,23 @@ def inject_ytd_pnl(
             )
         return "".join(cells)
 
+    def expiry_cell(pair: str) -> str:
+        expiries = sorted(
+            {
+                pd.Timestamp(value)
+                for value in netted.loc[netted["Pair"].eq(pair), "ExpiryDate"]
+            }
+        )
+        text = " · ".join(date.strftime("%d %b %Y") for date in expiries) or "—"
+        return f'<td class="pnl-expiry">{html.escape(text)}</td>'
+
     current_class = value_class(current_pnl)
     if wow_change is None:
         wow_text = "N/A"
         wow_class = ""
         comparison_label = "No 1-week comparison available"
         contribution_rows = (
-            '<tr><td colspan="7" class="pnl-no-change">'
+            '<tr><td colspan="8" class="pnl-no-change">'
             "No 1-week comparison date is available.</td></tr>"
         )
     else:
@@ -411,12 +421,13 @@ def inject_ytd_pnl(
             f'<td class="num {value_class(change)}">'
             f"{html.escape(format_money(change))}</td>"
             f"{greek_cells(pair)}"
+            f"{expiry_cell(pair)}"
             "</tr>"
             for pair, current, change in contributors
         )
         if not contribution_rows:
             contribution_rows = (
-                '<tr><td colspan="7" class="pnl-no-change">'
+                '<tr><td colspan="8" class="pnl-no-change">'
                 "No currency-pair P&amp;L changes in this window.</td></tr>"
             )
 
@@ -425,6 +436,7 @@ def inject_ytd_pnl(
         f'<td class="num {current_class}">{html.escape(format_money(current_pnl))}</td>'
         f'<td class="num {wow_class}">{html.escape(wow_text)}</td>'
         f"{greek_cells()}"
+        '<td class="pnl-expiry"></td>'
         "</tr></tfoot>"
     )
 
@@ -476,6 +488,7 @@ def inject_ytd_pnl(
 .pnl-contribution-head h3{margin:0;font-size:15px}.pnl-contribution-head span{color:var(--muted);font-size:11px}
 .pnl-contribution-card table{font-size:12px}.pnl-contribution-card th{position:static;padding:9px 16px;cursor:default}.pnl-contribution-card td{padding:9px 16px}
 .pnl-contribution-card td.num{font-size:18px}
+.pnl-expiry{min-width:170px;white-space:normal;color:var(--muted);line-height:1.45}
 .pnl-total-row td{background:#edf3f9;border-top:2px solid #cbd6e2;font-weight:700}
 .pnl-positive{color:var(--pos)}.pnl-negative{color:var(--neg)}.pnl-no-change{text-align:center;color:var(--muted)}
 .pnl-card-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 10px 2px}
@@ -500,7 +513,7 @@ def inject_ytd_pnl(
   </div>
   <div class="pnl-contribution-card">
     <div class="pnl-contribution-head"><h3>Currency-pair contribution to WoW P&amp;L</h3><span>Only non-zero changes shown</span></div>
-    <table><thead><tr><th>Currency pair</th><th class="num">Current P&amp;L</th><th class="num">WoW contribution</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th></tr></thead><tbody>{contribution_rows}</tbody>{whole_book_row}</table>
+    <table><thead><tr><th>Currency pair</th><th class="num">Current P&amp;L</th><th class="num">WoW contribution</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th><th>Expiry dates</th></tr></thead><tbody>{contribution_rows}</tbody>{whole_book_row}</table>
   </div>
   <div class="chart-grid">
     <article class="chart-card pnl-card">
