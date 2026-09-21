@@ -467,9 +467,17 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 .region-expandable{cursor:pointer;border-radius:7px}
 .region-expandable:focus-visible{outline:2px solid #2463eb;outline-offset:4px}
 .region-item{min-width:0;padding:7px 8px;border:1px solid #dfe6ee;border-radius:7px;background:#f7f9fc}
+.region-item-expandable{cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.region-item-expandable:hover{border-color:#bccbe0;background:#f0f5fb}
+.region-item-expandable:focus-visible{outline:2px solid #2463eb;outline-offset:2px}
 .region-item-label{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:11px;white-space:nowrap}
 .region-item-label i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--region)}
 .region-item-value{display:block;margin-top:3px;font-size:13px;font-weight:700}
+.regional-strategy-list{display:grid;gap:4px;margin-top:7px;padding-top:6px;border-top:1px solid #dfe6ee}
+.regional-strategy-list[hidden]{display:none}
+.regional-strategy-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
+.regional-strategy-name{min-width:0;overflow:hidden;color:var(--ink);font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.regional-strategy-value{flex:0 0 auto;font-weight:700}
 .region-mismatch{grid-column:1/-1;padding:6px 8px;border-radius:6px;color:#8a4800;background:#fff0d5;font-size:11px;font-weight:700}
 .region-empty{grid-column:1/-1;color:var(--muted);font-size:11px}
 @media(max-width:900px){.region-breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -1112,10 +1120,13 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
       var key=classification.strategy+"|"+classification.display;
       var values=result.get(key);
       if(values===undefined){
-        values={"SG":0,"CH":0,"LATAM":0,"Unmapped":0};
+        values={"SG":0,"CH":0,"LATAM":0,"Unmapped":0,strategies:{"SG":new Map(),"CH":new Map(),"LATAM":new Map(),"Unmapped":new Map()}};
         result.set(key,values);
       }
       values[location]+=row.delta;
+      var strategyName=row.strategyLevelOne.trim().toUpperCase();
+      var strategyValues=values.strategies[location];
+      strategyValues.set(strategyName,(strategyValues.get(strategyName)||0)+row.delta);
     });
     return result;
   }
@@ -1191,6 +1202,43 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
           value.textContent=formatMoney(values[location],true);
           item.appendChild(label);
           item.appendChild(value);
+          var strategyEntries=Array.from(values.strategies[location].entries()).filter(function(entry){return Math.abs(entry[1])>0.005}).sort(function(a,b){return Math.abs(b[1])-Math.abs(a[1])||a[0].localeCompare(b[0])});
+          if(strategyEntries.length){
+            var strategyList=document.createElement("div");
+            strategyList.className="regional-strategy-list";
+            strategyList.id=breakdown.id+"-"+location.replace(/[^A-Za-z0-9_-]/g,"-")+"-strategies";
+            strategyList.hidden=true;
+            strategyEntries.forEach(function(entry){
+              var strategyRow=document.createElement("div");
+              strategyRow.className="regional-strategy-row";
+              var strategyLabel=document.createElement("span");
+              strategyLabel.className="regional-strategy-name";
+              strategyLabel.textContent=entry[0];
+              var strategyValue=document.createElement("strong");
+              strategyValue.className="regional-strategy-value "+(entry[1]<0?"negative":"positive");
+              strategyValue.textContent=formatMoney(entry[1],true);
+              strategyRow.appendChild(strategyLabel);
+              strategyRow.appendChild(strategyValue);
+              strategyList.appendChild(strategyRow);
+            });
+            item.classList.add("region-item-expandable");
+            item.tabIndex=0;
+            item.setAttribute("role","button");
+            item.setAttribute("aria-expanded","false");
+            item.setAttribute("aria-controls",strategyList.id);
+            item.setAttribute("aria-label","Toggle strategy Delta breakdown for "+location+" "+currency);
+            function toggleStrategies(event){
+              event.stopPropagation();
+              var expanded=item.getAttribute("aria-expanded")=="true";
+              item.setAttribute("aria-expanded",expanded?"false":"true");
+              strategyList.hidden=expanded;
+            }
+            item.addEventListener("click",toggleStrategies);
+            item.addEventListener("keydown",function(event){
+              if(event.key==="Enter"||event.key===" "){event.preventDefault();toggleStrategies(event)}
+            });
+            item.appendChild(strategyList);
+          }
           breakdown.appendChild(item);
         });
         var regionalTotal=REGION_ORDER.reduce(function(sum,location){return sum+values[location]},0);
