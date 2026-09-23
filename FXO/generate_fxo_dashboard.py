@@ -501,6 +501,34 @@ def classify_leg_combination(indices: tuple[int, ...], legs: list[dict]) -> dict
                     "score": 62,
                     "confidence": candidate_confidence(selected),
                 }
+
+    if len(selected) == 4:
+        calls = sorted(
+            (leg for leg in selected if leg["optionType"] == "Call"),
+            key=lambda leg: leg["strike"],
+        )
+        puts = sorted(
+            (leg for leg in selected if leg["optionType"] == "Put"),
+            key=lambda leg: leg["strike"],
+        )
+        if (
+            len(calls) == 2
+            and len(puts) == 2
+            and calls[0]["strike"] != calls[1]["strike"]
+            and puts[0]["strike"] != puts[1]["strike"]
+            and calls[0]["side"] != calls[1]["side"]
+            and puts[0]["side"] != puts[1]["side"]
+        ):
+            call_direction = "Long" if calls[0]["side"] == 1 else "Short"
+            put_direction = "Long" if puts[1]["side"] == 1 else "Short"
+            if call_direction != put_direction:
+                return {
+                    "indices": indices,
+                    "type": "Risk Reversal",
+                    "direction": call_direction,
+                    "score": 96,
+                    "confidence": candidate_confidence(selected),
+                }
     return None
 
 
@@ -509,7 +537,7 @@ def best_bucket_partition(legs: list[dict]) -> tuple[list[dict | None], bool]:
         return [None for _ in legs], True
 
     candidates = []
-    for size in (2, 3):
+    for size in (2, 3, 4):
         for indices in itertools.combinations(range(len(legs)), size):
             candidate = classify_leg_combination(indices, legs)
             if candidate is not None:
