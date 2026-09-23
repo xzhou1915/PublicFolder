@@ -672,6 +672,7 @@ def infer_option_structures(trades: pd.DataFrame) -> list[dict]:
         "Pair",
         "ExpiryDate",
         "Shore",
+        "NotionalCCY",
     ]
     structures = []
     for _, bucket in working.groupby(group_columns, dropna=False, sort=True):
