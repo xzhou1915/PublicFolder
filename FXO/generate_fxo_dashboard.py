@@ -665,14 +665,12 @@ def infer_option_structures(trades: pd.DataFrame) -> list[dict]:
             "theta": float(row["ThetaPortCCY"]),
             "pnl": float(row["PnL"]),
             "expiry": pd.Timestamp(row["ExpiryDate"]).strftime("%Y-%m-%d"),
-            "tradeDate": pd.Timestamp(row["TradeDate"]).strftime("%Y-%m-%d"),
             "shore": str(row["Shore"]),
         }
 
     group_columns = [
         "Pair",
         "ExpiryDate",
-        "TradeDate",
         "Shore",
         "NotionalCCY",
     ]
@@ -708,7 +706,6 @@ def infer_option_structures(trades: pd.DataFrame) -> list[dict]:
                     "label": f"{candidate['direction']} {candidate['type']}",
                     "confidence": candidate["confidence"],
                     "expiry": selected[0]["expiry"],
-                    "tradeDate": selected[0]["tradeDate"],
                     "shore": selected[0]["shore"],
                     "strikes": " / ".join(f"{leg['strike']:g}" for leg in selected),
                     "ratio": notional_ratio_label(selected),
@@ -727,7 +724,6 @@ def infer_option_structures(trades: pd.DataFrame) -> list[dict]:
         key=lambda item: (
             item["pair"],
             item["expiry"],
-            item["tradeDate"],
             item["label"],
             item["strikes"],
         )
@@ -760,7 +756,6 @@ def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> None:
             'tabindex="0" role="button">'
             f'<td><strong>{html.escape(structure["label"])}</strong></td>'
             f'<td>{html.escape(structure["pair"])}</td>'
-            f'<td>{html.escape(structure["tradeDate"])}</td>'
             f'<td>{html.escape(structure["expiry"])}</td>'
             f'<td>{html.escape(structure["strikes"])}</td>'
             f'<td>{html.escape(structure["ratio"])}</td>'
@@ -772,12 +767,12 @@ def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> None:
             f'<td><span class="structure-confidence {confidence_class}">{html.escape(structure["confidence"])}</span></td>'
             "</tr>"
             f'<tr class="structure-leg-row" data-structure-detail="{structure["id"]}" hidden>'
-            f'<td colspan="12"><div class="structure-leg-list">{leg_chips}</div></td></tr>'
+            f'<td colspan="11"><div class="structure-leg-list">{leg_chips}</div></td></tr>'
         )
 
     if not rows:
         rows.append(
-            '<tr><td colspan="12" class="structure-empty">'
+            '<tr><td colspan="11" class="structure-empty">'
             "No current option positions are available for structure inference.</td></tr>"
         )
 
@@ -808,8 +803,8 @@ def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> None:
   </div>
   <div class="structure-layout">
     <article class="structure-card">
-      <div class="structure-table-wrap"><table class="structure-table"><thead><tr><th>Structure</th><th>Pair</th><th>Trade date</th><th>Expiry</th><th>Strikes</th><th>Ratio</th><th class="num">Current P&amp;L</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th><th>Confidence</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
-      <div class="structure-note">Inference uses pair, expiry, trade date, shore, option type, signed risks, strikes, and notionals. Ambiguous combinations are not forced.</div>
+      <div class="structure-table-wrap"><table class="structure-table"><thead><tr><th>Structure</th><th>Pair</th><th>Expiry</th><th>Strikes</th><th>Ratio</th><th class="num">Current P&amp;L</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th><th>Confidence</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
+      <div class="structure-note">Inference uses pair, expiry, shore, option type, signed risks, strikes, and notionals. Ambiguous combinations are not forced.</div>
     </article>
     <article class="structure-card payoff-card">
       <h3 id="payoffTitle">Terminal payoff</h3>
