@@ -572,7 +572,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
           <div class="legend" aria-label="Chart legend"><span><i style="color:#65716f"></i>Gross</span><span><i style="color:var(--cyan)"></i>Net</span></div>
         </div>
         <div class="bar-chart" id="barChart"></div>
-        <p class="scale-note">Basis delta uses the signed CNY and BRL rows. CNH and BRF are supporting legs and are not counted again. Bar lengths use absolute values.</p>
+        <p class="scale-note">Basis delta uses the signed CNY, BRL, and KRW rows. CNH, BRF, and KRO are supporting legs and are not counted again. Bar lengths use absolute values.</p>
       </article>
 
       <article class="card table-panel">
@@ -653,12 +653,15 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     const COLORS = { Directional: "#2463eb", Basis: "#8b58c7", Carry: "#238a78" };
     const ORDER = ['Directional', 'Basis', 'Carry'];
     const CARRY = new Set(['AED', 'SAR', 'HKD']);
-    const BASIS_SOURCE = new Set(['CNY', 'BRL']);
-    const SUPPORT_LEG = new Set(['CNH', 'BRF']);
+    const BASIS_SOURCE = new Set(['CNY', 'BRL', 'KRW']);
+    const SUPPORT_LEG = new Set(['CNH', 'BRF', 'KRO']);
     const PAIRS = {
       'CNH/CNY': { display: 'CNH', legs: ['CNH', 'CNY'] },
       'BRL/BRF': { display: 'BRL', legs: ['BRL', 'BRF'] }
     };
+    const CALCULATED_PAIRS = [
+      { display: 'KRW', source: 'KRW', support: 'KRO' }
+    ];
 
     let rawRows = [];
     let currentSource = 'Synthetic sample';
@@ -705,7 +708,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     function buildPositions(rows, date, buFilter) {
       const latestRows = rows.filter(row => row.date === date && (buFilter === 'ALL' || row.bu === buFilter));
       const lookup = new Map(latestRows.map(row => [`${row.bu}|${row.ccy}`, row]));
-      return latestRows.map(row => {
+      const positions = latestRows.map(row => {
         if (SUPPORT_LEG.has(row.ccy)) return null;
         if (CARRY.has(row.ccy)) return { ...row, display: row.ccy, strategy: 'Carry', method: 'Reported', derived: false };
         if (BASIS_SOURCE.has(row.ccy)) return { ...row, display: row.ccy, strategy: 'Basis', var: null, method: `${row.ccy} delta source`, derived: false };
@@ -716,6 +719,27 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
         }
         return { ...row, display: row.ccy, strategy: 'Directional', method: 'Reported', derived: false };
       }).filter(Boolean);
+      const businessUnits = [...new Set(latestRows.map(row => row.bu))];
+      CALCULATED_PAIRS.forEach(pair => businessUnits.forEach(bu => {
+        const sourceLeg = lookup.get(`${bu}|${pair.source}`);
+        const supportLeg = lookup.get(`${bu}|${pair.support}`);
+        if (!sourceLeg && !supportLeg) return;
+        const sourceVar = sourceLeg ? sourceLeg.var : 0;
+        const supportVar = supportLeg ? supportLeg.var : 0;
+        const derivedVar = sourceVar != null && supportVar != null ? Math.abs(sourceVar - supportVar) : null;
+        const template = sourceLeg || supportLeg;
+        positions.push({
+          ...template,
+          ccy: `${pair.source}/${pair.support}`,
+          delta: (sourceLeg?.delta ?? 0) + (supportLeg?.delta ?? 0),
+          display: pair.display,
+          strategy: 'Directional',
+          var: derivedVar,
+          method: `${pair.source} + ${pair.support} delta; |${pair.source} VaR − ${pair.support} VaR|`,
+          derived: true
+        });
+      }));
+      return positions;
     }
 
     function summarize(positions) {
@@ -1109,24 +1133,46 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
     return {strategy:"Directional",display:ccy};
   }
 
+  function addRegionalExposure(result,key,location,strategyName,delta){
+    var values=result.get(key);
+    if(values===undefined){
+      values={"SG":0,"CH":0,"LATAM":0,"Unmapped":0,strategies:{"SG":new Map(),"CH":new Map(),"LATAM":new Map(),"Unmapped":new Map()}};
+      result.set(key,values);
+    }
+    values[location]+=delta;
+    var strategyValues=values.strategies[location];
+    strategyValues.set(strategyName,(strategyValues.get(strategyName)||0)+delta);
+  }
+
   function regionalSnapshot(date,selectedBU){
     var result=new Map();
-    regionalRows.filter(function(row){
+    var snapshotRows=regionalRows.filter(function(row){
       return row.date===date&&(selectedBU==="ALL"||row.bu===selectedBU);
-    }).forEach(function(row){
+    });
+    snapshotRows.forEach(function(row){
       var classification=regionalClassification(row.ccy);
       if(classification===null)return;
-      var location=LOCATION_BY_STRATEGY[row.strategyLevelOne.trim().toUpperCase()]||"Unmapped";
-      var key=classification.strategy+"|"+classification.display;
-      var values=result.get(key);
-      if(values===undefined){
-        values={"SG":0,"CH":0,"LATAM":0,"Unmapped":0,strategies:{"SG":new Map(),"CH":new Map(),"LATAM":new Map(),"Unmapped":new Map()}};
-        result.set(key,values);
-      }
-      values[location]+=row.delta;
       var strategyName=row.strategyLevelOne.trim().toUpperCase();
-      var strategyValues=values.strategies[location];
-      strategyValues.set(strategyName,(strategyValues.get(strategyName)||0)+row.delta);
+      var location=LOCATION_BY_STRATEGY[strategyName]||"Unmapped";
+      addRegionalExposure(result,classification.strategy+"|"+classification.display,location,strategyName,row.delta);
+    });
+    CALCULATED_PAIRS.forEach(function(pair){
+      var legGroups=new Map();
+      snapshotRows.forEach(function(row){
+        if(row.ccy!==pair.source&&row.ccy!==pair.support)return;
+        var strategyName=row.strategyLevelOne.trim().toUpperCase();
+        var groupKey=row.bu+"|"+strategyName;
+        var legs=legGroups.get(groupKey);
+        if(legs===undefined){
+          legs={source:0,support:0,strategyName:strategyName,location:LOCATION_BY_STRATEGY[strategyName]||"Unmapped"};
+          legGroups.set(groupKey,legs);
+        }
+        if(row.ccy===pair.source)legs.source+=row.delta;
+        else legs.support+=row.delta;
+      });
+      legGroups.forEach(function(legs){
+        addRegionalExposure(result,"Directional|"+pair.display,legs.location,legs.strategyName,legs.source+legs.support);
+      });
     });
     return result;
   }
