@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import argparse
 import html
+import itertools
+import json
 from collections import defaultdict
+from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
@@ -340,6 +343,537 @@ def line_chart_svg(
     return "\n".join(parts)
 
 
+def infer_leg_side(row: pd.Series) -> tuple[int, str]:
+    """Infer long/short from signed risks without using PositionName."""
+    gamma = float(row["Gamma"])
+    vega = float(row["VegaPortCCY"])
+    delta = float(row["Delta"])
+    option_type = str(row["OptionType"])
+
+    if gamma != 0:
+        side = 1 if gamma > 0 else -1
+        source = "Gamma"
+    elif vega != 0:
+        side = 1 if vega > 0 else -1
+        source = "Vega"
+    elif delta != 0:
+        side = (1 if delta > 0 else -1) * (1 if option_type == "Call" else -1)
+        source = "Delta"
+    else:
+        return 1, "Low"
+
+    expected_delta = side if option_type == "Call" else -side
+    delta_consistent = delta == 0 or (1 if delta > 0 else -1) == expected_delta
+    vega_consistent = vega == 0 or (1 if vega > 0 else -1) == side
+    confidence = (
+        "High"
+        if source == "Gamma" and delta_consistent and vega_consistent
+        else "Medium"
+    )
+    return side, confidence
+
+
+def notional_ratio_label(legs: list[dict]) -> str:
+    ordered = sorted(legs, key=lambda leg: (leg["strike"], leg["optionType"]))
+    notionals = [leg["notional"] for leg in ordered]
+    if any(value is None or value <= 0 for value in notionals):
+        return "—"
+    minimum = min(notionals)
+    ratios = [value / minimum for value in notionals]
+
+    def format_ratio(value: float) -> str:
+        rounded = round(value)
+        if abs(value - rounded) <= 0.05:
+            return str(int(rounded))
+        return f"{value:.1f}".rstrip("0").rstrip(".")
+
+    return " : ".join(format_ratio(value) for value in ratios)
+
+
+def notionals_are_equal(legs: list[dict]) -> bool | None:
+    values = [leg["notional"] for leg in legs]
+    if any(value is None or value <= 0 for value in values):
+        return None
+    return max(values) / min(values) <= 1.10
+
+
+def candidate_confidence(legs: list[dict]) -> str:
+    sides_are_clear = all(leg["sideConfidence"] == "High" for leg in legs)
+    ratios_are_clear = all(
+        leg["notional"] is not None and leg["notional"] > 0 for leg in legs
+    )
+    if sides_are_clear and ratios_are_clear:
+        return "High"
+    return "Medium"
+
+
+def classify_leg_combination(indices: tuple[int, ...], legs: list[dict]) -> dict | None:
+    selected = [legs[index] for index in indices]
+    ordered = sorted(selected, key=lambda leg: leg["strike"])
+    option_types = [leg["optionType"] for leg in ordered]
+    sides = [leg["side"] for leg in ordered]
+
+    if len(selected) == 2:
+        first, second = ordered
+        if first["strike"] == second["strike"]:
+            return None
+        if first["optionType"] == second["optionType"] and first["side"] != second["side"]:
+            equal = notionals_are_equal(selected)
+            ratio = equal is False
+            option_type = first["optionType"]
+            if option_type == "Call":
+                direction = "Long" if first["side"] == 1 else "Short"
+            else:
+                direction = "Long" if second["side"] == 1 else "Short"
+            kind = f"{'Ratio ' if ratio else ''}{option_type} Spread"
+            return {
+                "indices": indices,
+                "type": kind,
+                "direction": direction,
+                "score": 44 if not ratio else 42,
+                "confidence": candidate_confidence(selected),
+            }
+
+        if set(option_types) == {"Call", "Put"} and first["side"] != second["side"]:
+            call = next(leg for leg in selected if leg["optionType"] == "Call")
+            put = next(leg for leg in selected if leg["optionType"] == "Put")
+            direction = "Long" if call["side"] == 1 and put["side"] == -1 else "Short"
+            return {
+                "indices": indices,
+                "type": "Risk Reversal",
+                "direction": direction,
+                "score": 43,
+                "confidence": candidate_confidence(selected),
+            }
+        return None
+
+    if len(selected) == 3:
+        if len(set(leg["strike"] for leg in selected)) < 2:
+            return None
+        if len(set(option_types)) == 1:
+            option_type = option_types[0]
+            equal = notionals_are_equal(selected)
+            if sides in ([1, -1, 1], [-1, 1, -1]):
+                values = [leg["notional"] for leg in ordered]
+                butterfly_ratio = (
+                    all(value is not None and value > 0 for value in values)
+                    and abs(values[0] - values[2]) / min(values[0], values[2]) <= 0.10
+                    and abs(values[1] / values[0] - 2) <= 0.20
+                )
+                if butterfly_ratio:
+                    return {
+                        "indices": indices,
+                        "type": f"{option_type} Butterfly",
+                        "direction": "Long" if sides[0] == 1 else "Short",
+                        "score": 64,
+                        "confidence": candidate_confidence(selected),
+                    }
+            if sides.count(1) in {1, 2} and sides[0] != sides[-1]:
+                if option_type == "Call":
+                    direction = "Long" if ordered[0]["side"] == 1 else "Short"
+                else:
+                    direction = "Long" if ordered[-1]["side"] == 1 else "Short"
+                return {
+                    "indices": indices,
+                    "type": f"{option_type} Ladder",
+                    "direction": direction,
+                    "score": 60 if equal is not None else 57,
+                    "confidence": candidate_confidence(selected),
+                }
+            return None
+
+        counts = {kind: option_types.count(kind) for kind in set(option_types)}
+        if sorted(counts.values()) == [1, 2]:
+            repeated_type = next(kind for kind, count in counts.items() if count == 2)
+            repeated = [leg for leg in selected if leg["optionType"] == repeated_type]
+            if repeated[0]["side"] != repeated[1]["side"]:
+                singleton = next(
+                    leg for leg in selected if leg["optionType"] != repeated_type
+                )
+                if singleton["optionType"] == "Call":
+                    direction = "Long" if singleton["side"] == 1 else "Short"
+                else:
+                    direction = "Long" if singleton["side"] == -1 else "Short"
+                return {
+                    "indices": indices,
+                    "type": "Seagull",
+                    "direction": direction,
+                    "score": 62,
+                    "confidence": candidate_confidence(selected),
+                }
+    return None
+
+
+def best_bucket_partition(legs: list[dict]) -> tuple[list[dict | None], bool]:
+    if len(legs) > 14:
+        return [None for _ in legs], True
+
+    candidates = []
+    for size in (2, 3):
+        for indices in itertools.combinations(range(len(legs)), size):
+            candidate = classify_leg_combination(indices, legs)
+            if candidate is not None:
+                candidates.append(candidate)
+
+    @lru_cache(maxsize=None)
+    def solve(mask: int) -> tuple[int, tuple[tuple[tuple[int, tuple[int, ...]], ...], ...]]:
+        if mask == 0:
+            return 0, ((),)
+        first = next(index for index in range(len(legs)) if mask & (1 << index))
+        remainder_score, remainder_solutions = solve(mask & ~(1 << first))
+        options = [
+            (
+                remainder_score,
+                ((-1, (first,)),) + solution,
+            )
+            for solution in remainder_solutions
+        ]
+        for candidate_index, candidate in enumerate(candidates):
+            indices = candidate["indices"]
+            candidate_mask = sum(1 << index for index in indices)
+            if first not in indices or mask & candidate_mask != candidate_mask:
+                continue
+            score, solutions = solve(mask & ~candidate_mask)
+            options.extend(
+                (
+                    score + int(candidate["score"]),
+                    ((candidate_index, indices),) + solution,
+                )
+                for solution in solutions
+            )
+        best_score = max(score for score, _ in options)
+        unique = []
+        seen = set()
+        for score, solution in options:
+            if score != best_score or solution in seen:
+                continue
+            seen.add(solution)
+            unique.append(solution)
+            if len(unique) == 2:
+                break
+        return best_score, tuple(unique)
+
+    best_score, solutions = solve((1 << len(legs)) - 1)
+    if len(solutions) != 1:
+        return [None for _ in legs], True
+    if best_score == 0 and len(legs) > 1:
+        return [None for _ in legs], True
+
+    result = []
+    for candidate_index, indices in solutions[0]:
+        if candidate_index == -1:
+            result.append(
+                {
+                    "indices": indices,
+                    "type": f"Vanilla {legs[indices[0]]['optionType']}",
+                    "direction": "Long" if legs[indices[0]]["side"] == 1 else "Short",
+                    "score": 0,
+                    "confidence": (
+                        legs[indices[0]]["sideConfidence"]
+                        if len(legs) == 1
+                        and legs[indices[0]]["notional"] is not None
+                        else "Medium"
+                    ),
+                }
+            )
+        else:
+            result.append(candidates[candidate_index])
+    return result, False
+
+
+def payoff_configuration(legs: list[dict], pair: str) -> tuple[str, str, list[float]]:
+    letters = "".join(character for character in pair.upper() if character.isalpha())
+    base = letters[:3] if len(letters) == 6 else ""
+    quote = letters[3:] if len(letters) == 6 else ""
+    actual = bool(base and quote)
+    weights = []
+    for leg in legs:
+        notional = leg["notional"]
+        currency = leg["notionalCcy"].upper()
+        if notional is None or notional <= 0 or currency not in {base, quote}:
+            actual = False
+            break
+        weights.append(
+            notional if currency == base else notional / max(leg["strike"], 1e-12)
+        )
+    if actual:
+        return "Actual", quote, weights
+
+    available = [
+        leg["notional"]
+        for leg in legs
+        if leg["notional"] is not None and leg["notional"] > 0
+    ]
+    scale = min(available) if available else 1.0
+    weights = [
+        (leg["notional"] / scale)
+        if leg["notional"] is not None and leg["notional"] > 0
+        else 1.0
+        for leg in legs
+    ]
+    return "Normalized", "normalized units", weights
+
+
+def infer_option_structures(trades: pd.DataFrame) -> list[dict]:
+    working = trades.copy()
+    legs_by_index: dict[int, dict] = {}
+    for index, row in working.iterrows():
+        side, side_confidence = infer_leg_side(row)
+        notional = None if pd.isna(row["Notional"]) else abs(float(row["Notional"]))
+        legs_by_index[index] = {
+            "rowIndex": int(index),
+            "uniqueId": str(row["UniqueID"]),
+            "pair": str(row["Pair"]),
+            "optionType": str(row["OptionType"]),
+            "strike": float(row["Strike"]),
+            "side": side,
+            "sideLabel": "Long" if side == 1 else "Short",
+            "sideConfidence": side_confidence,
+            "notional": notional,
+            "notionalCcy": str(row["NotionalCCY"]).strip(),
+            "delta": float(row["Delta"]),
+            "gamma": float(row["Gamma"]),
+            "vega": float(row["VegaPortCCY"]),
+            "theta": float(row["ThetaPortCCY"]),
+            "pnl": float(row["PnL"]),
+            "expiry": pd.Timestamp(row["ExpiryDate"]).strftime("%Y-%m-%d"),
+            "tradeDate": pd.Timestamp(row["TradeDate"]).strftime("%Y-%m-%d"),
+            "portfolio": str(row["Portfolio"]),
+            "shore": str(row["Shore"]),
+        }
+
+    group_columns = [
+        "Pair",
+        "ExpiryDate",
+        "Portfolio",
+        "TradeDate",
+        "Shore",
+        "NotionalCCY",
+    ]
+    structures = []
+    for _, bucket in working.groupby(group_columns, dropna=False, sort=True):
+        bucket_legs = [legs_by_index[index] for index in bucket.index]
+        partition, ambiguous = best_bucket_partition(bucket_legs)
+        if ambiguous:
+            partition = [
+                {
+                    "indices": (index,),
+                    "type": "Unclassified Leg",
+                    "direction": "Long" if leg["side"] == 1 else "Short",
+                    "score": 0,
+                    "confidence": "Ambiguous",
+                }
+                for index, leg in enumerate(bucket_legs)
+            ]
+
+        for candidate in partition:
+            selected = [bucket_legs[index] for index in candidate["indices"]]
+            selected.sort(key=lambda leg: (leg["strike"], leg["optionType"]))
+            mode, payout_currency, weights = payoff_configuration(
+                selected, selected[0]["pair"]
+            )
+            for leg, weight in zip(selected, weights):
+                leg["payoffWeight"] = weight
+            structures.append(
+                {
+                    "pair": selected[0]["pair"],
+                    "type": candidate["type"],
+                    "direction": candidate["direction"],
+                    "label": f"{candidate['direction']} {candidate['type']}",
+                    "confidence": candidate["confidence"],
+                    "expiry": selected[0]["expiry"],
+                    "tradeDate": selected[0]["tradeDate"],
+                    "portfolio": selected[0]["portfolio"],
+                    "shore": selected[0]["shore"],
+                    "strikes": " / ".join(f"{leg['strike']:g}" for leg in selected),
+                    "ratio": notional_ratio_label(selected),
+                    "pnl": sum(leg["pnl"] for leg in selected),
+                    "delta": sum(leg["delta"] for leg in selected),
+                    "gamma": sum(leg["gamma"] for leg in selected),
+                    "vega": sum(leg["vega"] for leg in selected),
+                    "theta": sum(leg["theta"] for leg in selected),
+                    "payoffMode": mode,
+                    "payoutCurrency": payout_currency,
+                    "legs": selected,
+                }
+            )
+
+    structures.sort(
+        key=lambda item: (
+            item["pair"],
+            item["expiry"],
+            item["tradeDate"],
+            item["label"],
+            item["strikes"],
+        )
+    )
+    for index, structure in enumerate(structures, start=1):
+        structure["id"] = f"S{index:03d}"
+    return structures
+
+
+def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> None:
+    structures = infer_option_structures(trades)
+
+    def value_class(value: float) -> str:
+        return "pnl-positive" if value > 0 else "pnl-negative" if value < 0 else ""
+
+    rows = []
+    for structure in structures:
+        confidence_class = structure["confidence"].lower()
+        leg_chips = "".join(
+            '<span class="structure-leg-chip">'
+            f"<strong>{html.escape(leg['sideLabel'])} {html.escape(leg['optionType'])}</strong> "
+            f"K {leg['strike']:g} · "
+            f"{'N/A notional' if leg['notional'] is None else f'{leg['notional']:,.0f} {html.escape(leg['notionalCcy'])}'} · "
+            f"ID {html.escape(leg['uniqueId'])}"
+            "</span>"
+            for leg in structure["legs"]
+        )
+        rows.append(
+            f'<tr class="structure-row" data-structure-id="{structure["id"]}" '
+            'tabindex="0" role="button">'
+            f'<td><strong>{html.escape(structure["label"])}</strong></td>'
+            f'<td>{html.escape(structure["pair"])}</td>'
+            f'<td>{html.escape(structure["portfolio"])}</td>'
+            f'<td>{html.escape(structure["tradeDate"])}</td>'
+            f'<td>{html.escape(structure["expiry"])}</td>'
+            f'<td>{html.escape(structure["strikes"])}</td>'
+            f'<td>{html.escape(structure["ratio"])}</td>'
+            f'<td class="num {value_class(structure["pnl"])}">{html.escape(format_money(structure["pnl"]))}</td>'
+            f'<td class="num {value_class(structure["delta"])}">{html.escape(format_money(structure["delta"]))}</td>'
+            f'<td class="num {value_class(structure["gamma"])}">{html.escape(format_money(structure["gamma"]))}</td>'
+            f'<td class="num {value_class(structure["vega"])}">{html.escape(format_money(structure["vega"]))}</td>'
+            f'<td class="num {value_class(structure["theta"])}">{html.escape(format_money(structure["theta"]))}</td>'
+            f'<td><span class="structure-confidence {confidence_class}">{html.escape(structure["confidence"])}</span></td>'
+            "</tr>"
+            f'<tr class="structure-leg-row" data-structure-detail="{structure["id"]}" hidden>'
+            f'<td colspan="13"><div class="structure-leg-list">{leg_chips}</div></td></tr>'
+        )
+
+    if not rows:
+        rows.append(
+            '<tr><td colspan="13" class="structure-empty">'
+            "No current option positions are available for structure inference.</td></tr>"
+        )
+
+    css = """
+.structure-section{margin:0 0 24px}.structure-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin:0 0 12px}
+.structure-section-head h2{margin:0;font-size:21px}.structure-section-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.structure-layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(420px,.85fr);gap:18px;align-items:start}
+.structure-card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(23,49,81,.05)}
+.structure-table-wrap{max-height:520px;overflow:auto}.structure-table{font-size:11px}.structure-table th{font-size:10px;cursor:default}
+.structure-table td{padding:9px 10px}.structure-table td.num{font-size:12px;font-weight:600}
+.structure-row{cursor:pointer}.structure-row.selected td{background:#eaf2ff}.structure-row:focus-visible{outline:2px solid #2463eb;outline-offset:-2px}
+.structure-leg-row td{padding:9px 12px;background:#f4f7fb}.structure-leg-list{display:flex;flex-wrap:wrap;gap:7px}
+.structure-leg-chip{padding:6px 8px;border:1px solid #d7e0e9;border-radius:7px;background:#fff;color:var(--muted);font-size:10px}
+.structure-leg-chip strong{color:var(--ink)}.structure-confidence{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}
+.structure-confidence.high{color:#0d6a54;background:#dff5ed}.structure-confidence.medium,.structure-confidence.low{color:#8a5500;background:#fff1d3}
+.structure-confidence.ambiguous{color:#9b2c3d;background:#fde7ea}.structure-empty{text-align:center;color:var(--muted)}
+.payoff-card{padding:15px}.payoff-card h3{margin:0;font-size:17px}.payoff-meta{margin:5px 0 10px;color:var(--muted);font-size:11px}
+.payoff-card svg{display:block;width:100%;height:auto}.payoff-grid{stroke:#e7ecf2;stroke-width:1}.payoff-zero{stroke:#8796a7;stroke-width:1.2}
+.payoff-strike{stroke:#d88917;stroke-width:1;stroke-dasharray:4 4}.payoff-line{fill:none;stroke:#2463eb;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}
+.payoff-axis{fill:#687789;font-size:10px}.payoff-strike-label{fill:#9a5d05;font-size:9px;font-weight:700}
+.structure-note{padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.45}
+@media(max-width:1200px){.structure-layout{grid-template-columns:1fr}}
+"""
+    markup = f"""
+<section class="structure-section">
+  <div class="structure-section-head">
+    <div><h2>Inferred option structures</h2><p>Grouped without PositionName · Click a row to inspect its legs and terminal payoff</p></div>
+  </div>
+  <div class="structure-layout">
+    <article class="structure-card">
+      <div class="structure-table-wrap"><table class="structure-table"><thead><tr><th>Structure</th><th>Pair</th><th>Portfolio</th><th>Trade date</th><th>Expiry</th><th>Strikes</th><th>Ratio</th><th class="num">Current P&amp;L</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th><th>Confidence</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
+      <div class="structure-note">Inference uses pair, expiry, portfolio, trade date, shore, option type, signed risks, strikes, and notionals. Ambiguous combinations are not forced.</div>
+    </article>
+    <article class="structure-card payoff-card">
+      <h3 id="payoffTitle">Terminal payoff</h3>
+      <div id="payoffMeta" class="payoff-meta">Select a structure</div>
+      <div id="payoffChart"></div>
+      <div class="structure-note">Terminal intrinsic payoff before premium. Current MTM P&amp;L is shown separately and is not added to the curve.</div>
+    </article>
+  </div>
+</section>
+"""
+    safe_json = json.dumps(structures, ensure_ascii=False).replace("</", "<\\/")
+    script = r"""
+<script>
+const FXO_STRUCTURES=__STRUCTURE_JSON__;
+(function(){
+  function compact(value){
+    var absolute=Math.abs(value),units=absolute>=1e9?[1e9,"bn"]:absolute>=1e6?[1e6,"m"]:absolute>=1e3?[1e3,"k"]:[1,""];
+    var digits=absolute/units[0]>=100?0:1;
+    return (value<0?"−":"")+(absolute/units[0]).toFixed(digits)+units[1];
+  }
+  function renderPayoff(id){
+    var structure=FXO_STRUCTURES.find(function(item){return item.id===id});
+    if(!structure)return;
+    document.getElementById("payoffTitle").textContent=structure.label+" · "+structure.pair;
+    document.getElementById("payoffMeta").textContent=structure.expiry+" expiry · "+structure.payoffMode+" payoff in "+structure.payoutCurrency;
+    var strikes=structure.legs.map(function(leg){return leg.strike});
+    var minimum=Math.min.apply(null,strikes),maximum=Math.max.apply(null,strikes),span=Math.max(maximum-minimum,Math.abs(minimum)*0.12,0.01);
+    var low=Math.max(0,minimum-span*.75),high=maximum+span*.75,points=[];
+    for(var index=0;index<=120;index+=1){
+      var terminal=low+(high-low)*index/120,payoff=0;
+      structure.legs.forEach(function(leg){
+        var intrinsic=leg.optionType==="Call"?Math.max(terminal-leg.strike,0):Math.max(leg.strike-terminal,0);
+        payoff+=leg.side*leg.payoffWeight*intrinsic;
+      });
+      points.push([terminal,payoff]);
+    }
+    var values=points.map(function(point){return point[1]}).concat([0]),minY=Math.min.apply(null,values),maxY=Math.max.apply(null,values),pad=Math.max((maxY-minY)*.12,Math.max(Math.abs(minY),Math.abs(maxY))*0.08,1e-9);
+    minY-=pad;maxY+=pad;
+    var width=720,height=360,left=78,right=24,top=24,bottom=52,plotWidth=width-left-right,plotHeight=height-top-bottom;
+    function x(value){return left+(value-low)/(high-low)*plotWidth}
+    function y(value){return top+(maxY-value)/(maxY-minY)*plotHeight}
+    var svg=['<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Terminal payoff against terminal FX rate">'];
+    for(var tick=0;tick<5;tick+=1){
+      var yValue=minY+(maxY-minY)*tick/4,yPos=y(yValue);
+      svg.push('<line class="payoff-grid" x1="'+left+'" y1="'+yPos+'" x2="'+(width-right)+'" y2="'+yPos+'"/>');
+      svg.push('<text class="payoff-axis" x="'+(left-9)+'" y="'+(yPos+4)+'" text-anchor="end">'+compact(yValue)+'</text>');
+    }
+    for(var xTick=0;xTick<5;xTick+=1){
+      var xValue=low+(high-low)*xTick/4,xPos=x(xValue);
+      svg.push('<text class="payoff-axis" x="'+xPos+'" y="'+(height-19)+'" text-anchor="middle">'+xValue.toFixed(Math.abs(xValue)<10?4:2).replace(/0+$/,"").replace(/\.$/,"")+'</text>');
+    }
+    svg.push('<line class="payoff-zero" x1="'+left+'" y1="'+y(0)+'" x2="'+(width-right)+'" y2="'+y(0)+'"/>');
+    Array.from(new Set(strikes)).sort(function(a,b){return a-b}).forEach(function(strike){
+      var xPos=x(strike);svg.push('<line class="payoff-strike" x1="'+xPos+'" y1="'+top+'" x2="'+xPos+'" y2="'+(height-bottom)+'"/>');
+      svg.push('<text class="payoff-strike-label" x="'+xPos+'" y="'+(top+10)+'" text-anchor="middle">K '+strike+'</text>');
+    });
+    var path=points.map(function(point,index){return(index===0?"M ":"L ")+x(point[0]).toFixed(2)+" "+y(point[1]).toFixed(2)}).join(" ");
+    svg.push('<path class="payoff-line" d="'+path+'"/>');
+    svg.push('<text class="payoff-axis" x="'+(left+plotWidth/2)+'" y="'+(height-3)+'" text-anchor="middle">Terminal '+structure.pair+' rate</text>');
+    svg.push('</svg>');
+    document.getElementById("payoffChart").innerHTML=svg.join("");
+  }
+  function selectStructure(row){
+    document.querySelectorAll(".structure-row").forEach(function(item){item.classList.toggle("selected",item===row)});
+    document.querySelectorAll(".structure-leg-row").forEach(function(item){item.hidden=item.dataset.structureDetail!==row.dataset.structureId});
+    renderPayoff(row.dataset.structureId);
+  }
+  document.querySelectorAll(".structure-row").forEach(function(row){
+    row.addEventListener("click",function(){selectStructure(row)});
+    row.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();selectStructure(row)}});
+  });
+  var first=document.querySelector(".structure-row");if(first)selectStructure(first);
+})();
+</script>
+""".replace("__STRUCTURE_JSON__", safe_json)
+
+    document = output.read_text(encoding="utf-8")
+    if "</style>" not in document:
+        raise RuntimeError("Could not locate dashboard style hook")
+    document = document.replace("</style>", css + "\n</style>", 1)
+    chart_hook = '<section class="chart-grid"><article class="chart-card"><h2>Delta</h2>'
+    if chart_hook not in document:
+        raise RuntimeError("Could not locate dashboard chart hook")
+    document = document.replace(chart_hook, markup + "\n" + chart_hook, 1)
+    document = document.replace("</body>", script + "\n</body>", 1)
+    output.write_text(document, encoding="utf-8")
+
+
 def inject_ytd_pnl(
     output: Path,
     book_history: pd.DataFrame,
@@ -560,6 +1094,7 @@ def main() -> None:
     book_history, pair_history = build_ytd_pnl_streams(history, as_of)
     write_html_dashboard(trades, netted, output, as_of)
     inject_ytd_pnl(output, book_history, pair_history, netted)
+    inject_structure_analysis(output, trades)
 
     print(f"Latest CobDate: {as_of:%Y-%m-%d}")
     print(

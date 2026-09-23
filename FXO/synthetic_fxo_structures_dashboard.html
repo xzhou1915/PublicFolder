@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FX Options Greeks Dashboard</title>
+<style>
+:root{--ink:#172433;--muted:#687789;--line:#dfe6ee;--navy:#173151;--bg:#f4f7fb;--call:#2463eb;--put:#8b58c7;--pos:#14866d;--neg:#d84b5b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+main{max-width:1900px;margin:0 auto;padding:28px}header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:17px}
+h1{margin:0 0 7px;font-size:28px}.subtitle,.asof{color:var(--muted);font-size:13px}.asof{white-space:nowrap}
+.legend{display:flex;gap:17px;align-items:center;margin:0 0 15px;font-size:12px;color:var(--muted)}.key{display:flex;align-items:center;gap:6px}.dot{width:14px;height:14px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-size:8px;font-weight:bold}.band{width:22px;height:12px;background:rgba(243,182,92,.28);border:1px solid rgba(167,102,20,.25)}
+.chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.chart-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 12px 8px;box-shadow:0 4px 14px rgba(23,49,81,.05);overflow:visible}
+.chart-card h2{margin:0 0 4px 10px;font-size:18px}.chart-card svg{display:block;width:100%;height:auto;overflow:visible}.trades{margin-top:24px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(23,49,81,.05)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px 18px;border-bottom:1px solid var(--line)}.toolbar h2{margin:0;font-size:18px}input{min-width:300px;padding:9px 12px;border:1px solid #bdc9d6;border-radius:7px;font-size:13px}
+.table-wrap{overflow:auto;max-height:620px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th{position:sticky;top:0;z-index:1;padding:10px;background:var(--navy);color:#fff;text-align:left;cursor:pointer;user-select:none}th span{opacity:.55;font-size:10px}
+td{padding:9px 10px;border-bottom:1px solid #e8edf2}tbody tr:nth-child(even){background:#f7f9fc}tbody tr:hover{background:#edf4ff}.footer{padding:12px 18px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+.axis-label{font-size:10px;fill:#526273}.pair-label{font-size:12px;fill:#26384a;font-weight:600}.value-label{font-size:13px;fill:#26384a;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:6px;stroke-linejoin:round}.total-label{font-size:18px;font-weight:700}.grid-line{stroke:#e4eaf0;stroke-width:1}.asof-line{stroke:#657588;stroke-width:1.2;stroke-dasharray:5 4}.leader{stroke-width:1;opacity:.75}
+@media(max-width:1100px){.chart-grid{grid-template-columns:1fr}header,.toolbar{align-items:flex-start;flex-direction:column}input{min-width:100%;width:100%}}
+@media print{body{background:#fff}main{max-width:none;padding:0}.chart-card,.trades{box-shadow:none}.table-wrap{max-height:none;overflow:visible}input{display:none}}
+
+.pnl-section{margin:0 0 24px}.pnl-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin:0 0 12px}
+.pnl-section-head h2{margin:0;font-size:21px}.pnl-section-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.pnl-headlines{display:grid;grid-template-columns:repeat(2,minmax(0,260px));gap:12px;margin:0 0 12px}
+.pnl-kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 17px;box-shadow:0 4px 14px rgba(23,49,81,.05)}
+.pnl-kpi span,.pnl-kpi small{display:block;color:var(--muted);font-size:11px}.pnl-kpi strong{display:block;margin:5px 0 3px;font-size:25px}
+.pnl-contribution-card{margin:0 0 18px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(23,49,81,.05)}
+.pnl-contribution-head{display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.pnl-contribution-head h3{margin:0;font-size:15px}.pnl-contribution-head span{color:var(--muted);font-size:11px}
+.pnl-contribution-card table{font-size:12px}.pnl-contribution-card th{position:static;padding:9px 16px;cursor:default}.pnl-contribution-card td{padding:9px 16px}
+.pnl-contribution-card td.num{font-size:18px}
+.pnl-expiry{min-width:170px;white-space:normal;color:var(--muted);line-height:1.45}
+.pnl-total-row td{background:#edf3f9;border-top:2px solid #cbd6e2;font-weight:700}
+.pnl-positive{color:var(--pos)}.pnl-negative{color:var(--neg)}.pnl-no-change{text-align:center;color:var(--muted)}
+.pnl-card-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 10px 2px}
+.pnl-card-head h2{margin:0}.pnl-latest{font-size:19px;font-weight:700;color:var(--pos);white-space:nowrap}
+.pnl-card svg{display:block;width:100%;height:auto}.pnl-grid-line{stroke:#e7ecf2;stroke-width:1}
+.pnl-zero-line{stroke:#9ba8b6;stroke-width:1.25;stroke-dasharray:5 4}.pnl-axis-label{font-size:11px;fill:#687789}
+.pnl-point{stroke:#fff;stroke-width:1;cursor:crosshair}.pnl-point:hover{r:5}
+.pnl-legend{display:flex;flex-wrap:wrap;gap:8px 15px;padding:0 13px 12px;color:var(--muted);font-size:11px}
+.pnl-legend-item{display:inline-flex;align-items:center;gap:5px}.pnl-legend-item i{display:inline-block;width:9px;height:9px;border-radius:50%}
+.pnl-legend-item strong{color:var(--ink);font-weight:600}
+@media(max-width:1100px){.pnl-section-head{align-items:flex-start;flex-direction:column}.pnl-headlines{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.pnl-headlines{grid-template-columns:1fr}}
+
+
+.structure-section{margin:0 0 24px}.structure-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin:0 0 12px}
+.structure-section-head h2{margin:0;font-size:21px}.structure-section-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.structure-layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(420px,.85fr);gap:18px;align-items:start}
+.structure-card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(23,49,81,.05)}
+.structure-table-wrap{max-height:520px;overflow:auto}.structure-table{font-size:11px}.structure-table th{font-size:10px;cursor:default}
+.structure-table td{padding:9px 10px}.structure-table td.num{font-size:12px;font-weight:600}
+.structure-row{cursor:pointer}.structure-row.selected td{background:#eaf2ff}.structure-row:focus-visible{outline:2px solid #2463eb;outline-offset:-2px}
+.structure-leg-row td{padding:9px 12px;background:#f4f7fb}.structure-leg-list{display:flex;flex-wrap:wrap;gap:7px}
+.structure-leg-chip{padding:6px 8px;border:1px solid #d7e0e9;border-radius:7px;background:#fff;color:var(--muted);font-size:10px}
+.structure-leg-chip strong{color:var(--ink)}.structure-confidence{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}
+.structure-confidence.high{color:#0d6a54;background:#dff5ed}.structure-confidence.medium,.structure-confidence.low{color:#8a5500;background:#fff1d3}
+.structure-confidence.ambiguous{color:#9b2c3d;background:#fde7ea}.structure-empty{text-align:center;color:var(--muted)}
+.payoff-card{padding:15px}.payoff-card h3{margin:0;font-size:17px}.payoff-meta{margin:5px 0 10px;color:var(--muted);font-size:11px}
+.payoff-card svg{display:block;width:100%;height:auto}.payoff-grid{stroke:#e7ecf2;stroke-width:1}.payoff-zero{stroke:#8796a7;stroke-width:1.2}
+.payoff-strike{stroke:#d88917;stroke-width:1;stroke-dasharray:4 4}.payoff-line{fill:none;stroke:#2463eb;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}
+.payoff-axis{fill:#687789;font-size:10px}.payoff-strike-label{fill:#9a5d05;font-size:9px;font-weight:700}
+.structure-note{padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.45}
+@media(max-width:1200px){.structure-layout{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body><main>
+<header><div><h1>FX Options — Netted Greeks by Expiry and Type</h1><div class="subtitle">Native SVG charts · Whole USD millions · Pair order follows total net Delta from smallest to largest · Hover for exact values</div></div><div class="asof">As of 22 Sep 2026</div></header>
+<div class="legend"><span class="key"><span class="dot" style="background:var(--call)">C</span>Call</span><span class="key"><span class="dot" style="background:var(--put)">P</span>Put</span><span class="key"><span class="band"></span>Expires within 30 calendar days</span><span>Σ = total by currency pair</span></div>
+
+<section class="pnl-section">
+  <div class="pnl-section-head">
+    <div><h2>YTD P&amp;L</h2><p>Rebased to the first available CobDate · Last observed trade P&amp;L is carried forward by UniqueID after disappearance</p></div>
+  </div>
+  <div class="pnl-headlines">
+    <article class="pnl-kpi"><span>Current P&amp;L</span><strong class="pnl-positive">+$155k</strong><small>As of 22 Sep 2026</small></article>
+    <article class="pnl-kpi"><span>WoW change</span><strong class="pnl-positive">+$155k</strong><small>vs 12 Sep 2026</small></article>
+  </div>
+  <div class="pnl-contribution-card">
+    <div class="pnl-contribution-head"><h3>Currency-pair contribution to WoW P&amp;L</h3><span>Only non-zero changes shown</span></div>
+    <table><thead><tr><th>Currency pair</th><th class="num">Current P&amp;L</th><th class="num">WoW contribution</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th><th>Expiry dates</th></tr></thead><tbody><tr><td>EURUSD</td><td class="num pnl-positive">+$100k</td><td class="num pnl-positive">+$100k</td><td class="num pnl-positive">+$20.0m</td><td class="num pnl-positive">+$2.0m</td><td class="num pnl-positive">+$500k</td><td class="num pnl-negative">-$500k</td><td class="pnl-expiry">18 Dec 2026</td></tr><tr><td>GBPUSD</td><td class="num pnl-positive">+$30.0k</td><td class="num pnl-positive">+$30.0k</td><td class="num pnl-negative">-$22.0m</td><td class="num pnl-positive">+$6.0m</td><td class="num pnl-positive">+$2.0m</td><td class="num pnl-negative">-$1.0m</td><td class="pnl-expiry">20 Nov 2026</td></tr><tr><td>USDZAR</td><td class="num pnl-negative">-$20.0k</td><td class="num pnl-negative">-$20.0k</td><td class="num pnl-negative">-$10.0m</td><td class="num pnl-negative">-$6.0m</td><td class="num pnl-negative">-$2.3m</td><td class="num pnl-positive">+$1.0m</td><td class="pnl-expiry">15 Jan 2027</td></tr><tr><td>NZDUSD</td><td class="num pnl-positive">+$15.0k</td><td class="num pnl-positive">+$15.0k</td><td class="num pnl-positive">+$10.0m</td><td class="num pnl-positive">+$2.0m</td><td class="num pnl-positive">+$800k</td><td class="num pnl-negative">-$400k</td><td class="pnl-expiry">18 Jun 2027</td></tr><tr><td>AUDUSD</td><td class="num pnl-positive">+$10.0k</td><td class="num pnl-positive">+$10.0k</td><td class="num pnl-positive">+$37.0m</td><td class="num pnl-negative">-$2.0m</td><td class="num pnl-negative">-$800k</td><td class="num pnl-positive">+$300k</td><td class="pnl-expiry">16 Apr 2027</td></tr><tr><td>USDCNH</td><td class="num pnl-positive">+$10.0k</td><td class="num pnl-positive">+$10.0k</td><td class="num pnl-positive">+$4.0m</td><td class="num pnl-negative">-$2.0m</td><td class="num pnl-negative">-$700k</td><td class="num pnl-positive">+$200k</td><td class="pnl-expiry">26 Feb 2027</td></tr><tr><td>USDJPY</td><td class="num pnl-positive">+$10.0k</td><td class="num pnl-positive">+$10.0k</td><td class="num pnl-positive">+$50.0m</td><td class="num pnl-positive">+$1.0m</td><td class="num pnl-positive">+$200k</td><td class="num pnl-negative">-$300k</td><td class="pnl-expiry">19 Mar 2027</td></tr></tbody><tfoot><tr class="pnl-total-row"><td>Whole book</td><td class="num pnl-positive">+$155k</td><td class="num pnl-positive">+$155k</td><td class="num pnl-positive">+$89.0m</td><td class="num pnl-positive">+$1.0m</td><td class="num pnl-negative">-$300k</td><td class="num pnl-negative">-$700k</td><td class="pnl-expiry"></td></tr></tfoot></table>
+  </div>
+  <div class="chart-grid">
+    <article class="chart-card pnl-card">
+      <div class="pnl-card-head"><h2>Whole book</h2><div class="pnl-latest">+$155k</div></div>
+      <svg viewBox="0 0 980 355" role="img" aria-label="Whole-book YTD P&amp;L history">
+<defs><clipPath id="book-pnl-clip"><rect x="92" y="24" width="862" height="277"/></clipPath></defs>
+<line x1="92" y1="301.00" x2="954" y2="301.00" class="pnl-grid-line"/>
+<text x="80" y="305.00" text-anchor="end" class="pnl-axis-label">-$15.5k</text>
+<line x1="92" y1="231.75" x2="954" y2="231.75" class="pnl-grid-line"/>
+<text x="80" y="235.75" text-anchor="end" class="pnl-axis-label">$31.0k</text>
+<line x1="92" y1="162.50" x2="954" y2="162.50" class="pnl-grid-line"/>
+<text x="80" y="166.50" text-anchor="end" class="pnl-axis-label">$77.5k</text>
+<line x1="92" y1="93.25" x2="954" y2="93.25" class="pnl-grid-line"/>
+<text x="80" y="97.25" text-anchor="end" class="pnl-axis-label">$124k</text>
+<line x1="92" y1="24.00" x2="954" y2="24.00" class="pnl-grid-line"/>
+<text x="80" y="28.00" text-anchor="end" class="pnl-axis-label">$170k</text>
+<line x1="92" y1="277.92" x2="954" y2="277.92" class="pnl-zero-line"/>
+<line x1="92.00" y1="24" x2="92.00" y2="301" class="pnl-grid-line"/>
+<text x="92.00" y="326" text-anchor="middle" class="pnl-axis-label">12 Sep</text>
+<line x1="954.00" y1="24" x2="954.00" y2="301" class="pnl-grid-line"/>
+<text x="954.00" y="326" text-anchor="middle" class="pnl-axis-label">22 Sep</text>
+<g clip-path="url(#book-pnl-clip)">
+<path d="M 92.00 277.92 L 954.00 47.08" fill="none" stroke="#14866d" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="92.00" cy="277.92" r="2.6" fill="#14866d" class="pnl-point"><title>2026-09-12 · Whole book · $0</title></circle>
+<circle cx="954.00" cy="47.08" r="2.6" fill="#14866d" class="pnl-point"><title>2026-09-22 · Whole book · +$155k</title></circle>
+</g></svg>
+    </article>
+    <article class="chart-card pnl-card">
+      <div class="pnl-card-head"><h2>Individual currency pairs</h2></div>
+      <svg viewBox="0 0 980 355" role="img" aria-label="YTD P&amp;L history by currency pair">
+<defs><clipPath id="pair-pnl-clip"><rect x="92" y="24" width="862" height="277"/></clipPath></defs>
+<line x1="92" y1="301.00" x2="954" y2="301.00" class="pnl-grid-line"/>
+<text x="80" y="305.00" text-anchor="end" class="pnl-axis-label">-$32.0k</text>
+<line x1="92" y1="231.75" x2="954" y2="231.75" class="pnl-grid-line"/>
+<text x="80" y="235.75" text-anchor="end" class="pnl-axis-label">$4.0k</text>
+<line x1="92" y1="162.50" x2="954" y2="162.50" class="pnl-grid-line"/>
+<text x="80" y="166.50" text-anchor="end" class="pnl-axis-label">$40.0k</text>
+<line x1="92" y1="93.25" x2="954" y2="93.25" class="pnl-grid-line"/>
+<text x="80" y="97.25" text-anchor="end" class="pnl-axis-label">$76.0k</text>
+<line x1="92" y1="24.00" x2="954" y2="24.00" class="pnl-grid-line"/>
+<text x="80" y="28.00" text-anchor="end" class="pnl-axis-label">$112k</text>
+<line x1="92" y1="239.44" x2="954" y2="239.44" class="pnl-zero-line"/>
+<line x1="92.00" y1="24" x2="92.00" y2="301" class="pnl-grid-line"/>
+<text x="92.00" y="326" text-anchor="middle" class="pnl-axis-label">12 Sep</text>
+<line x1="954.00" y1="24" x2="954.00" y2="301" class="pnl-grid-line"/>
+<text x="954.00" y="326" text-anchor="middle" class="pnl-axis-label">22 Sep</text>
+<g clip-path="url(#pair-pnl-clip)">
+<path d="M 92.00 239.44 L 954.00 47.08" fill="none" stroke="#2463eb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="92.00" cy="239.44" r="2.6" fill="#2463eb" class="pnl-point"><title>2026-09-12 · EURUSD · $0</title></circle>
+<circle cx="954.00" cy="47.08" r="2.6" fill="#2463eb" class="pnl-point"><title>2026-09-22 · EURUSD · +$100k</title></circle>
+<path d="M 92.00 239.44 L 954.00 181.74" fill="none" stroke="#8b58c7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="92.00" cy="239.44" r="2.6" fill="#8b58c7" class="pnl-point"><title>2026-09-12 · GBPUSD · $0</title></circle>
+<circle cx="954.00" cy="181.74" r="2.6" fill="#8b58c7" class="pnl-point"><title>2026-09-22 · GBPUSD · +$30.0k</title></circle>
+<path d="M 92.00 239.44 L 954.00 277.92" fill="none" stroke="#14866d" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="92.00" cy="239.44" r="2.6" fill="#14866d" class="pnl-point"><title>2026-09-12 · USDZAR · $0</title></circle>
+<circle cx="954.00" cy="277.92" r="2.6" fill="#14866d" class="pnl-point"><title>2026-09-22 · USDZAR · -$20.0k</title></circle>
+<path d="M 92.00 239.44 L 954.00 210.59" fill="none" stroke="#d84b5b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="92.00" cy="239.44" r="2.6" fill="#d84b5b" class="pnl-point"><title>2026-09-12 · NZDUSD · $0</title></circle>
+<circle cx="954.00" cy="210.59" r="2.6" fill="#d84b5b" class="pnl-point"><title>2026-09-22 · NZDUSD · +$15.0k</title></circle>
+<path d="M 92.00 239.44 L 954.00 220.21" fill="none" stroke="#d88917" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="92.00" cy="239.44" r="2.6" fill="#d88917" class="pnl-point"><title>2026-09-12 · AUDUSD · $0</title></circle>
+<circle cx="954.00" cy="220.21" r="2.6" fill="#d88917" class="pnl-point"><title>2026-09-22 · AUDUSD · +$10.0k</title></circle>
+<path d="M 92.00 239.44 L 954.00 220.21" fill="none" stroke="#0e7490" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="92.00" cy="239.44" r="2.6" fill="#0e7490" class="pnl-point"><title>2026-09-12 · USDCNH · $0</title></circle>
+<circle cx="954.00" cy="220.21" r="2.6" fill="#0e7490" class="pnl-point"><title>2026-09-22 · USDCNH · +$10.0k</title></circle>
+<path d="M 92.00 239.44 L 954.00 220.21" fill="none" stroke="#be4b9b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="92.00" cy="239.44" r="2.6" fill="#be4b9b" class="pnl-point"><title>2026-09-12 · USDJPY · $0</title></circle>
+<circle cx="954.00" cy="220.21" r="2.6" fill="#be4b9b" class="pnl-point"><title>2026-09-22 · USDJPY · +$10.0k</title></circle>
+</g></svg>
+      <div class="pnl-legend"><span class="pnl-legend-item"><i style="background:#2463eb"></i>EURUSD <strong>+$100k</strong></span><span class="pnl-legend-item"><i style="background:#8b58c7"></i>GBPUSD <strong>+$30.0k</strong></span><span class="pnl-legend-item"><i style="background:#14866d"></i>USDZAR <strong>-$20.0k</strong></span><span class="pnl-legend-item"><i style="background:#d84b5b"></i>NZDUSD <strong>+$15.0k</strong></span><span class="pnl-legend-item"><i style="background:#d88917"></i>AUDUSD <strong>+$10.0k</strong></span><span class="pnl-legend-item"><i style="background:#0e7490"></i>USDCNH <strong>+$10.0k</strong></span><span class="pnl-legend-item"><i style="background:#be4b9b"></i>USDJPY <strong>+$10.0k</strong></span></div>
+    </article>
+  </div>
+</section>
+
+
+<section class="structure-section">
+  <div class="structure-section-head">
+    <div><h2>Inferred option structures</h2><p>Grouped without PositionName · Click a row to inspect its legs and terminal payoff</p></div>
+  </div>
+  <div class="structure-layout">
+    <article class="structure-card">
+      <div class="structure-table-wrap"><table class="structure-table"><thead><tr><th>Structure</th><th>Pair</th><th>Portfolio</th><th>Trade date</th><th>Expiry</th><th>Strikes</th><th>Ratio</th><th class="num">Current P&amp;L</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th><th>Confidence</th></tr></thead><tbody><tr class="structure-row" data-structure-id="S001" tabindex="0" role="button"><td><strong>Long Seagull</strong></td><td>AUDUSD</td><td>G10</td><td>2026-08-15</td><td>2027-04-16</td><td>0.64 / 0.68 / 0.72</td><td>1 : 1 : 1</td><td class="num pnl-positive">+$20.0k</td><td class="num pnl-positive">+$37.0m</td><td class="num pnl-negative">-$2.0m</td><td class="num pnl-negative">-$800k</td><td class="num pnl-positive">+$300k</td><td><span class="structure-confidence high">High</span></td></tr><tr class="structure-leg-row" data-structure-detail="S001" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Short Put</strong> K 0.64 · 90,000,000 AUD · ID SEA1P</span><span class="structure-leg-chip"><strong>Long Call</strong> K 0.68 · 90,000,000 AUD · ID SEA1CL</span><span class="structure-leg-chip"><strong>Short Call</strong> K 0.72 · 90,000,000 AUD · ID SEA1CS</span></div></td></tr><tr class="structure-row" data-structure-id="S002" tabindex="0" role="button"><td><strong>Long Call Spread</strong></td><td>EURUSD</td><td>Alpha</td><td>2026-08-01</td><td>2026-12-18</td><td>1.1 / 1.15</td><td>1 : 1</td><td class="num pnl-positive">+$150k</td><td class="num pnl-positive">+$20.0m</td><td class="num pnl-positive">+$2.0m</td><td class="num pnl-positive">+$500k</td><td class="num pnl-negative">-$500k</td><td><span class="structure-confidence high">High</span></td></tr><tr class="structure-leg-row" data-structure-detail="S002" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Long Call</strong> K 1.1 · 100,000,000 EUR · ID CS1L</span><span class="structure-leg-chip"><strong>Short Call</strong> K 1.15 · 100,000,000 EUR · ID CS1S</span></div></td></tr><tr class="structure-row" data-structure-id="S003" tabindex="0" role="button"><td><strong>Long Vanilla Put</strong></td><td>GBPUSD</td><td>G10</td><td>2026-08-20</td><td>2026-11-20</td><td>1.25</td><td>—</td><td class="num pnl-positive">+$50.0k</td><td class="num pnl-negative">-$22.0m</td><td class="num pnl-positive">+$6.0m</td><td class="num pnl-positive">+$2.0m</td><td class="num pnl-negative">-$1.0m</td><td><span class="structure-confidence medium">Medium</span></td></tr><tr class="structure-leg-row" data-structure-detail="S003" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Long Put</strong> K 1.25 · N/A notional · ID VAN1</span></div></td></tr><tr class="structure-row" data-structure-id="S004" tabindex="0" role="button"><td><strong>Long Unclassified Leg</strong></td><td>NZDUSD</td><td>Beta</td><td>2026-09-01</td><td>2027-06-18</td><td>0.6</td><td>1</td><td class="num pnl-positive">+$30.0k</td><td class="num pnl-positive">+$15.0m</td><td class="num pnl-positive">+$4.0m</td><td class="num pnl-positive">+$1.4m</td><td class="num pnl-negative">-$700k</td><td><span class="structure-confidence ambiguous">Ambiguous</span></td></tr><tr class="structure-leg-row" data-structure-detail="S004" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Long Call</strong> K 0.6 · 50,000,000 NZD · ID AMB1</span></div></td></tr><tr class="structure-row" data-structure-id="S005" tabindex="0" role="button"><td><strong>Long Unclassified Leg</strong></td><td>NZDUSD</td><td>Beta</td><td>2026-09-01</td><td>2027-06-18</td><td>0.61</td><td>1</td><td class="num pnl-positive">+$25.0k</td><td class="num pnl-positive">+$14.0m</td><td class="num pnl-positive">+$4.0m</td><td class="num pnl-positive">+$1.4m</td><td class="num pnl-negative">-$700k</td><td><span class="structure-confidence ambiguous">Ambiguous</span></td></tr><tr class="structure-leg-row" data-structure-detail="S005" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Long Call</strong> K 0.61 · 50,000,000 NZD · ID AMB2</span></div></td></tr><tr class="structure-row" data-structure-id="S006" tabindex="0" role="button"><td><strong>Short Unclassified Leg</strong></td><td>NZDUSD</td><td>Beta</td><td>2026-09-01</td><td>2027-06-18</td><td>0.65</td><td>1</td><td class="num pnl-negative">-$20.0k</td><td class="num pnl-negative">-$10.0m</td><td class="num pnl-negative">-$3.0m</td><td class="num pnl-negative">-$1.0m</td><td class="num pnl-positive">+$500k</td><td><span class="structure-confidence ambiguous">Ambiguous</span></td></tr><tr class="structure-leg-row" data-structure-detail="S006" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Short Call</strong> K 0.65 · 50,000,000 NZD · ID AMB3</span></div></td></tr><tr class="structure-row" data-structure-id="S007" tabindex="0" role="button"><td><strong>Short Unclassified Leg</strong></td><td>NZDUSD</td><td>Beta</td><td>2026-09-01</td><td>2027-06-18</td><td>0.66</td><td>1</td><td class="num pnl-negative">-$15.0k</td><td class="num pnl-negative">-$9.0m</td><td class="num pnl-negative">-$3.0m</td><td class="num pnl-negative">-$1.0m</td><td class="num pnl-positive">+$500k</td><td><span class="structure-confidence ambiguous">Ambiguous</span></td></tr><tr class="structure-leg-row" data-structure-detail="S007" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Short Call</strong> K 0.66 · 50,000,000 NZD · ID AMB4</span></div></td></tr><tr class="structure-row" data-structure-id="S008" tabindex="0" role="button"><td><strong>Long Call Ladder</strong></td><td>USDCNH</td><td>Asia</td><td>2026-08-12</td><td>2027-02-26</td><td>7.1 / 7.3 / 7.5</td><td>1 : 1 : 1</td><td class="num pnl-positive">+$20.0k</td><td class="num pnl-positive">+$4.0m</td><td class="num pnl-negative">-$2.0m</td><td class="num pnl-negative">-$700k</td><td class="num pnl-positive">+$200k</td><td><span class="structure-confidence high">High</span></td></tr><tr class="structure-leg-row" data-structure-detail="S008" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Long Call</strong> K 7.1 · 60,000,000 USD · ID LAD1A</span><span class="structure-leg-chip"><strong>Short Call</strong> K 7.3 · 60,000,000 USD · ID LAD1B</span><span class="structure-leg-chip"><strong>Short Call</strong> K 7.5 · 60,000,000 USD · ID LAD1C</span></div></td></tr><tr class="structure-row" data-structure-id="S009" tabindex="0" role="button"><td><strong>Long Risk Reversal</strong></td><td>USDJPY</td><td>Macro</td><td>2026-08-05</td><td>2027-03-19</td><td>140 / 152</td><td>1 : 1</td><td class="num pnl-positive">+$40.0k</td><td class="num pnl-positive">+$50.0m</td><td class="num pnl-positive">+$1.0m</td><td class="num pnl-positive">+$200k</td><td class="num pnl-negative">-$300k</td><td><span class="structure-confidence high">High</span></td></tr><tr class="structure-leg-row" data-structure-detail="S009" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Short Put</strong> K 140 · 80,000,000 USD · ID RR1P</span><span class="structure-leg-chip"><strong>Long Call</strong> K 152 · 80,000,000 USD · ID RR1C</span></div></td></tr><tr class="structure-row" data-structure-id="S010" tabindex="0" role="button"><td><strong>Long Ratio Call Spread</strong></td><td>USDZAR</td><td>EM</td><td>2026-08-08</td><td>2027-01-15</td><td>17 / 19</td><td>1 : 2</td><td class="num pnl-negative">-$40.0k</td><td class="num pnl-negative">-$10.0m</td><td class="num pnl-negative">-$6.0m</td><td class="num pnl-negative">-$2.3m</td><td class="num pnl-positive">+$1.0m</td><td><span class="structure-confidence high">High</span></td></tr><tr class="structure-leg-row" data-structure-detail="S010" hidden><td colspan="13"><div class="structure-leg-list"><span class="structure-leg-chip"><strong>Long Call</strong> K 17 · 100,000,000 USD · ID RCS1L</span><span class="structure-leg-chip"><strong>Short Call</strong> K 19 · 200,000,000 USD · ID RCS1S</span></div></td></tr></tbody></table></div>
+      <div class="structure-note">Inference uses pair, expiry, portfolio, trade date, shore, option type, signed risks, strikes, and notionals. Ambiguous combinations are not forced.</div>
+    </article>
+    <article class="structure-card payoff-card">
+      <h3 id="payoffTitle">Terminal payoff</h3>
+      <div id="payoffMeta" class="payoff-meta">Select a structure</div>
+      <div id="payoffChart"></div>
+      <div class="structure-note">Terminal intrinsic payoff before premium. Current MTM P&amp;L is shown separately and is not added to the curve.</div>
+    </article>
+  </div>
+</section>
+
+<section class="chart-grid"><article class="chart-card"><h2>Delta</h2><svg viewBox="0 0 980 535" role="img" aria-label="Delta by currency pair and expiry">
+<rect x="123.93" y="25" width="59.82" height="462" fill="#f3b65c" fill-opacity=".18"/>
+<line x1="82.05" y1="25" x2="82.05" y2="487" class="grid-line"/>
+<text x="82.05" y="517" text-anchor="middle" class="axis-label">Sep 26</text>
+<line x1="203.69" y1="25" x2="203.69" y2="487" class="grid-line"/>
+<text x="203.69" y="517" text-anchor="middle" class="axis-label">Nov 26</text>
+<line x1="325.32" y1="25" x2="325.32" y2="487" class="grid-line"/>
+<text x="325.32" y="517" text-anchor="middle" class="axis-label">Jan 27</text>
+<line x1="442.96" y1="25" x2="442.96" y2="487" class="grid-line"/>
+<text x="442.96" y="517" text-anchor="middle" class="axis-label">Mar 27</text>
+<line x1="564.59" y1="25" x2="564.59" y2="487" class="grid-line"/>
+<text x="564.59" y="517" text-anchor="middle" class="axis-label">May 27</text>
+<line x1="686.22" y1="25" x2="686.22" y2="487" class="grid-line"/>
+<text x="686.22" y="517" text-anchor="middle" class="axis-label">Jul 27</text>
+<line x1="100" y1="58.00" x2="760" y2="58.00" class="grid-line"/>
+<text x="91" y="62.00" text-anchor="end" class="pair-label">GBPUSD</text>
+<text x="768" y="62.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ -22m</text>
+<line x1="100" y1="124.00" x2="760" y2="124.00" class="grid-line"/>
+<text x="91" y="128.00" text-anchor="end" class="pair-label">USDZAR</text>
+<text x="768" y="128.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ -10m</text>
+<line x1="100" y1="190.00" x2="760" y2="190.00" class="grid-line"/>
+<text x="91" y="194.00" text-anchor="end" class="pair-label">USDCNH</text>
+<text x="768" y="194.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +4m</text>
+<line x1="100" y1="256.00" x2="760" y2="256.00" class="grid-line"/>
+<text x="91" y="260.00" text-anchor="end" class="pair-label">NZDUSD</text>
+<text x="768" y="260.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +10m</text>
+<line x1="100" y1="322.00" x2="760" y2="322.00" class="grid-line"/>
+<text x="91" y="326.00" text-anchor="end" class="pair-label">EURUSD</text>
+<text x="768" y="326.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +20m</text>
+<line x1="100" y1="388.00" x2="760" y2="388.00" class="grid-line"/>
+<text x="91" y="392.00" text-anchor="end" class="pair-label">AUDUSD</text>
+<text x="768" y="392.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +37m</text>
+<line x1="100" y1="454.00" x2="760" y2="454.00" class="grid-line"/>
+<text x="91" y="458.00" text-anchor="end" class="pair-label">USDJPY</text>
+<text x="768" y="458.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +50m</text>
+<line x1="123.93" y1="25" x2="123.93" y2="487" class="asof-line"/>
+<line x1="554.48" y1="380.00" x2="561.48" y2="380.00" class="leader" stroke="#2463eb"/>
+<circle cx="534.68" cy="380.00" r="19.80" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2027-04-16
+Net Delta: 17,000,000 USD
+Positions netted: 2</title></circle>
+<text x="534.68" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="564.48" y="384.00" class="value-label">+17m · 2 trades</text>
+<line x1="555.56" y1="396.00" x2="562.56" y2="396.00" class="leader" stroke="#8b58c7"/>
+<circle cx="534.68" cy="396.00" r="20.88" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-04-16
+Net Delta: 20,000,000 USD
+Positions netted: 1</title></circle>
+<text x="534.68" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="565.56" y="400.00" class="value-label">+20m</text>
+<line x1="318.28" y1="314.00" x2="325.28" y2="314.00" class="leader" stroke="#2463eb"/>
+<circle cx="297.40" cy="314.00" r="20.88" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-12-18
+Net Delta: 20,000,000 USD
+Positions netted: 2</title></circle>
+<text x="297.40" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="328.28" y="318.00" class="value-label">+20m · 2 trades</text>
+<line x1="263.13" y1="66.00" x2="270.13" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="241.57" cy="66.00" r="21.56" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-11-20
+Net Delta: -22,000,000 USD
+Positions netted: 1</title></circle>
+<text x="241.57" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="273.13" y="70.00" class="value-label">-22m</text>
+<line x1="677.12" y1="248.00" x2="684.12" y2="248.00" class="leader" stroke="#2463eb"/>
+<circle cx="660.30" cy="248.00" r="16.81" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>NZDUSD · Call · 2027-06-18
+Net Delta: 10,000,000 USD
+Positions netted: 4</title></circle>
+<text x="660.30" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="687.12" y="252.00" class="value-label">+10m · 4 trades</text>
+<line x1="450.19" y1="182.00" x2="457.19" y2="182.00" class="leader" stroke="#2463eb"/>
+<circle cx="436.98" cy="182.00" r="13.21" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2027-02-26
+Net Delta: 4,000,000 USD
+Positions netted: 3</title></circle>
+<text x="436.98" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="460.19" y="186.00" class="value-label">+4m · 3 trades</text>
+<line x1="502.85" y1="446.00" x2="509.85" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="478.85" cy="446.00" r="24.00" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2027-03-19
+Net Delta: 30,000,000 USD
+Positions netted: 1</title></circle>
+<text x="478.85" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="512.85" y="450.00" class="value-label">+30m</text>
+<line x1="499.73" y1="462.00" x2="506.73" y2="462.00" class="leader" stroke="#8b58c7"/>
+<circle cx="478.85" cy="462.00" r="20.88" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-03-19
+Net Delta: 20,000,000 USD
+Positions netted: 1</title></circle>
+<text x="478.85" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="509.73" y="466.00" class="value-label">+20m</text>
+<line x1="370.05" y1="116.00" x2="377.05" y2="116.00" class="leader" stroke="#2463eb"/>
+<circle cx="353.23" cy="116.00" r="16.81" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2027-01-15
+Net Delta: -10,000,000 USD
+Positions netted: 2</title></circle>
+<text x="353.23" y="119.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="380.05" y="120.00" class="value-label">-10m · 2 trades</text>
+</svg></article><article class="chart-card"><h2>Gamma</h2><svg viewBox="0 0 980 535" role="img" aria-label="Gamma by currency pair and expiry">
+<rect x="123.93" y="25" width="59.82" height="462" fill="#f3b65c" fill-opacity=".18"/>
+<line x1="82.05" y1="25" x2="82.05" y2="487" class="grid-line"/>
+<text x="82.05" y="517" text-anchor="middle" class="axis-label">Sep 26</text>
+<line x1="203.69" y1="25" x2="203.69" y2="487" class="grid-line"/>
+<text x="203.69" y="517" text-anchor="middle" class="axis-label">Nov 26</text>
+<line x1="325.32" y1="25" x2="325.32" y2="487" class="grid-line"/>
+<text x="325.32" y="517" text-anchor="middle" class="axis-label">Jan 27</text>
+<line x1="442.96" y1="25" x2="442.96" y2="487" class="grid-line"/>
+<text x="442.96" y="517" text-anchor="middle" class="axis-label">Mar 27</text>
+<line x1="564.59" y1="25" x2="564.59" y2="487" class="grid-line"/>
+<text x="564.59" y="517" text-anchor="middle" class="axis-label">May 27</text>
+<line x1="686.22" y1="25" x2="686.22" y2="487" class="grid-line"/>
+<text x="686.22" y="517" text-anchor="middle" class="axis-label">Jul 27</text>
+<line x1="100" y1="58.00" x2="760" y2="58.00" class="grid-line"/>
+<text x="91" y="62.00" text-anchor="end" class="pair-label">GBPUSD</text>
+<text x="768" y="62.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +6m</text>
+<line x1="100" y1="124.00" x2="760" y2="124.00" class="grid-line"/>
+<text x="91" y="128.00" text-anchor="end" class="pair-label">USDZAR</text>
+<text x="768" y="128.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ -6m</text>
+<line x1="100" y1="190.00" x2="760" y2="190.00" class="grid-line"/>
+<text x="91" y="194.00" text-anchor="end" class="pair-label">USDCNH</text>
+<text x="768" y="194.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ -2m</text>
+<line x1="100" y1="256.00" x2="760" y2="256.00" class="grid-line"/>
+<text x="91" y="260.00" text-anchor="end" class="pair-label">NZDUSD</text>
+<text x="768" y="260.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +2m</text>
+<line x1="100" y1="322.00" x2="760" y2="322.00" class="grid-line"/>
+<text x="91" y="326.00" text-anchor="end" class="pair-label">EURUSD</text>
+<text x="768" y="326.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +2m</text>
+<line x1="100" y1="388.00" x2="760" y2="388.00" class="grid-line"/>
+<text x="91" y="392.00" text-anchor="end" class="pair-label">AUDUSD</text>
+<text x="768" y="392.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ -2m</text>
+<line x1="100" y1="454.00" x2="760" y2="454.00" class="grid-line"/>
+<text x="91" y="458.00" text-anchor="end" class="pair-label">USDJPY</text>
+<text x="768" y="458.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +1m</text>
+<line x1="123.93" y1="25" x2="123.93" y2="487" class="asof-line"/>
+<line x1="553.70" y1="380.00" x2="560.70" y2="380.00" class="leader" stroke="#2463eb"/>
+<circle cx="534.68" cy="380.00" r="19.02" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2027-04-16
+Net Gamma: 4,000,000 USD
+Positions netted: 2</title></circle>
+<text x="534.68" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="563.70" y="384.00" class="value-label">+4m · 2 trades</text>
+<line x1="556.41" y1="396.00" x2="563.41" y2="396.00" class="leader" stroke="#8b58c7"/>
+<circle cx="534.68" cy="396.00" r="21.72" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-04-16
+Net Gamma: -6,000,000 USD
+Positions netted: 1</title></circle>
+<text x="534.68" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="566.41" y="400.00" class="value-label">-6m</text>
+<line x1="312.90" y1="314.00" x2="319.90" y2="314.00" class="leader" stroke="#2463eb"/>
+<circle cx="297.40" cy="314.00" r="15.50" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-12-18
+Net Gamma: 2,000,000 USD
+Positions netted: 2</title></circle>
+<text x="297.40" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="322.90" y="318.00" class="value-label">+2m · 2 trades</text>
+<line x1="263.29" y1="66.00" x2="270.29" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="241.57" cy="66.00" r="21.72" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-11-20
+Net Gamma: 6,000,000 USD
+Positions netted: 1</title></circle>
+<text x="241.57" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="273.29" y="70.00" class="value-label">+6m</text>
+<line x1="675.80" y1="248.00" x2="682.80" y2="248.00" class="leader" stroke="#2463eb"/>
+<circle cx="660.30" cy="248.00" r="15.50" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>NZDUSD · Call · 2027-06-18
+Net Gamma: 2,000,000 USD
+Positions netted: 4</title></circle>
+<text x="660.30" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="685.80" y="252.00" class="value-label">+2m · 4 trades</text>
+<line x1="452.48" y1="182.00" x2="459.48" y2="182.00" class="leader" stroke="#2463eb"/>
+<circle cx="436.98" cy="182.00" r="15.50" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2027-02-26
+Net Gamma: -2,000,000 USD
+Positions netted: 3</title></circle>
+<text x="436.98" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="462.48" y="186.00" class="value-label">-2m · 3 trades</text>
+<line x1="502.85" y1="446.00" x2="509.85" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="478.85" cy="446.00" r="24.00" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2027-03-19
+Net Gamma: 8,000,000 USD
+Positions netted: 1</title></circle>
+<text x="478.85" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="512.85" y="450.00" class="value-label">+8m</text>
+<line x1="501.75" y1="462.00" x2="508.75" y2="462.00" class="leader" stroke="#8b58c7"/>
+<circle cx="478.85" cy="462.00" r="22.90" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-03-19
+Net Gamma: -7,000,000 USD
+Positions netted: 1</title></circle>
+<text x="478.85" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="511.75" y="466.00" class="value-label">-7m</text>
+<line x1="374.96" y1="116.00" x2="381.96" y2="116.00" class="leader" stroke="#2463eb"/>
+<circle cx="353.23" cy="116.00" r="21.72" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2027-01-15
+Net Gamma: -6,000,000 USD
+Positions netted: 2</title></circle>
+<text x="353.23" y="119.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="384.96" y="120.00" class="value-label">-6m · 2 trades</text>
+</svg></article><article class="chart-card"><h2>Theta</h2><svg viewBox="0 0 980 535" role="img" aria-label="Theta by currency pair and expiry">
+<rect x="123.93" y="25" width="59.82" height="462" fill="#f3b65c" fill-opacity=".18"/>
+<line x1="82.05" y1="25" x2="82.05" y2="487" class="grid-line"/>
+<text x="82.05" y="517" text-anchor="middle" class="axis-label">Sep 26</text>
+<line x1="203.69" y1="25" x2="203.69" y2="487" class="grid-line"/>
+<text x="203.69" y="517" text-anchor="middle" class="axis-label">Nov 26</text>
+<line x1="325.32" y1="25" x2="325.32" y2="487" class="grid-line"/>
+<text x="325.32" y="517" text-anchor="middle" class="axis-label">Jan 27</text>
+<line x1="442.96" y1="25" x2="442.96" y2="487" class="grid-line"/>
+<text x="442.96" y="517" text-anchor="middle" class="axis-label">Mar 27</text>
+<line x1="564.59" y1="25" x2="564.59" y2="487" class="grid-line"/>
+<text x="564.59" y="517" text-anchor="middle" class="axis-label">May 27</text>
+<line x1="686.22" y1="25" x2="686.22" y2="487" class="grid-line"/>
+<text x="686.22" y="517" text-anchor="middle" class="axis-label">Jul 27</text>
+<line x1="100" y1="58.00" x2="760" y2="58.00" class="grid-line"/>
+<text x="91" y="62.00" text-anchor="end" class="pair-label">GBPUSD</text>
+<text x="768" y="62.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ -1m</text>
+<line x1="100" y1="124.00" x2="760" y2="124.00" class="grid-line"/>
+<text x="91" y="128.00" text-anchor="end" class="pair-label">USDZAR</text>
+<text x="768" y="128.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +1m</text>
+<line x1="100" y1="190.00" x2="760" y2="190.00" class="grid-line"/>
+<text x="91" y="194.00" text-anchor="end" class="pair-label">USDCNH</text>
+<text x="768" y="194.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +0m</text>
+<line x1="100" y1="256.00" x2="760" y2="256.00" class="grid-line"/>
+<text x="91" y="260.00" text-anchor="end" class="pair-label">NZDUSD</text>
+<text x="768" y="260.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ +0m</text>
+<line x1="100" y1="322.00" x2="760" y2="322.00" class="grid-line"/>
+<text x="91" y="326.00" text-anchor="end" class="pair-label">EURUSD</text>
+<text x="768" y="326.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ +0m</text>
+<line x1="100" y1="388.00" x2="760" y2="388.00" class="grid-line"/>
+<text x="91" y="392.00" text-anchor="end" class="pair-label">AUDUSD</text>
+<text x="768" y="392.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +0m</text>
+<line x1="100" y1="454.00" x2="760" y2="454.00" class="grid-line"/>
+<text x="91" y="458.00" text-anchor="end" class="pair-label">USDJPY</text>
+<text x="768" y="458.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ +0m</text>
+<line x1="123.93" y1="25" x2="123.93" y2="487" class="asof-line"/>
+<line x1="553.30" y1="380.00" x2="560.30" y2="380.00" class="leader" stroke="#2463eb"/>
+<circle cx="534.68" cy="380.00" r="18.61" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2027-04-16
+Net Theta: -700,000 USD
+Positions netted: 2</title></circle>
+<text x="534.68" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="563.30" y="384.00" class="value-label">-1m · 2 trades</text>
+<line x1="555.56" y1="396.00" x2="562.56" y2="396.00" class="leader" stroke="#8b58c7"/>
+<circle cx="534.68" cy="396.00" r="20.88" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-04-16
+Net Theta: 1,000,000 USD
+Positions netted: 1</title></circle>
+<text x="534.68" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="565.56" y="400.00" class="value-label">+1m</text>
+<line x1="314.22" y1="314.00" x2="321.22" y2="314.00" class="leader" stroke="#2463eb"/>
+<circle cx="297.40" cy="314.00" r="16.81" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-12-18
+Net Theta: -500,000 USD
+Positions netted: 2</title></circle>
+<text x="297.40" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="324.22" y="318.00" class="value-label">+0m · 2 trades</text>
+<line x1="262.45" y1="66.00" x2="269.45" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="241.57" cy="66.00" r="20.88" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-11-20
+Net Theta: -1,000,000 USD
+Positions netted: 1</title></circle>
+<text x="241.57" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="272.45" y="70.00" class="value-label">-1m</text>
+<line x1="676.08" y1="248.00" x2="683.08" y2="248.00" class="leader" stroke="#2463eb"/>
+<circle cx="660.30" cy="248.00" r="15.78" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>NZDUSD · Call · 2027-06-18
+Net Theta: -400,000 USD
+Positions netted: 4</title></circle>
+<text x="660.30" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="686.08" y="252.00" class="value-label">+0m · 4 trades</text>
+<line x1="450.19" y1="182.00" x2="457.19" y2="182.00" class="leader" stroke="#2463eb"/>
+<circle cx="436.98" cy="182.00" r="13.21" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2027-02-26
+Net Theta: 200,000 USD
+Positions netted: 3</title></circle>
+<text x="436.98" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="460.19" y="186.00" class="value-label">+0m · 3 trades</text>
+<line x1="502.85" y1="446.00" x2="509.85" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="478.85" cy="446.00" r="24.00" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2027-03-19
+Net Theta: -1,500,000 USD
+Positions netted: 1</title></circle>
+<text x="478.85" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="512.85" y="450.00" class="value-label">-2m</text>
+<line x1="501.06" y1="462.00" x2="508.06" y2="462.00" class="leader" stroke="#8b58c7"/>
+<circle cx="478.85" cy="462.00" r="22.21" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-03-19
+Net Theta: 1,200,000 USD
+Positions netted: 1</title></circle>
+<text x="478.85" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="511.06" y="466.00" class="value-label">+1m</text>
+<line x1="374.11" y1="116.00" x2="381.11" y2="116.00" class="leader" stroke="#2463eb"/>
+<circle cx="353.23" cy="116.00" r="20.88" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2027-01-15
+Net Theta: 1,000,000 USD
+Positions netted: 2</title></circle>
+<text x="353.23" y="119.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="384.11" y="120.00" class="value-label">+1m · 2 trades</text>
+</svg></article><article class="chart-card"><h2>Vega</h2><svg viewBox="0 0 980 535" role="img" aria-label="Vega by currency pair and expiry">
+<rect x="123.93" y="25" width="59.82" height="462" fill="#f3b65c" fill-opacity=".18"/>
+<line x1="82.05" y1="25" x2="82.05" y2="487" class="grid-line"/>
+<text x="82.05" y="517" text-anchor="middle" class="axis-label">Sep 26</text>
+<line x1="203.69" y1="25" x2="203.69" y2="487" class="grid-line"/>
+<text x="203.69" y="517" text-anchor="middle" class="axis-label">Nov 26</text>
+<line x1="325.32" y1="25" x2="325.32" y2="487" class="grid-line"/>
+<text x="325.32" y="517" text-anchor="middle" class="axis-label">Jan 27</text>
+<line x1="442.96" y1="25" x2="442.96" y2="487" class="grid-line"/>
+<text x="442.96" y="517" text-anchor="middle" class="axis-label">Mar 27</text>
+<line x1="564.59" y1="25" x2="564.59" y2="487" class="grid-line"/>
+<text x="564.59" y="517" text-anchor="middle" class="axis-label">May 27</text>
+<line x1="686.22" y1="25" x2="686.22" y2="487" class="grid-line"/>
+<text x="686.22" y="517" text-anchor="middle" class="axis-label">Jul 27</text>
+<line x1="100" y1="58.00" x2="760" y2="58.00" class="grid-line"/>
+<text x="91" y="62.00" text-anchor="end" class="pair-label">GBPUSD</text>
+<text x="768" y="62.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +2m</text>
+<line x1="100" y1="124.00" x2="760" y2="124.00" class="grid-line"/>
+<text x="91" y="128.00" text-anchor="end" class="pair-label">USDZAR</text>
+<text x="768" y="128.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ -2m</text>
+<line x1="100" y1="190.00" x2="760" y2="190.00" class="grid-line"/>
+<text x="91" y="194.00" text-anchor="end" class="pair-label">USDCNH</text>
+<text x="768" y="194.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ -1m</text>
+<line x1="100" y1="256.00" x2="760" y2="256.00" class="grid-line"/>
+<text x="91" y="260.00" text-anchor="end" class="pair-label">NZDUSD</text>
+<text x="768" y="260.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +1m</text>
+<line x1="100" y1="322.00" x2="760" y2="322.00" class="grid-line"/>
+<text x="91" y="326.00" text-anchor="end" class="pair-label">EURUSD</text>
+<text x="768" y="326.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +0m</text>
+<line x1="100" y1="388.00" x2="760" y2="388.00" class="grid-line"/>
+<text x="91" y="392.00" text-anchor="end" class="pair-label">AUDUSD</text>
+<text x="768" y="392.00" class="total-label" font-size="18" font-weight="700" fill="#d84b5b">Σ -1m</text>
+<line x1="100" y1="454.00" x2="760" y2="454.00" class="grid-line"/>
+<text x="91" y="458.00" text-anchor="end" class="pair-label">USDJPY</text>
+<text x="768" y="458.00" class="total-label" font-size="18" font-weight="700" fill="#14866d">Σ +0m</text>
+<line x1="123.93" y1="25" x2="123.93" y2="487" class="asof-line"/>
+<line x1="552.43" y1="380.00" x2="559.43" y2="380.00" class="leader" stroke="#2463eb"/>
+<circle cx="534.68" cy="380.00" r="17.75" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Call · 2027-04-16
+Net Vega: 1,200,000 USD
+Positions netted: 2</title></circle>
+<text x="534.68" y="383.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="562.43" y="384.00" class="value-label">+1m · 2 trades</text>
+<line x1="555.56" y1="396.00" x2="562.56" y2="396.00" class="leader" stroke="#8b58c7"/>
+<circle cx="534.68" cy="396.00" r="20.88" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>AUDUSD · Put · 2027-04-16
+Net Vega: -2,000,000 USD
+Positions netted: 1</title></circle>
+<text x="534.68" y="399.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="565.56" y="400.00" class="value-label">-2m</text>
+<line x1="311.34" y1="314.00" x2="318.34" y2="314.00" class="leader" stroke="#2463eb"/>
+<circle cx="297.40" cy="314.00" r="13.94" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>EURUSD · Call · 2026-12-18
+Net Vega: 500,000 USD
+Positions netted: 2</title></circle>
+<text x="297.40" y="317.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="321.34" y="318.00" class="value-label">+0m · 2 trades</text>
+<line x1="262.45" y1="66.00" x2="269.45" y2="66.00" class="leader" stroke="#8b58c7"/>
+<circle cx="241.57" cy="66.00" r="20.88" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>GBPUSD · Put · 2026-11-20
+Net Vega: 2,000,000 USD
+Positions netted: 1</title></circle>
+<text x="241.57" y="69.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="272.45" y="70.00" class="value-label">+2m</text>
+<line x1="676.08" y1="248.00" x2="683.08" y2="248.00" class="leader" stroke="#2463eb"/>
+<circle cx="660.30" cy="248.00" r="15.78" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>NZDUSD · Call · 2027-06-18
+Net Vega: 800,000 USD
+Positions netted: 4</title></circle>
+<text x="660.30" y="251.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="686.08" y="252.00" class="value-label">+1m · 4 trades</text>
+<line x1="452.19" y1="182.00" x2="459.19" y2="182.00" class="leader" stroke="#2463eb"/>
+<circle cx="436.98" cy="182.00" r="15.21" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDCNH · Call · 2027-02-26
+Net Vega: -700,000 USD
+Positions netted: 3</title></circle>
+<text x="436.98" y="185.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="462.19" y="186.00" class="value-label">-1m · 3 trades</text>
+<line x1="502.85" y1="446.00" x2="509.85" y2="446.00" class="leader" stroke="#2463eb"/>
+<circle cx="478.85" cy="446.00" r="24.00" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDJPY · Call · 2027-03-19
+Net Vega: 3,000,000 USD
+Positions netted: 1</title></circle>
+<text x="478.85" y="449.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="512.85" y="450.00" class="value-label">+3m</text>
+<line x1="502.28" y1="462.00" x2="509.28" y2="462.00" class="leader" stroke="#8b58c7"/>
+<circle cx="478.85" cy="462.00" r="23.42" fill="#8b58c7" stroke="#fff" stroke-width="1.5"><title>USDJPY · Put · 2027-03-19
+Net Vega: -2,800,000 USD
+Positions netted: 1</title></circle>
+<text x="478.85" y="465.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">P</text>
+<text x="512.28" y="466.00" class="value-label">-3m</text>
+<line x1="375.12" y1="116.00" x2="382.12" y2="116.00" class="leader" stroke="#2463eb"/>
+<circle cx="353.23" cy="116.00" r="21.89" fill="#2463eb" stroke="#fff" stroke-width="1.5"><title>USDZAR · Call · 2027-01-15
+Net Vega: -2,300,000 USD
+Positions netted: 2</title></circle>
+<text x="353.23" y="119.00" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">C</text>
+<text x="385.12" y="120.00" class="value-label">-2m · 2 trades</text>
+</svg></article></section>
+<section class="trades"><div class="toolbar"><h2>Original trades — 17 rows</h2><input id="search" type="search" placeholder="Filter trades…" oninput="filterTrades()"></div><div class="table-wrap"><table id="tradeTable"><thead><tr><th onclick="sortTable(0)">CobDate <span>↕</span></th><th onclick="sortTable(1)">Underlying <span>↕</span></th><th onclick="sortTable(2)">Shore <span>↕</span></th><th onclick="sortTable(3)">OptionType <span>↕</span></th><th onclick="sortTable(4)">Strike <span>↕</span></th><th onclick="sortTable(5)">ExpiryDate <span>↕</span></th><th onclick="sortTable(6)">Delta <span>↕</span></th><th onclick="sortTable(7)">Gamma <span>↕</span></th><th onclick="sortTable(8)">Theta <span>↕</span></th><th onclick="sortTable(9)">Vega <span>↕</span></th><th onclick="sortTable(10)">Notional <span>↕</span></th><th onclick="sortTable(11)">NotionalCCY <span>↕</span></th><th onclick="sortTable(12)">PnL <span>↕</span></th><th onclick="sortTable(13)">PositionName <span>↕</span></th><th onclick="sortTable(14)">Portfolio <span>↕</span></th><th onclick="sortTable(15)">AssetType <span>↕</span></th><th onclick="sortTable(16)">TradeDate <span>↕</span></th><th onclick="sortTable(17)">UniqueID <span>↕</span></th></tr></thead><tbody><tr><td data-value="2026-09-22">2026-09-22</td><td data-value="EURUSD Curncy">EURUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="1.1">1.1</td><td data-value="2026-12-18">2026-12-18</td><td data-value="45000000">45,000,000</td><td data-value="12000000">12,000,000</td><td data-value="-2000000">-2,000,000</td><td data-value="4000000">4,000,000</td><td data-value="100000000">100,000,000</td><td data-value="EUR">EUR</td><td data-value="300000">300,000</td><td data-value="Random-A">Random-A</td><td data-value="Alpha">Alpha</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-01">2026-08-01</td><td data-value="CS1L">CS1L</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="EURUSD Curncy">EURUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="1.15">1.15</td><td data-value="2026-12-18">2026-12-18</td><td data-value="-25000000">-25,000,000</td><td data-value="-10000000">-10,000,000</td><td data-value="1500000">1,500,000</td><td data-value="-3500000">-3,500,000</td><td data-value="100000000">100,000,000</td><td data-value="EUR">EUR</td><td data-value="-150000">-150,000</td><td data-value="Random-B">Random-B</td><td data-value="Alpha">Alpha</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-01">2026-08-01</td><td data-value="CS1S">CS1S</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="USDJPY Curncy">USDJPY Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="152">152</td><td data-value="2027-03-19">2027-03-19</td><td data-value="30000000">30,000,000</td><td data-value="8000000">8,000,000</td><td data-value="-1500000">-1,500,000</td><td data-value="3000000">3,000,000</td><td data-value="80000000">80,000,000</td><td data-value="USD">USD</td><td data-value="120000">120,000</td><td data-value="Noise-1">Noise-1</td><td data-value="Macro">Macro</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-05">2026-08-05</td><td data-value="RR1C">RR1C</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="USDJPY Curncy">USDJPY Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Put">Put</td><td data-value="140">140</td><td data-value="2027-03-19">2027-03-19</td><td data-value="20000000">20,000,000</td><td data-value="-7000000">-7,000,000</td><td data-value="1200000">1,200,000</td><td data-value="-2800000">-2,800,000</td><td data-value="80000000">80,000,000</td><td data-value="USD">USD</td><td data-value="-80000">-80,000</td><td data-value="Noise-2">Noise-2</td><td data-value="Macro">Macro</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-05">2026-08-05</td><td data-value="RR1P">RR1P</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="USDZAR Curncy">USDZAR Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="17">17</td><td data-value="2027-01-15">2027-01-15</td><td data-value="40000000">40,000,000</td><td data-value="10000000">10,000,000</td><td data-value="-1800000">-1,800,000</td><td data-value="3200000">3,200,000</td><td data-value="100000000">100,000,000</td><td data-value="USD">USD</td><td data-value="200000">200,000</td><td data-value="Position-X">Position-X</td><td data-value="EM">EM</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-08">2026-08-08</td><td data-value="RCS1L">RCS1L</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="USDZAR Curncy">USDZAR Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="19">19</td><td data-value="2027-01-15">2027-01-15</td><td data-value="-50000000">-50,000,000</td><td data-value="-16000000">-16,000,000</td><td data-value="2800000">2,800,000</td><td data-value="-5500000">-5,500,000</td><td data-value="200000000">200,000,000</td><td data-value="USD">USD</td><td data-value="-240000">-240,000</td><td data-value="Position-Y">Position-Y</td><td data-value="EM">EM</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-08">2026-08-08</td><td data-value="RCS1S">RCS1S</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="USDCNH Curncy">USDCNH Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="7.1">7.1</td><td data-value="2027-02-26">2027-02-26</td><td data-value="30000000">30,000,000</td><td data-value="9000000">9,000,000</td><td data-value="-1200000">-1,200,000</td><td data-value="2500000">2,500,000</td><td data-value="60000000">60,000,000</td><td data-value="USD">USD</td><td data-value="110000">110,000</td><td data-value="Ladder-A">Ladder-A</td><td data-value="Asia">Asia</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-12">2026-08-12</td><td data-value="LAD1A">LAD1A</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="USDCNH Curncy">USDCNH Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="7.3">7.3</td><td data-value="2027-02-26">2027-02-26</td><td data-value="-18000000">-18,000,000</td><td data-value="-7000000">-7,000,000</td><td data-value="900000">900,000</td><td data-value="-2000000">-2,000,000</td><td data-value="60000000">60,000,000</td><td data-value="USD">USD</td><td data-value="-60000">-60,000</td><td data-value="Ladder-B">Ladder-B</td><td data-value="Asia">Asia</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-12">2026-08-12</td><td data-value="LAD1B">LAD1B</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="USDCNH Curncy">USDCNH Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="7.5">7.5</td><td data-value="2027-02-26">2027-02-26</td><td data-value="-8000000">-8,000,000</td><td data-value="-4000000">-4,000,000</td><td data-value="500000">500,000</td><td data-value="-1200000">-1,200,000</td><td data-value="60000000">60,000,000</td><td data-value="USD">USD</td><td data-value="-30000">-30,000</td><td data-value="Ladder-C">Ladder-C</td><td data-value="Asia">Asia</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-12">2026-08-12</td><td data-value="LAD1C">LAD1C</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="AUDUSD Curncy">AUDUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Put">Put</td><td data-value="0.64">0.64</td><td data-value="2027-04-16">2027-04-16</td><td data-value="20000000">20,000,000</td><td data-value="-6000000">-6,000,000</td><td data-value="1000000">1,000,000</td><td data-value="-2000000">-2,000,000</td><td data-value="90000000">90,000,000</td><td data-value="AUD">AUD</td><td data-value="-50000">-50,000</td><td data-value="Sea-1">Sea-1</td><td data-value="G10">G10</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-15">2026-08-15</td><td data-value="SEA1P">SEA1P</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="AUDUSD Curncy">AUDUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="0.68">0.68</td><td data-value="2027-04-16">2027-04-16</td><td data-value="35000000">35,000,000</td><td data-value="9000000">9,000,000</td><td data-value="-1500000">-1,500,000</td><td data-value="3000000">3,000,000</td><td data-value="90000000">90,000,000</td><td data-value="AUD">AUD</td><td data-value="140000">140,000</td><td data-value="Sea-2">Sea-2</td><td data-value="G10">G10</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-15">2026-08-15</td><td data-value="SEA1CL">SEA1CL</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="AUDUSD Curncy">AUDUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="0.72">0.72</td><td data-value="2027-04-16">2027-04-16</td><td data-value="-18000000">-18,000,000</td><td data-value="-5000000">-5,000,000</td><td data-value="800000">800,000</td><td data-value="-1800000">-1,800,000</td><td data-value="90000000">90,000,000</td><td data-value="AUD">AUD</td><td data-value="-70000">-70,000</td><td data-value="Sea-3">Sea-3</td><td data-value="G10">G10</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-15">2026-08-15</td><td data-value="SEA1CS">SEA1CS</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="GBPUSD Curncy">GBPUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Put">Put</td><td data-value="1.25">1.25</td><td data-value="2026-11-20">2026-11-20</td><td data-value="-22000000">-22,000,000</td><td data-value="6000000">6,000,000</td><td data-value="-1000000">-1,000,000</td><td data-value="2000000">2,000,000</td><td data-value="—">—</td><td data-value="GBP">GBP</td><td data-value="50000">50,000</td><td data-value="Single">Single</td><td data-value="G10">G10</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-08-20">2026-08-20</td><td data-value="VAN1">VAN1</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="NZDUSD Curncy">NZDUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="0.6">0.6</td><td data-value="2027-06-18">2027-06-18</td><td data-value="15000000">15,000,000</td><td data-value="4000000">4,000,000</td><td data-value="-700000">-700,000</td><td data-value="1400000">1,400,000</td><td data-value="50000000">50,000,000</td><td data-value="NZD">NZD</td><td data-value="30000">30,000</td><td data-value="Mix-A">Mix-A</td><td data-value="Beta">Beta</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-09-01">2026-09-01</td><td data-value="AMB1">AMB1</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="NZDUSD Curncy">NZDUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="0.61">0.61</td><td data-value="2027-06-18">2027-06-18</td><td data-value="14000000">14,000,000</td><td data-value="4000000">4,000,000</td><td data-value="-700000">-700,000</td><td data-value="1400000">1,400,000</td><td data-value="50000000">50,000,000</td><td data-value="NZD">NZD</td><td data-value="25000">25,000</td><td data-value="Mix-B">Mix-B</td><td data-value="Beta">Beta</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-09-01">2026-09-01</td><td data-value="AMB2">AMB2</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="NZDUSD Curncy">NZDUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="0.65">0.65</td><td data-value="2027-06-18">2027-06-18</td><td data-value="-10000000">-10,000,000</td><td data-value="-3000000">-3,000,000</td><td data-value="500000">500,000</td><td data-value="-1000000">-1,000,000</td><td data-value="50000000">50,000,000</td><td data-value="NZD">NZD</td><td data-value="-20000">-20,000</td><td data-value="Mix-C">Mix-C</td><td data-value="Beta">Beta</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-09-01">2026-09-01</td><td data-value="AMB3">AMB3</td></tr>
+<tr><td data-value="2026-09-22">2026-09-22</td><td data-value="NZDUSD Curncy">NZDUSD Curncy</td><td data-value="Offshore">Offshore</td><td data-value="Call">Call</td><td data-value="0.66">0.66</td><td data-value="2027-06-18">2027-06-18</td><td data-value="-9000000">-9,000,000</td><td data-value="-3000000">-3,000,000</td><td data-value="500000">500,000</td><td data-value="-1000000">-1,000,000</td><td data-value="50000000">50,000,000</td><td data-value="NZD">NZD</td><td data-value="-15000">-15,000</td><td data-value="Mix-D">Mix-D</td><td data-value="Beta">Beta</td><td data-value="VanillaOption">VanillaOption</td><td data-value="2026-09-01">2026-09-01</td><td data-value="AMB4">AMB4</td></tr></tbody></table></div><div class="footer">Unnetted trades and raw input amounts. ThetaPortCCY and VegaPortCCY are displayed as Theta and Vega. Click a heading to sort.</div></section>
+</main>
+<script>
+
+let direction=1;
+function filterTrades(){const q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('#tradeTable tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none')}
+function sortTable(c){const b=document.querySelector('#tradeTable tbody'),r=Array.from(b.rows);direction*=-1;r.sort((x,y)=>{const a=x.cells[c].dataset.value,d=y.cells[c].dataset.value,an=Number(a),dn=Number(d);return(a!==''&&d!==''&&Number.isFinite(an)&&Number.isFinite(dn)?an-dn:a.localeCompare(d))*direction});r.forEach(x=>b.appendChild(x))}
+</script>
+<script>
+const FXO_STRUCTURES=[{"pair": "AUDUSD", "type": "Seagull", "direction": "Long", "label": "Long Seagull", "confidence": "High", "expiry": "2027-04-16", "tradeDate": "2026-08-15", "portfolio": "G10", "shore": "Offshore", "strikes": "0.64 / 0.68 / 0.72", "ratio": "1 : 1 : 1", "pnl": 20000.0, "delta": 37000000.0, "gamma": -2000000.0, "vega": -800000.0, "theta": 300000.0, "payoffMode": "Actual", "payoutCurrency": "USD", "legs": [{"rowIndex": 26, "uniqueId": "SEA1P", "pair": "AUDUSD", "optionType": "Put", "strike": 0.64, "side": -1, "sideLabel": "Short", "sideConfidence": "High", "notional": 90000000.0, "notionalCcy": "AUD", "delta": 20000000.0, "gamma": -6000000.0, "vega": -2000000.0, "theta": 1000000.0, "pnl": -50000.0, "expiry": "2027-04-16", "tradeDate": "2026-08-15", "portfolio": "G10", "shore": "Offshore", "payoffWeight": 90000000.0}, {"rowIndex": 27, "uniqueId": "SEA1CL", "pair": "AUDUSD", "optionType": "Call", "strike": 0.68, "side": 1, "sideLabel": "Long", "sideConfidence": "High", "notional": 90000000.0, "notionalCcy": "AUD", "delta": 35000000.0, "gamma": 9000000.0, "vega": 3000000.0, "theta": -1500000.0, "pnl": 140000.0, "expiry": "2027-04-16", "tradeDate": "2026-08-15", "portfolio": "G10", "shore": "Offshore", "payoffWeight": 90000000.0}, {"rowIndex": 28, "uniqueId": "SEA1CS", "pair": "AUDUSD", "optionType": "Call", "strike": 0.72, "side": -1, "sideLabel": "Short", "sideConfidence": "High", "notional": 90000000.0, "notionalCcy": "AUD", "delta": -18000000.0, "gamma": -5000000.0, "vega": -1800000.0, "theta": 800000.0, "pnl": -70000.0, "expiry": "2027-04-16", "tradeDate": "2026-08-15", "portfolio": "G10", "shore": "Offshore", "payoffWeight": 90000000.0}], "id": "S001"}, {"pair": "EURUSD", "type": "Call Spread", "direction": "Long", "label": "Long Call Spread", "confidence": "High", "expiry": "2026-12-18", "tradeDate": "2026-08-01", "portfolio": "Alpha", "shore": "Offshore", "strikes": "1.1 / 1.15", "ratio": "1 : 1", "pnl": 150000.0, "delta": 20000000.0, "gamma": 2000000.0, "vega": 500000.0, "theta": -500000.0, "payoffMode": "Actual", "payoutCurrency": "USD", "legs": [{"rowIndex": 17, "uniqueId": "CS1L", "pair": "EURUSD", "optionType": "Call", "strike": 1.1, "side": 1, "sideLabel": "Long", "sideConfidence": "High", "notional": 100000000.0, "notionalCcy": "EUR", "delta": 45000000.0, "gamma": 12000000.0, "vega": 4000000.0, "theta": -2000000.0, "pnl": 300000.0, "expiry": "2026-12-18", "tradeDate": "2026-08-01", "portfolio": "Alpha", "shore": "Offshore", "payoffWeight": 100000000.0}, {"rowIndex": 18, "uniqueId": "CS1S", "pair": "EURUSD", "optionType": "Call", "strike": 1.15, "side": -1, "sideLabel": "Short", "sideConfidence": "High", "notional": 100000000.0, "notionalCcy": "EUR", "delta": -25000000.0, "gamma": -10000000.0, "vega": -3500000.0, "theta": 1500000.0, "pnl": -150000.0, "expiry": "2026-12-18", "tradeDate": "2026-08-01", "portfolio": "Alpha", "shore": "Offshore", "payoffWeight": 100000000.0}], "id": "S002"}, {"pair": "GBPUSD", "type": "Vanilla Put", "direction": "Long", "label": "Long Vanilla Put", "confidence": "Medium", "expiry": "2026-11-20", "tradeDate": "2026-08-20", "portfolio": "G10", "shore": "Offshore", "strikes": "1.25", "ratio": "—", "pnl": 50000.0, "delta": -22000000.0, "gamma": 6000000.0, "vega": 2000000.0, "theta": -1000000.0, "payoffMode": "Normalized", "payoutCurrency": "normalized units", "legs": [{"rowIndex": 29, "uniqueId": "VAN1", "pair": "GBPUSD", "optionType": "Put", "strike": 1.25, "side": 1, "sideLabel": "Long", "sideConfidence": "High", "notional": null, "notionalCcy": "GBP", "delta": -22000000.0, "gamma": 6000000.0, "vega": 2000000.0, "theta": -1000000.0, "pnl": 50000.0, "expiry": "2026-11-20", "tradeDate": "2026-08-20", "portfolio": "G10", "shore": "Offshore", "payoffWeight": 1.0}], "id": "S003"}, {"pair": "NZDUSD", "type": "Unclassified Leg", "direction": "Long", "label": "Long Unclassified Leg", "confidence": "Ambiguous", "expiry": "2027-06-18", "tradeDate": "2026-09-01", "portfolio": "Beta", "shore": "Offshore", "strikes": "0.6", "ratio": "1", "pnl": 30000.0, "delta": 15000000.0, "gamma": 4000000.0, "vega": 1400000.0, "theta": -700000.0, "payoffMode": "Actual", "payoutCurrency": "USD", "legs": [{"rowIndex": 30, "uniqueId": "AMB1", "pair": "NZDUSD", "optionType": "Call", "strike": 0.6, "side": 1, "sideLabel": "Long", "sideConfidence": "High", "notional": 50000000.0, "notionalCcy": "NZD", "delta": 15000000.0, "gamma": 4000000.0, "vega": 1400000.0, "theta": -700000.0, "pnl": 30000.0, "expiry": "2027-06-18", "tradeDate": "2026-09-01", "portfolio": "Beta", "shore": "Offshore", "payoffWeight": 50000000.0}], "id": "S004"}, {"pair": "NZDUSD", "type": "Unclassified Leg", "direction": "Long", "label": "Long Unclassified Leg", "confidence": "Ambiguous", "expiry": "2027-06-18", "tradeDate": "2026-09-01", "portfolio": "Beta", "shore": "Offshore", "strikes": "0.61", "ratio": "1", "pnl": 25000.0, "delta": 14000000.0, "gamma": 4000000.0, "vega": 1400000.0, "theta": -700000.0, "payoffMode": "Actual", "payoutCurrency": "USD", "legs": [{"rowIndex": 31, "uniqueId": "AMB2", "pair": "NZDUSD", "optionType": "Call", "strike": 0.61, "side": 1, "sideLabel": "Long", "sideConfidence": "High", "notional": 50000000.0, "notionalCcy": "NZD", "delta": 14000000.0, "gamma": 4000000.0, "vega": 1400000.0, "theta": -700000.0, "pnl": 25000.0, "expiry": "2027-06-18", "tradeDate": "2026-09-01", "portfolio": "Beta", "shore": "Offshore", "payoffWeight": 50000000.0}], "id": "S005"}, {"pair": "NZDUSD", "type": "Unclassified Leg", "direction": "Short", "label": "Short Unclassified Leg", "confidence": "Ambiguous", "expiry": "2027-06-18", "tradeDate": "2026-09-01", "portfolio": "Beta", "shore": "Offshore", "strikes": "0.65", "ratio": "1", "pnl": -20000.0, "delta": -10000000.0, "gamma": -3000000.0, "vega": -1000000.0, "theta": 500000.0, "payoffMode": "Actual", "payoutCurrency": "USD", "legs": [{"rowIndex": 32, "uniqueId": "AMB3", "pair": "NZDUSD", "optionType": "Call", "strike": 0.65, "side": -1, "sideLabel": "Short", "sideConfidence": "High", "notional": 50000000.0, "notionalCcy": "NZD", "delta": -10000000.0, "gamma": -3000000.0, "vega": -1000000.0, "theta": 500000.0, "pnl": -20000.0, "expiry": "2027-06-18", "tradeDate": "2026-09-01", "portfolio": "Beta", "shore": "Offshore", "payoffWeight": 50000000.0}], "id": "S006"}, {"pair": "NZDUSD", "type": "Unclassified Leg", "direction": "Short", "label": "Short Unclassified Leg", "confidence": "Ambiguous", "expiry": "2027-06-18", "tradeDate": "2026-09-01", "portfolio": "Beta", "shore": "Offshore", "strikes": "0.66", "ratio": "1", "pnl": -15000.0, "delta": -9000000.0, "gamma": -3000000.0, "vega": -1000000.0, "theta": 500000.0, "payoffMode": "Actual", "payoutCurrency": "USD", "legs": [{"rowIndex": 33, "uniqueId": "AMB4", "pair": "NZDUSD", "optionType": "Call", "strike": 0.66, "side": -1, "sideLabel": "Short", "sideConfidence": "High", "notional": 50000000.0, "notionalCcy": "NZD", "delta": -9000000.0, "gamma": -3000000.0, "vega": -1000000.0, "theta": 500000.0, "pnl": -15000.0, "expiry": "2027-06-18", "tradeDate": "2026-09-01", "portfolio": "Beta", "shore": "Offshore", "payoffWeight": 50000000.0}], "id": "S007"}, {"pair": "USDCNH", "type": "Call Ladder", "direction": "Long", "label": "Long Call Ladder", "confidence": "High", "expiry": "2027-02-26", "tradeDate": "2026-08-12", "portfolio": "Asia", "shore": "Offshore", "strikes": "7.1 / 7.3 / 7.5", "ratio": "1 : 1 : 1", "pnl": 20000.0, "delta": 4000000.0, "gamma": -2000000.0, "vega": -700000.0, "theta": 200000.0, "payoffMode": "Actual", "payoutCurrency": "CNH", "legs": [{"rowIndex": 23, "uniqueId": "LAD1A", "pair": "USDCNH", "optionType": "Call", "strike": 7.1, "side": 1, "sideLabel": "Long", "sideConfidence": "High", "notional": 60000000.0, "notionalCcy": "USD", "delta": 30000000.0, "gamma": 9000000.0, "vega": 2500000.0, "theta": -1200000.0, "pnl": 110000.0, "expiry": "2027-02-26", "tradeDate": "2026-08-12", "portfolio": "Asia", "shore": "Offshore", "payoffWeight": 60000000.0}, {"rowIndex": 24, "uniqueId": "LAD1B", "pair": "USDCNH", "optionType": "Call", "strike": 7.3, "side": -1, "sideLabel": "Short", "sideConfidence": "High", "notional": 60000000.0, "notionalCcy": "USD", "delta": -18000000.0, "gamma": -7000000.0, "vega": -2000000.0, "theta": 900000.0, "pnl": -60000.0, "expiry": "2027-02-26", "tradeDate": "2026-08-12", "portfolio": "Asia", "shore": "Offshore", "payoffWeight": 60000000.0}, {"rowIndex": 25, "uniqueId": "LAD1C", "pair": "USDCNH", "optionType": "Call", "strike": 7.5, "side": -1, "sideLabel": "Short", "sideConfidence": "High", "notional": 60000000.0, "notionalCcy": "USD", "delta": -8000000.0, "gamma": -4000000.0, "vega": -1200000.0, "theta": 500000.0, "pnl": -30000.0, "expiry": "2027-02-26", "tradeDate": "2026-08-12", "portfolio": "Asia", "shore": "Offshore", "payoffWeight": 60000000.0}], "id": "S008"}, {"pair": "USDJPY", "type": "Risk Reversal", "direction": "Long", "label": "Long Risk Reversal", "confidence": "High", "expiry": "2027-03-19", "tradeDate": "2026-08-05", "portfolio": "Macro", "shore": "Offshore", "strikes": "140 / 152", "ratio": "1 : 1", "pnl": 40000.0, "delta": 50000000.0, "gamma": 1000000.0, "vega": 200000.0, "theta": -300000.0, "payoffMode": "Actual", "payoutCurrency": "JPY", "legs": [{"rowIndex": 20, "uniqueId": "RR1P", "pair": "USDJPY", "optionType": "Put", "strike": 140.0, "side": -1, "sideLabel": "Short", "sideConfidence": "High", "notional": 80000000.0, "notionalCcy": "USD", "delta": 20000000.0, "gamma": -7000000.0, "vega": -2800000.0, "theta": 1200000.0, "pnl": -80000.0, "expiry": "2027-03-19", "tradeDate": "2026-08-05", "portfolio": "Macro", "shore": "Offshore", "payoffWeight": 80000000.0}, {"rowIndex": 19, "uniqueId": "RR1C", "pair": "USDJPY", "optionType": "Call", "strike": 152.0, "side": 1, "sideLabel": "Long", "sideConfidence": "High", "notional": 80000000.0, "notionalCcy": "USD", "delta": 30000000.0, "gamma": 8000000.0, "vega": 3000000.0, "theta": -1500000.0, "pnl": 120000.0, "expiry": "2027-03-19", "tradeDate": "2026-08-05", "portfolio": "Macro", "shore": "Offshore", "payoffWeight": 80000000.0}], "id": "S009"}, {"pair": "USDZAR", "type": "Ratio Call Spread", "direction": "Long", "label": "Long Ratio Call Spread", "confidence": "High", "expiry": "2027-01-15", "tradeDate": "2026-08-08", "portfolio": "EM", "shore": "Offshore", "strikes": "17 / 19", "ratio": "1 : 2", "pnl": -40000.0, "delta": -10000000.0, "gamma": -6000000.0, "vega": -2300000.0, "theta": 1000000.0, "payoffMode": "Actual", "payoutCurrency": "ZAR", "legs": [{"rowIndex": 21, "uniqueId": "RCS1L", "pair": "USDZAR", "optionType": "Call", "strike": 17.0, "side": 1, "sideLabel": "Long", "sideConfidence": "High", "notional": 100000000.0, "notionalCcy": "USD", "delta": 40000000.0, "gamma": 10000000.0, "vega": 3200000.0, "theta": -1800000.0, "pnl": 200000.0, "expiry": "2027-01-15", "tradeDate": "2026-08-08", "portfolio": "EM", "shore": "Offshore", "payoffWeight": 100000000.0}, {"rowIndex": 22, "uniqueId": "RCS1S", "pair": "USDZAR", "optionType": "Call", "strike": 19.0, "side": -1, "sideLabel": "Short", "sideConfidence": "High", "notional": 200000000.0, "notionalCcy": "USD", "delta": -50000000.0, "gamma": -16000000.0, "vega": -5500000.0, "theta": 2800000.0, "pnl": -240000.0, "expiry": "2027-01-15", "tradeDate": "2026-08-08", "portfolio": "EM", "shore": "Offshore", "payoffWeight": 200000000.0}], "id": "S010"}];
+(function(){
+  function compact(value){
+    var absolute=Math.abs(value),units=absolute>=1e9?[1e9,"bn"]:absolute>=1e6?[1e6,"m"]:absolute>=1e3?[1e3,"k"]:[1,""];
+    var digits=absolute/units[0]>=100?0:1;
+    return (value<0?"−":"")+(absolute/units[0]).toFixed(digits)+units[1];
+  }
+  function renderPayoff(id){
+    var structure=FXO_STRUCTURES.find(function(item){return item.id===id});
+    if(!structure)return;
+    document.getElementById("payoffTitle").textContent=structure.label+" · "+structure.pair;
+    document.getElementById("payoffMeta").textContent=structure.expiry+" expiry · "+structure.payoffMode+" payoff in "+structure.payoutCurrency;
+    var strikes=structure.legs.map(function(leg){return leg.strike});
+    var minimum=Math.min.apply(null,strikes),maximum=Math.max.apply(null,strikes),span=Math.max(maximum-minimum,Math.abs(minimum)*0.12,0.01);
+    var low=Math.max(0,minimum-span*.75),high=maximum+span*.75,points=[];
+    for(var index=0;index<=120;index+=1){
+      var terminal=low+(high-low)*index/120,payoff=0;
+      structure.legs.forEach(function(leg){
+        var intrinsic=leg.optionType==="Call"?Math.max(terminal-leg.strike,0):Math.max(leg.strike-terminal,0);
+        payoff+=leg.side*leg.payoffWeight*intrinsic;
+      });
+      points.push([terminal,payoff]);
+    }
+    var values=points.map(function(point){return point[1]}).concat([0]),minY=Math.min.apply(null,values),maxY=Math.max.apply(null,values),pad=Math.max((maxY-minY)*.12,Math.max(Math.abs(minY),Math.abs(maxY))*0.08,1e-9);
+    minY-=pad;maxY+=pad;
+    var width=720,height=360,left=78,right=24,top=24,bottom=52,plotWidth=width-left-right,plotHeight=height-top-bottom;
+    function x(value){return left+(value-low)/(high-low)*plotWidth}
+    function y(value){return top+(maxY-value)/(maxY-minY)*plotHeight}
+    var svg=['<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Terminal payoff against terminal FX rate">'];
+    for(var tick=0;tick<5;tick+=1){
+      var yValue=minY+(maxY-minY)*tick/4,yPos=y(yValue);
+      svg.push('<line class="payoff-grid" x1="'+left+'" y1="'+yPos+'" x2="'+(width-right)+'" y2="'+yPos+'"/>');
+      svg.push('<text class="payoff-axis" x="'+(left-9)+'" y="'+(yPos+4)+'" text-anchor="end">'+compact(yValue)+'</text>');
+    }
+    for(var xTick=0;xTick<5;xTick+=1){
+      var xValue=low+(high-low)*xTick/4,xPos=x(xValue);
+      svg.push('<text class="payoff-axis" x="'+xPos+'" y="'+(height-19)+'" text-anchor="middle">'+xValue.toFixed(Math.abs(xValue)<10?4:2).replace(/0+$/,"").replace(/\.$/,"")+'</text>');
+    }
+    svg.push('<line class="payoff-zero" x1="'+left+'" y1="'+y(0)+'" x2="'+(width-right)+'" y2="'+y(0)+'"/>');
+    Array.from(new Set(strikes)).sort(function(a,b){return a-b}).forEach(function(strike){
+      var xPos=x(strike);svg.push('<line class="payoff-strike" x1="'+xPos+'" y1="'+top+'" x2="'+xPos+'" y2="'+(height-bottom)+'"/>');
+      svg.push('<text class="payoff-strike-label" x="'+xPos+'" y="'+(top+10)+'" text-anchor="middle">K '+strike+'</text>');
+    });
+    var path=points.map(function(point,index){return(index===0?"M ":"L ")+x(point[0]).toFixed(2)+" "+y(point[1]).toFixed(2)}).join(" ");
+    svg.push('<path class="payoff-line" d="'+path+'"/>');
+    svg.push('<text class="payoff-axis" x="'+(left+plotWidth/2)+'" y="'+(height-3)+'" text-anchor="middle">Terminal '+structure.pair+' rate</text>');
+    svg.push('</svg>');
+    document.getElementById("payoffChart").innerHTML=svg.join("");
+  }
+  function selectStructure(row){
+    document.querySelectorAll(".structure-row").forEach(function(item){item.classList.toggle("selected",item===row)});
+    document.querySelectorAll(".structure-leg-row").forEach(function(item){item.hidden=item.dataset.structureDetail!==row.dataset.structureId});
+    renderPayoff(row.dataset.structureId);
+  }
+  document.querySelectorAll(".structure-row").forEach(function(row){
+    row.addEventListener("click",function(){selectStructure(row)});
+    row.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();selectStructure(row)}});
+  });
+  var first=document.querySelector(".structure-row");if(first)selectStructure(first);
+})();
+</script>
+
+</body></html>
