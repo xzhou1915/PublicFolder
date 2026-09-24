@@ -532,16 +532,21 @@ def classify_leg_combination(indices: tuple[int, ...], legs: list[dict]) -> dict
     return None
 
 
-def best_bucket_partition(legs: list[dict]) -> tuple[list[dict | None], bool]:
-    if len(legs) > 14:
-        return [None for _ in legs], True
-
+def build_structure_candidates(legs: list[dict]) -> list[dict]:
     candidates = []
     for size in (2, 3, 4):
         for indices in itertools.combinations(range(len(legs)), size):
             candidate = classify_leg_combination(indices, legs)
             if candidate is not None:
                 candidates.append(candidate)
+    return candidates
+
+
+def best_bucket_partition(legs: list[dict]) -> tuple[list[dict | None], bool]:
+    if len(legs) > 14:
+        return [None for _ in legs], True
+
+    candidates = build_structure_candidates(legs)
 
     @lru_cache(maxsize=None)
     def solve(mask: int) -> tuple[int, tuple[tuple[tuple[int, tuple[int, ...]], ...], ...]]:
@@ -733,6 +738,125 @@ def infer_option_structures(trades: pd.DataFrame) -> list[dict]:
     return structures
 
 
+def leg_group_key(leg: dict) -> tuple[str, str, str, str]:
+    return (
+        leg["pair"],
+        leg["expiry"],
+        leg["shore"],
+        leg["notionalCcy"],
+    )
+
+
+def limited_join(items: list[str], limit: int = 6) -> str:
+    if len(items) <= limit:
+        return "; ".join(items)
+    return "; ".join(items[:limit]) + f"; +{len(items) - limit} more"
+
+
+def candidate_log_label(candidate: dict, legs: list[dict]) -> str:
+    member_ids = ",".join(
+        legs[index]["uniqueId"] for index in candidate["indices"]
+    )
+    return f"{candidate['direction']} {candidate['type']} [{member_ids}]"
+
+
+def pair_rejection_reason(first: dict, second: dict) -> str:
+    reasons = []
+    if first["side"] == second["side"]:
+        reasons.append(f"same inferred side ({first['sideLabel']})")
+    if (
+        first["optionType"] == second["optionType"]
+        and first["strike"] == second["strike"]
+    ):
+        reasons.append("same option type and strike")
+    return " and ".join(reasons) or "not selected in the best full-bucket partition"
+
+
+def explain_not_grouped_leg(
+    leg: dict,
+    status: str,
+    all_legs: list[dict],
+) -> str:
+    same_pair = [
+        other
+        for other in all_legs
+        if other["pair"] == leg["pair"] and other["uniqueId"] != leg["uniqueId"]
+    ]
+    bucket = [other for other in all_legs if leg_group_key(other) == leg_group_key(leg)]
+    reasons = []
+
+    if len(bucket) > 14:
+        reasons.append(
+            f"classification bucket has {len(bucket)} trades, above the 14-trade limit"
+        )
+    elif len(bucket) == 1:
+        reasons.append("only trade sharing all four grouping fields")
+    else:
+        candidates = build_structure_candidates(bucket)
+        leg_index = next(
+            index
+            for index, bucket_leg in enumerate(bucket)
+            if bucket_leg["uniqueId"] == leg["uniqueId"]
+        )
+        matching_candidates = [
+            candidate for candidate in candidates if leg_index in candidate["indices"]
+        ]
+        if matching_candidates:
+            candidate_labels = sorted(
+                {
+                    candidate_log_label(candidate, bucket)
+                    for candidate in matching_candidates
+                }
+            )
+            if status == "UNCLASSIFIED":
+                reasons.append(
+                    "multiple equally scoring full-bucket partitions; "
+                    "candidate matches: " + limited_join(candidate_labels)
+                )
+            else:
+                reasons.append(
+                    "valid candidate existed but the highest-scoring full-bucket "
+                    "partition left this trade standalone; candidate matches: "
+                    + limited_join(candidate_labels)
+                )
+        elif candidates and status == "UNCLASSIFIED":
+            reasons.append(
+                "the bucket had multiple equally scoring partitions, but this trade "
+                "was not part of a valid candidate"
+            )
+        else:
+            rejected = [
+                f"{other['uniqueId']} ({pair_rejection_reason(leg, other)})"
+                for other in bucket
+                if other["uniqueId"] != leg["uniqueId"]
+            ]
+            reasons.append(
+                "no supported combination with other trades in the bucket: "
+                + limited_join(rejected)
+            )
+
+    excluded = []
+    for other in same_pair:
+        if leg_group_key(other) == leg_group_key(leg):
+            continue
+        differences = []
+        if other["expiry"] != leg["expiry"]:
+            differences.append(f"ExpiryDate={other['expiry']}")
+        if other["shore"] != leg["shore"]:
+            differences.append(f"Shore={other['shore']}")
+        if other["notionalCcy"] != leg["notionalCcy"]:
+            differences.append(f"NotionalCCY={other['notionalCcy']}")
+        excluded.append(f"{other['uniqueId']} ({', '.join(differences)})")
+    if excluded:
+        reasons.append(
+            "same-pair trades excluded by grouping fields: " + limited_join(excluded)
+        )
+    elif not same_pair:
+        reasons.append("no other latest-snapshot trades for this currency pair")
+
+    return "; ".join(reasons)
+
+
 def print_structure_grouping_log(structures: list[dict]) -> None:
     grouped_trades = 0
     single_trades = 0
@@ -743,6 +867,7 @@ def print_structure_grouping_log(structures: list[dict]) -> None:
         "  Status key: GROUPED=multi-leg structure; "
         "SINGLE=standalone vanilla; UNCLASSIFIED=no confident match"
     )
+    all_legs = [leg for structure in structures for leg in structure["legs"]]
     for structure in structures:
         legs = structure["legs"]
         member_ids = ",".join(leg["uniqueId"] for leg in legs)
@@ -773,6 +898,11 @@ def print_structure_grouping_log(structures: list[dict]) -> None:
                 f"Structure={structure['label']} | "
                 f"Members={member_ids} | Companions={companions}"
             )
+            if status != "GROUPED":
+                print(
+                    "    Reason: "
+                    + explain_not_grouped_leg(leg, status, all_legs)
+                )
 
     multi_leg_structures = sum(
         len(structure["legs"]) > 1
