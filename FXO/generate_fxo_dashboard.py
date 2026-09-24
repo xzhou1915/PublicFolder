@@ -1022,15 +1022,32 @@ def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> list[dict]:
     rows = []
     for structure in structures:
         confidence_class = structure["confidence"].lower()
-        leg_chips = "".join(
-            '<span class="structure-leg-chip">'
-            f"<strong>{html.escape(leg['sideLabel'])} {html.escape(leg['optionType'])}</strong> "
-            f"K {leg['strike']:g} · "
-            f"{'N/A notional' if leg['notional'] is None else f'{leg['notional']:,.0f} {html.escape(leg['notionalCcy'])}'} · "
-            f"ID {html.escape(leg['uniqueId'])}"
-            f"{' · ' + html.escape(leg['componentLabel']) if leg.get('componentLabel') else ''}"
-            "</span>"
+        leg_rows = "".join(
+            "<tr>"
+            f"<td>{html.escape(leg.get('componentLabel', structure['label']))}</td>"
+            f"<td>{html.escape(leg['uniqueId'])}</td>"
+            f"<td><strong>{html.escape(leg['sideLabel'])} {html.escape(leg['optionType'])}</strong></td>"
+            f'<td class="num">{leg["strike"]:g}</td>'
+            f'<td class="num">'
+            f"{'N/A' if leg['notional'] is None else f'{leg['notional']:,.0f} {html.escape(leg['notionalCcy'])}'}"
+            "</td>"
+            f"<td>{html.escape(leg['expiry'])}</td>"
+            f"<td>{html.escape(leg['shore'])}</td>"
+            f'<td class="num {value_class(leg["pnl"])}">{html.escape(format_money(leg["pnl"]))}</td>'
+            f'<td class="num {value_class(leg["delta"])}">{html.escape(format_money(leg["delta"]))}</td>'
+            f'<td class="num {value_class(leg["gamma"])}">{html.escape(format_money(leg["gamma"]))}</td>'
+            f'<td class="num {value_class(leg["vega"])}">{html.escape(format_money(leg["vega"]))}</td>'
+            f'<td class="num {value_class(leg["theta"])}">{html.escape(format_money(leg["theta"]))}</td>'
+            "</tr>"
             for leg in structure["legs"]
+        )
+        leg_details = (
+            '<div class="structure-leg-table-wrap"><table class="structure-leg-table">'
+            "<thead><tr><th>Component</th><th>Unique ID</th><th>Leg</th>"
+            '<th class="num">Strike</th><th class="num">Notional</th><th>Expiry</th><th>Shore</th>'
+            '<th class="num">P&amp;L</th><th class="num">Delta</th>'
+            '<th class="num">Gamma</th><th class="num">Vega</th>'
+            f'<th class="num">Theta</th></tr></thead><tbody>{leg_rows}</tbody></table></div>'
         )
         rows.append(
             f'<tr class="structure-row" data-structure-id="{structure["id"]}" '
@@ -1048,7 +1065,7 @@ def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> list[dict]:
             f'<td><span class="structure-confidence {confidence_class}">{html.escape(structure["confidence"])}</span></td>'
             "</tr>"
             f'<tr class="structure-leg-row" data-structure-detail="{structure["id"]}" hidden>'
-            f'<td colspan="11"><div class="structure-leg-list">{leg_chips}</div></td></tr>'
+            f'<td colspan="11">{leg_details}</td></tr>'
         )
 
     if not rows:
@@ -1065,9 +1082,10 @@ def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> list[dict]:
 .structure-table-wrap{max-height:520px;overflow:auto}.structure-table{font-size:11px}.structure-table th{font-size:10px;cursor:default}
 .structure-table td{padding:9px 10px}.structure-table td.num{font-size:12px;font-weight:600}
 .structure-row{cursor:pointer}.structure-row.selected td{background:#eaf2ff}.structure-row:focus-visible{outline:2px solid #2463eb;outline-offset:-2px}
-.structure-leg-row td{padding:9px 12px;background:#f4f7fb}.structure-leg-list{display:flex;flex-wrap:wrap;gap:7px}
-.structure-leg-chip{padding:6px 8px;border:1px solid #d7e0e9;border-radius:7px;background:#fff;color:var(--muted);font-size:10px}
-.structure-leg-chip strong{color:var(--ink)}.structure-confidence{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}
+.structure-leg-row>td{padding:10px 12px;background:#f4f7fb}.structure-leg-table-wrap{overflow-x:auto;border:1px solid #d7e0e9;border-radius:8px;background:#fff}
+.structure-leg-table{width:100%;min-width:1050px;border-collapse:collapse;font-size:10px}.structure-leg-table th{position:static;padding:7px 8px;background:#edf3f9;color:var(--muted);font-size:9px;white-space:nowrap;cursor:default}
+.structure-leg-table td{padding:7px 8px;background:#fff;border-bottom:1px solid #e8edf2;white-space:nowrap}.structure-leg-table tbody tr:last-child td{border-bottom:0}.structure-leg-table td.num{font-size:11px;font-weight:600}
+.structure-leg-table td:first-child{max-width:210px;white-space:normal;line-height:1.35}.structure-confidence{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}
 .structure-confidence.high{color:#0d6a54;background:#dff5ed}.structure-confidence.medium,.structure-confidence.low{color:#8a5500;background:#fff1d3}
 .structure-confidence.ambiguous{color:#9b2c3d;background:#fde7ea}.structure-empty{text-align:center;color:var(--muted)}
 .payoff-card{padding:15px}.payoff-card h3{margin:0;font-size:17px}.payoff-meta{margin:5px 0 10px;color:var(--muted);font-size:11px}
