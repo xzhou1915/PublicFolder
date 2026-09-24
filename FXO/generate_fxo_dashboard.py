@@ -733,7 +733,62 @@ def infer_option_structures(trades: pd.DataFrame) -> list[dict]:
     return structures
 
 
-def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> None:
+def print_structure_grouping_log(structures: list[dict]) -> None:
+    grouped_trades = 0
+    single_trades = 0
+    unclassified_trades = 0
+
+    print("Option structure grouping:")
+    print(
+        "  Status key: GROUPED=multi-leg structure; "
+        "SINGLE=standalone vanilla; UNCLASSIFIED=no confident match"
+    )
+    for structure in structures:
+        legs = structure["legs"]
+        member_ids = ",".join(leg["uniqueId"] for leg in legs)
+        currencies = ",".join(
+            sorted({leg["notionalCcy"] or "(blank)" for leg in legs})
+        )
+        if structure["type"] == "Unclassified Leg":
+            status = "UNCLASSIFIED"
+            unclassified_trades += len(legs)
+        elif len(legs) == 1:
+            status = "SINGLE"
+            single_trades += 1
+        else:
+            status = "GROUPED"
+            grouped_trades += len(legs)
+
+        for leg in legs:
+            companions = ",".join(
+                member["uniqueId"]
+                for member in legs
+                if member["uniqueId"] != leg["uniqueId"]
+            ) or "none"
+            print(
+                f"  [{status}] ID={leg['uniqueId']} | "
+                f"{leg['optionType']} K={leg['strike']:g} | "
+                f"Pair={structure['pair']} | Expiry={structure['expiry']} | "
+                f"Shore={structure['shore']} | NotionalCCY={currencies} | "
+                f"Structure={structure['label']} | "
+                f"Members={member_ids} | Companions={companions}"
+            )
+
+    multi_leg_structures = sum(
+        len(structure["legs"]) > 1
+        and structure["type"] != "Unclassified Leg"
+        for structure in structures
+    )
+    standalone_label = "trade" if single_trades == 1 else "trades"
+    print(
+        "Structure grouping summary: "
+        f"{grouped_trades} grouped trades in {multi_leg_structures} "
+        f"multi-leg structures; {single_trades} standalone {standalone_label}; "
+        f"{unclassified_trades} unclassified trades"
+    )
+
+
+def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> list[dict]:
     structures = infer_option_structures(trades)
 
     def value_class(value: float) -> str:
@@ -891,6 +946,7 @@ const FXO_STRUCTURES=__STRUCTURE_JSON__;
     document = document.replace(chart_hook, markup + "\n" + chart_hook, 1)
     document = document.replace("</body>", script + "\n</body>", 1)
     output.write_text(document, encoding="utf-8")
+    return structures
 
 
 def inject_ytd_pnl(
@@ -1113,7 +1169,7 @@ def main() -> None:
     book_history, pair_history = build_ytd_pnl_streams(history, as_of)
     write_html_dashboard(trades, netted, output, as_of)
     inject_ytd_pnl(output, book_history, pair_history, netted)
-    inject_structure_analysis(output, trades)
+    structures = inject_structure_analysis(output, trades)
 
     print(f"Latest CobDate: {as_of:%Y-%m-%d}")
     print(
@@ -1125,6 +1181,7 @@ def main() -> None:
         f"{len(trades)} latest-snapshot trades -> "
         f"{len(netted)} bubbles per Greek panel"
     )
+    print_structure_grouping_log(structures)
 
 
 if __name__ == "__main__":
