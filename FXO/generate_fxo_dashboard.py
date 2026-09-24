@@ -7,7 +7,6 @@ import argparse
 import html
 import itertools
 import json
-import xml.etree.ElementTree as ET
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
@@ -61,9 +60,7 @@ PAIR_COLORS = [
     "#0891b2",
     "#c2410c",
 ]
-ECB_DAILY_RATES_URL = (
-    "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
-)
+EXCHANGE_RATE_API_URL = "https://open.er-api.com/v6/latest/USD"
 
 
 def parse_args() -> argparse.Namespace:
@@ -79,36 +76,33 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def parse_ecb_reference_rates(xml_data: bytes) -> tuple[str, dict[str, float]]:
-    root = ET.fromstring(xml_data)
-    reference_date = ""
-    rates = {"EUR": 1.0}
-    for element in root.iter():
-        if element.attrib.get("time"):
-            reference_date = element.attrib["time"]
-        currency = element.attrib.get("currency")
-        rate = element.attrib.get("rate")
-        if currency and rate:
-            value = float(rate)
-            if value <= 0:
-                raise ValueError(f"ECB returned a non-positive rate for {currency}")
-            rates[currency.upper()] = value
-    if not reference_date or len(rates) == 1:
-        raise ValueError("ECB response does not contain dated reference rates")
-    return reference_date, rates
-
-
-def fetch_ecb_spot_rates(
+def fetch_exchange_rate_api_spots(
     pairs: list[str],
 ) -> tuple[dict[str, dict], str | None, str | None]:
     try:
         request = Request(
-            ECB_DAILY_RATES_URL,
+            EXCHANGE_RATE_API_URL,
             headers={"User-Agent": "FXO-Dashboard/1.0"},
         )
         with urlopen(request, timeout=15) as response:
-            reference_date, currency_rates = parse_ecb_reference_rates(response.read())
-    except (OSError, ET.ParseError, ValueError) as exc:
+            payload = json.load(response)
+        if payload.get("result") != "success":
+            raise ValueError(
+                f"ExchangeRate-API returned {payload.get('error-type', 'an error')}"
+            )
+        reference_time = str(payload.get("time_last_update_utc", "")).strip()
+        raw_rates = payload.get("rates")
+        if not reference_time or not isinstance(raw_rates, dict):
+            raise ValueError("ExchangeRate-API response is missing rates or timestamp")
+        currency_rates = {}
+        for currency, rate in raw_rates.items():
+            value = float(rate)
+            if value <= 0:
+                raise ValueError(
+                    f"ExchangeRate-API returned a non-positive rate for {currency}"
+                )
+            currency_rates[str(currency).upper()] = value
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         return {}, None, f"{type(exc).__name__}: {exc}"
 
     spots = {}
@@ -121,10 +115,10 @@ def fetch_ecb_spot_rates(
             continue
         spots[pair] = {
             "rate": currency_rates[quote] / currency_rates[base],
-            "asOf": reference_date,
-            "source": "ECB daily reference rate",
+            "asOf": reference_time,
+            "source": "ExchangeRate-API daily indicative rate",
         }
-    return spots, reference_date, None
+    return spots, reference_time, None
 
 
 def format_fx_rate(value: float) -> str:
@@ -132,28 +126,28 @@ def format_fx_rate(value: float) -> str:
     return f"{value:.{digits}f}".rstrip("0").rstrip(".")
 
 
-def print_ecb_spot_log(
+def print_spot_rate_log(
     pairs: list[str],
     spots: dict[str, dict],
     reference_date: str | None,
     error: str | None,
 ) -> None:
-    print("ECB spot reference rates:")
+    print("ExchangeRate-API indicative rates:")
     if error:
-        print(f"  [SPOT-ERROR] ECB fetch failed: {error}")
+        print(f"  [SPOT-ERROR] ExchangeRate-API fetch failed: {error}")
     for pair in sorted(set(pairs)):
         spot = spots.get(pair)
         if spot is None:
             detail = (
-                "ECB fetch unavailable"
+                "rate fetch unavailable"
                 if error
-                else "exact currency code not published by ECB"
+                else "exact currency code not published by provider"
             )
             print(f"  [SPOT-MISSING] {pair} | {detail}")
         else:
             print(
                 f"  [SPOT] {pair}={format_fx_rate(float(spot['rate']))} | "
-                f"ECB reference date {reference_date}"
+                f"updated {reference_date}"
             )
 
 
@@ -1203,7 +1197,7 @@ def inject_structure_analysis(
       <h3 id="payoffTitle">Terminal payoff</h3>
       <div id="payoffMeta" class="payoff-meta">Select a structure</div>
       <div id="payoffChart"></div>
-      <div class="structure-note">Terminal intrinsic payoff before premium. Current MTM P&amp;L is shown separately and is not added to the curve. When expiries differ, this is a combined terminal-rate scenario rather than a same-date expiry payoff.</div>
+      <div class="structure-note">Terminal intrinsic payoff before premium. Current MTM P&amp;L is shown separately and is not added to the curve. When expiries differ, this is a combined terminal-rate scenario rather than a same-date expiry payoff. Indicative daily rates by <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">Exchange Rate API</a>.</div>
     </article>
   </div>
 </section>
@@ -1227,7 +1221,7 @@ const FXO_STRUCTURES=__STRUCTURE_JSON__;
     if(!structure)return;
     var hasSpot=Number.isFinite(structure.spotRate)&&structure.spotRate>0;
     document.getElementById("payoffTitle").textContent=structure.label+" · "+structure.pair;
-    document.getElementById("payoffMeta").textContent="Expiry: "+structure.expiry+" · "+structure.payoffMode+" payoff in "+structure.payoutCurrency+(hasSpot?" · Spot "+formatRate(structure.spotRate)+" · "+structure.spotSource+" as of "+structure.spotAsOf:" · ECB spot unavailable");
+    document.getElementById("payoffMeta").textContent="Expiry: "+structure.expiry+" · "+structure.payoffMode+" payoff in "+structure.payoutCurrency+(hasSpot?" · Spot "+formatRate(structure.spotRate)+" · "+structure.spotSource+" as of "+structure.spotAsOf:" · Daily rate unavailable");
     var strikes=structure.legs.map(function(leg){return leg.strike});
     var anchors=hasSpot?strikes.concat([structure.spotRate]):strikes;
     var minimum=Math.min.apply(null,anchors),maximum=Math.max.apply(null,anchors),span=Math.max(maximum-minimum,Math.abs(minimum)*0.12,0.01);
@@ -1519,7 +1513,7 @@ def main() -> None:
     write_html_dashboard(trades, netted, output, as_of)
     inject_ytd_pnl(output, book_history, pair_history, netted)
     pairs = sorted(trades["Pair"].astype(str).unique().tolist())
-    spot_rates, spot_reference_date, spot_error = fetch_ecb_spot_rates(pairs)
+    spot_rates, spot_reference_date, spot_error = fetch_exchange_rate_api_spots(pairs)
     structures = inject_structure_analysis(output, trades, spot_rates)
 
     print(f"Latest CobDate: {as_of:%Y-%m-%d}")
@@ -1532,7 +1526,7 @@ def main() -> None:
         f"{len(trades)} latest-snapshot trades -> "
         f"{len(netted)} bubbles per Greek panel"
     )
-    print_ecb_spot_log(pairs, spot_rates, spot_reference_date, spot_error)
+    print_spot_rate_log(pairs, spot_rates, spot_reference_date, spot_error)
     print_structure_grouping_log(structures)
 
 
