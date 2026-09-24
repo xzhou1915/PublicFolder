@@ -768,6 +768,81 @@ def infer_option_structures(trades: pd.DataFrame) -> list[dict]:
     return structures
 
 
+def combine_structures_by_pair(components: list[dict]) -> list[dict]:
+    by_pair: defaultdict[str, list[dict]] = defaultdict(list)
+    for component in components:
+        by_pair[component["pair"]].append(component)
+
+    combined = []
+    confidence_rank = {"High": 0, "Medium": 1, "Low": 2, "Ambiguous": 3}
+    for pair in sorted(by_pair):
+        pair_components = by_pair[pair]
+        if len(pair_components) == 1:
+            structure = dict(pair_components[0])
+            structure["legs"] = [dict(leg) for leg in pair_components[0]["legs"]]
+            structure["componentCount"] = 1
+            structure["componentLabels"] = [structure["label"]]
+        else:
+            label_counts: defaultdict[str, int] = defaultdict(int)
+            legs = []
+            for component in pair_components:
+                label_counts[component["label"]] += 1
+                for leg in component["legs"]:
+                    copied_leg = dict(leg)
+                    copied_leg["componentLabel"] = component["label"]
+                    legs.append(copied_leg)
+            legs.sort(
+                key=lambda leg: (
+                    leg["expiry"],
+                    leg["optionType"],
+                    leg["strike"],
+                    leg["uniqueId"],
+                )
+            )
+
+            component_labels = [
+                (f"{count}× {label}" if count > 1 else label)
+                for label, count in sorted(label_counts.items())
+            ]
+            mode, payout_currency, weights = payoff_configuration(legs, pair)
+            for leg, weight in zip(legs, weights):
+                leg["payoffWeight"] = weight
+            confidence = max(
+                (component["confidence"] for component in pair_components),
+                key=lambda value: confidence_rank.get(value, confidence_rank["Ambiguous"]),
+            )
+            structure = {
+                "pair": pair,
+                "type": "Combined Structure",
+                "direction": "Combined",
+                "label": "Combined: " + " + ".join(component_labels),
+                "confidence": confidence,
+                "expiry": " / ".join(
+                    sorted({component["expiry"] for component in pair_components})
+                ),
+                "shore": " / ".join(
+                    sorted({component["shore"] for component in pair_components})
+                ),
+                "strikes": " / ".join(
+                    f"{leg['optionType'][0]} {leg['strike']:g}" for leg in legs
+                ),
+                "ratio": notional_ratio_label(legs),
+                "pnl": sum(component["pnl"] for component in pair_components),
+                "delta": sum(component["delta"] for component in pair_components),
+                "gamma": sum(component["gamma"] for component in pair_components),
+                "vega": sum(component["vega"] for component in pair_components),
+                "theta": sum(component["theta"] for component in pair_components),
+                "payoffMode": mode,
+                "payoutCurrency": payout_currency,
+                "legs": legs,
+                "componentCount": len(pair_components),
+                "componentLabels": component_labels,
+            }
+        structure["id"] = f"S{len(combined) + 1:03d}"
+        combined.append(structure)
+    return combined
+
+
 def leg_group_key(leg: dict) -> tuple[str, str, str, str]:
     return (
         leg["pair"],
@@ -938,7 +1013,8 @@ def print_structure_grouping_log(structures: list[dict]) -> None:
 
 
 def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> list[dict]:
-    structures = infer_option_structures(trades)
+    components = infer_option_structures(trades)
+    structures = combine_structures_by_pair(components)
 
     def value_class(value: float) -> str:
         return "pnl-positive" if value > 0 else "pnl-negative" if value < 0 else ""
@@ -952,6 +1028,7 @@ def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> list[dict]:
             f"K {leg['strike']:g} · "
             f"{'N/A notional' if leg['notional'] is None else f'{leg['notional']:,.0f} {html.escape(leg['notionalCcy'])}'} · "
             f"ID {html.escape(leg['uniqueId'])}"
+            f"{' · ' + html.escape(leg['componentLabel']) if leg.get('componentLabel') else ''}"
             "</span>"
             for leg in structure["legs"]
         )
@@ -1003,18 +1080,18 @@ def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> list[dict]:
     markup = f"""
 <section class="structure-section">
   <div class="structure-section-head">
-    <div><h2>Inferred option structures</h2><p>Grouped without PositionName · Click a row to inspect its legs and terminal payoff</p></div>
+    <div><h2>Currency-pair option payoffs</h2><p>One combined structure and payoff per currency pair · Click a row to inspect its legs</p></div>
   </div>
   <div class="structure-layout">
     <article class="structure-card">
       <div class="structure-table-wrap"><table class="structure-table"><thead><tr><th>Structure</th><th>Pair</th><th>Expiry</th><th>Strikes</th><th>Ratio</th><th class="num">Current P&amp;L</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th><th>Confidence</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
-      <div class="structure-note">Inference uses pair, expiry, shore, option type, signed risks, strikes, and notionals. Ambiguous combinations are not forced.</div>
+      <div class="structure-note">Components are inferred using pair, expiry, shore, notional currency, option type, signed risks, strikes, and notionals, then consolidated into one payoff per currency pair.</div>
     </article>
     <article class="structure-card payoff-card">
       <h3 id="payoffTitle">Terminal payoff</h3>
       <div id="payoffMeta" class="payoff-meta">Select a structure</div>
       <div id="payoffChart"></div>
-      <div class="structure-note">Terminal intrinsic payoff before premium. Current MTM P&amp;L is shown separately and is not added to the curve.</div>
+      <div class="structure-note">Terminal intrinsic payoff before premium. Current MTM P&amp;L is shown separately and is not added to the curve. When expiries differ, this is a combined terminal-rate scenario rather than a same-date expiry payoff.</div>
     </article>
   </div>
 </section>
@@ -1033,7 +1110,7 @@ const FXO_STRUCTURES=__STRUCTURE_JSON__;
     var structure=FXO_STRUCTURES.find(function(item){return item.id===id});
     if(!structure)return;
     document.getElementById("payoffTitle").textContent=structure.label+" · "+structure.pair;
-    document.getElementById("payoffMeta").textContent=structure.expiry+" expiry · "+structure.payoffMode+" payoff in "+structure.payoutCurrency;
+    document.getElementById("payoffMeta").textContent="Expiry: "+structure.expiry+" · "+structure.payoffMode+" payoff in "+structure.payoutCurrency;
     var strikes=structure.legs.map(function(leg){return leg.strike});
     var minimum=Math.min.apply(null,strikes),maximum=Math.max.apply(null,strikes),span=Math.max(maximum-minimum,Math.abs(minimum)*0.12,0.01);
     var low=Math.max(0,minimum-span*.75),high=maximum+span*.75,points=[];
@@ -1095,7 +1172,7 @@ const FXO_STRUCTURES=__STRUCTURE_JSON__;
     document = document.replace(chart_hook, markup + "\n" + chart_hook, 1)
     document = document.replace("</body>", script + "\n</body>", 1)
     output.write_text(document, encoding="utf-8")
-    return structures
+    return components
 
 
 def inject_ytd_pnl(
