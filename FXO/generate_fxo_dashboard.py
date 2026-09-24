@@ -1178,7 +1178,7 @@ def inject_structure_analysis(
 .payoff-card{padding:15px}.payoff-card h3{margin:0;font-size:17px}.payoff-meta{margin:5px 0 10px;color:var(--muted);font-size:11px}
 .payoff-card svg{display:block;width:100%;height:auto}.payoff-grid{stroke:#e7ecf2;stroke-width:1}.payoff-zero{stroke:#8796a7;stroke-width:1.2}
 .payoff-strike{stroke:#d88917;stroke-width:1;stroke-dasharray:4 4}.payoff-line{fill:none;stroke:#2463eb;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}
-.payoff-spot{stroke:#d84b5b;stroke-width:1.8;stroke-dasharray:6 4}.payoff-spot-label{fill:#b42336;font-size:10px;font-weight:700}
+.payoff-spot{stroke:#111827;stroke-width:1.8;stroke-dasharray:6 4}.payoff-spot-label{fill:#111827;font-size:10px;font-weight:700}
 .payoff-axis{fill:#687789;font-size:10px}.payoff-strike-label{fill:#9a5d05;font-size:9px;font-weight:700}
 .structure-note{padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.45}
 @media(max-width:1200px){.structure-layout{grid-template-columns:1fr}}
