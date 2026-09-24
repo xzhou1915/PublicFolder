@@ -7,9 +7,11 @@ import argparse
 import html
 import itertools
 import json
+import xml.etree.ElementTree as ET
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
+from urllib.request import Request, urlopen
 
 import pandas as pd
 
@@ -59,6 +61,9 @@ PAIR_COLORS = [
     "#0891b2",
     "#c2410c",
 ]
+ECB_DAILY_RATES_URL = (
+    "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -72,6 +77,84 @@ def parse_args() -> argparse.Namespace:
         help="Standalone HTML path (default: <input>_dashboard.html)",
     )
     return parser.parse_args()
+
+
+def parse_ecb_reference_rates(xml_data: bytes) -> tuple[str, dict[str, float]]:
+    root = ET.fromstring(xml_data)
+    reference_date = ""
+    rates = {"EUR": 1.0}
+    for element in root.iter():
+        if element.attrib.get("time"):
+            reference_date = element.attrib["time"]
+        currency = element.attrib.get("currency")
+        rate = element.attrib.get("rate")
+        if currency and rate:
+            value = float(rate)
+            if value <= 0:
+                raise ValueError(f"ECB returned a non-positive rate for {currency}")
+            rates[currency.upper()] = value
+    if not reference_date or len(rates) == 1:
+        raise ValueError("ECB response does not contain dated reference rates")
+    return reference_date, rates
+
+
+def fetch_ecb_spot_rates(
+    pairs: list[str],
+) -> tuple[dict[str, dict], str | None, str | None]:
+    try:
+        request = Request(
+            ECB_DAILY_RATES_URL,
+            headers={"User-Agent": "FXO-Dashboard/1.0"},
+        )
+        with urlopen(request, timeout=15) as response:
+            reference_date, currency_rates = parse_ecb_reference_rates(response.read())
+    except (OSError, ET.ParseError, ValueError) as exc:
+        return {}, None, f"{type(exc).__name__}: {exc}"
+
+    spots = {}
+    for pair in sorted(set(pairs)):
+        letters = "".join(character for character in pair.upper() if character.isalpha())
+        if len(letters) != 6:
+            continue
+        base, quote = letters[:3], letters[3:]
+        if base not in currency_rates or quote not in currency_rates:
+            continue
+        spots[pair] = {
+            "rate": currency_rates[quote] / currency_rates[base],
+            "asOf": reference_date,
+            "source": "ECB daily reference rate",
+        }
+    return spots, reference_date, None
+
+
+def format_fx_rate(value: float) -> str:
+    digits = 5 if value < 1 else 4 if value < 10 else 3 if value < 100 else 2
+    return f"{value:.{digits}f}".rstrip("0").rstrip(".")
+
+
+def print_ecb_spot_log(
+    pairs: list[str],
+    spots: dict[str, dict],
+    reference_date: str | None,
+    error: str | None,
+) -> None:
+    print("ECB spot reference rates:")
+    if error:
+        print(f"  [SPOT-ERROR] ECB fetch failed: {error}")
+    for pair in sorted(set(pairs)):
+        spot = spots.get(pair)
+        if spot is None:
+            detail = (
+                "ECB fetch unavailable"
+                if error
+                else "exact currency code not published by ECB"
+            )
+            print(f"  [SPOT-MISSING] {pair} | {detail}")
+        else:
+            print(
+                f"  [SPOT] {pair}={format_fx_rate(float(spot['rate']))} | "
+                f"ECB reference date {reference_date}"
+            )
 
 
 def load_position_history(
@@ -1012,9 +1095,19 @@ def print_structure_grouping_log(structures: list[dict]) -> None:
     )
 
 
-def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> list[dict]:
+def inject_structure_analysis(
+    output: Path,
+    trades: pd.DataFrame,
+    spot_rates: dict[str, dict] | None = None,
+) -> list[dict]:
     components = infer_option_structures(trades)
     structures = combine_structures_by_pair(components)
+    spot_rates = spot_rates or {}
+    for structure in structures:
+        spot = spot_rates.get(structure["pair"])
+        structure["spotRate"] = None if spot is None else float(spot["rate"])
+        structure["spotAsOf"] = None if spot is None else str(spot["asOf"])
+        structure["spotSource"] = None if spot is None else str(spot["source"])
 
     def value_class(value: float) -> str:
         return "pnl-positive" if value > 0 else "pnl-negative" if value < 0 else ""
@@ -1091,6 +1184,7 @@ def inject_structure_analysis(output: Path, trades: pd.DataFrame) -> list[dict]:
 .payoff-card{padding:15px}.payoff-card h3{margin:0;font-size:17px}.payoff-meta{margin:5px 0 10px;color:var(--muted);font-size:11px}
 .payoff-card svg{display:block;width:100%;height:auto}.payoff-grid{stroke:#e7ecf2;stroke-width:1}.payoff-zero{stroke:#8796a7;stroke-width:1.2}
 .payoff-strike{stroke:#d88917;stroke-width:1;stroke-dasharray:4 4}.payoff-line{fill:none;stroke:#2463eb;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}
+.payoff-spot{stroke:#d84b5b;stroke-width:1.8;stroke-dasharray:6 4}.payoff-spot-label{fill:#b42336;font-size:10px;font-weight:700}
 .payoff-axis{fill:#687789;font-size:10px}.payoff-strike-label{fill:#9a5d05;font-size:9px;font-weight:700}
 .structure-note{padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.45}
 @media(max-width:1200px){.structure-layout{grid-template-columns:1fr}}
@@ -1124,13 +1218,19 @@ const FXO_STRUCTURES=__STRUCTURE_JSON__;
     var digits=absolute/units[0]>=100?0:1;
     return (value<0?"−":"")+(absolute/units[0]).toFixed(digits)+units[1];
   }
+  function formatRate(value){
+    var digits=value<1?5:value<10?4:value<100?3:2;
+    return value.toFixed(digits).replace(/0+$/,"").replace(/\.$/,"");
+  }
   function renderPayoff(id){
     var structure=FXO_STRUCTURES.find(function(item){return item.id===id});
     if(!structure)return;
+    var hasSpot=Number.isFinite(structure.spotRate)&&structure.spotRate>0;
     document.getElementById("payoffTitle").textContent=structure.label+" · "+structure.pair;
-    document.getElementById("payoffMeta").textContent="Expiry: "+structure.expiry+" · "+structure.payoffMode+" payoff in "+structure.payoutCurrency;
+    document.getElementById("payoffMeta").textContent="Expiry: "+structure.expiry+" · "+structure.payoffMode+" payoff in "+structure.payoutCurrency+(hasSpot?" · Spot "+formatRate(structure.spotRate)+" · "+structure.spotSource+" as of "+structure.spotAsOf:" · ECB spot unavailable");
     var strikes=structure.legs.map(function(leg){return leg.strike});
-    var minimum=Math.min.apply(null,strikes),maximum=Math.max.apply(null,strikes),span=Math.max(maximum-minimum,Math.abs(minimum)*0.12,0.01);
+    var anchors=hasSpot?strikes.concat([structure.spotRate]):strikes;
+    var minimum=Math.min.apply(null,anchors),maximum=Math.max.apply(null,anchors),span=Math.max(maximum-minimum,Math.abs(minimum)*0.12,0.01);
     var low=Math.max(0,minimum-span*.75),high=maximum+span*.75,points=[];
     for(var index=0;index<=120;index+=1){
       var terminal=low+(high-low)*index/120,payoff=0;
@@ -1160,6 +1260,11 @@ const FXO_STRUCTURES=__STRUCTURE_JSON__;
       var xPos=x(strike);svg.push('<line class="payoff-strike" x1="'+xPos+'" y1="'+top+'" x2="'+xPos+'" y2="'+(height-bottom)+'"/>');
       svg.push('<text class="payoff-strike-label" x="'+xPos+'" y="'+(top+10)+'" text-anchor="middle">K '+strike+'</text>');
     });
+    if(hasSpot){
+      var spotX=x(structure.spotRate);
+      svg.push('<line class="payoff-spot" x1="'+spotX+'" y1="'+top+'" x2="'+spotX+'" y2="'+(height-bottom)+'"/>');
+      svg.push('<text class="payoff-spot-label" x="'+spotX+'" y="'+(height-bottom-8)+'" text-anchor="middle">Spot '+formatRate(structure.spotRate)+'</text>');
+    }
     var path=points.map(function(point,index){return(index===0?"M ":"L ")+x(point[0]).toFixed(2)+" "+y(point[1]).toFixed(2)}).join(" ");
     svg.push('<path class="payoff-line" d="'+path+'"/>');
     svg.push('<text class="payoff-axis" x="'+(left+plotWidth/2)+'" y="'+(height-3)+'" text-anchor="middle">Terminal '+structure.pair+' rate</text>');
@@ -1413,7 +1518,9 @@ def main() -> None:
     book_history, pair_history = build_ytd_pnl_streams(history, as_of)
     write_html_dashboard(trades, netted, output, as_of)
     inject_ytd_pnl(output, book_history, pair_history, netted)
-    structures = inject_structure_analysis(output, trades)
+    pairs = sorted(trades["Pair"].astype(str).unique().tolist())
+    spot_rates, spot_reference_date, spot_error = fetch_ecb_spot_rates(pairs)
+    structures = inject_structure_analysis(output, trades, spot_rates)
 
     print(f"Latest CobDate: {as_of:%Y-%m-%d}")
     print(
@@ -1425,6 +1532,7 @@ def main() -> None:
         f"{len(trades)} latest-snapshot trades -> "
         f"{len(netted)} bubbles per Greek panel"
     )
+    print_ecb_spot_log(pairs, spot_rates, spot_reference_date, spot_error)
     print_structure_grouping_log(structures)
 
 
