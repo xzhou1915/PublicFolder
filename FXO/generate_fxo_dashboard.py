@@ -548,52 +548,82 @@ def best_bucket_partition(legs: list[dict]) -> tuple[list[dict | None], bool]:
 
     candidates = build_structure_candidates(legs)
 
+    def deterministic_key(
+        solution: tuple[tuple[int, tuple[int, ...]], ...],
+    ) -> tuple[tuple[str, tuple[str, ...]], ...]:
+        parts = []
+        for candidate_index, indices in solution:
+            label = (
+                "Standalone"
+                if candidate_index == -1
+                else (
+                    f"{candidates[candidate_index]['direction']} "
+                    f"{candidates[candidate_index]['type']}"
+                )
+            )
+            member_ids = tuple(sorted(legs[index]["uniqueId"] for index in indices))
+            parts.append((label, member_ids))
+        return tuple(sorted(parts))
+
     @lru_cache(maxsize=None)
-    def solve(mask: int) -> tuple[int, tuple[tuple[tuple[int, tuple[int, ...]], ...], ...]]:
+    def solve(
+        mask: int,
+    ) -> tuple[int, int, tuple[tuple[int, tuple[int, ...]], ...]]:
         if mask == 0:
-            return 0, ((),)
+            return 0, 0, ()
         first = next(index for index in range(len(legs)) if mask & (1 << index))
-        remainder_score, remainder_solutions = solve(mask & ~(1 << first))
+        remainder_score, remainder_grouped, remainder_solution = solve(
+            mask & ~(1 << first)
+        )
         options = [
             (
                 remainder_score,
-                ((-1, (first,)),) + solution,
+                remainder_grouped,
+                ((-1, (first,)),) + remainder_solution,
             )
-            for solution in remainder_solutions
         ]
         for candidate_index, candidate in enumerate(candidates):
             indices = candidate["indices"]
             candidate_mask = sum(1 << index for index in indices)
             if first not in indices or mask & candidate_mask != candidate_mask:
                 continue
-            score, solutions = solve(mask & ~candidate_mask)
-            options.extend(
+            score, grouped, solution = solve(mask & ~candidate_mask)
+            options.append(
                 (
                     score + int(candidate["score"]),
+                    grouped + len(indices),
                     ((candidate_index, indices),) + solution,
                 )
-                for solution in solutions
             )
-        best_score = max(score for score, _ in options)
-        unique = []
-        seen = set()
-        for score, solution in options:
-            if score != best_score or solution in seen:
-                continue
-            seen.add(solution)
-            unique.append(solution)
-            if len(unique) == 2:
-                break
-        return best_score, tuple(unique)
 
-    best_score, solutions = solve((1 << len(legs)) - 1)
-    if len(solutions) != 1:
-        return [None for _ in legs], True
+        def rank(
+            option: tuple[int, int, tuple[tuple[int, tuple[int, ...]], ...]],
+        ) -> tuple[int, int, tuple[int, ...]]:
+            score, grouped, solution = option
+            structure_sizes = tuple(
+                sorted(
+                    (
+                        len(indices)
+                        for candidate_index, indices in solution
+                        if candidate_index != -1
+                    ),
+                    reverse=True,
+                )
+            )
+            return score, grouped, structure_sizes
+
+        best_rank = max(rank(option) for option in options)
+        tied = [option for option in options if rank(option) == best_rank]
+        # Equal scores choose maximum coverage, then larger structures, then a
+        # stable trade-ID ordering instead of rejecting the entire bucket.
+        return min(tied, key=lambda option: deterministic_key(option[2]))
+
+    best_score, _, solution = solve((1 << len(legs)) - 1)
     if best_score == 0 and len(legs) > 1:
         return [None for _ in legs], True
 
     result = []
-    for candidate_index, indices in solutions[0]:
+    for candidate_index, indices in solution:
         if candidate_index == -1:
             result.append(
                 {
@@ -808,21 +838,10 @@ def explain_not_grouped_leg(
                     for candidate in matching_candidates
                 }
             )
-            if status == "UNCLASSIFIED":
-                reasons.append(
-                    "multiple equally scoring full-bucket partitions; "
-                    "candidate matches: " + limited_join(candidate_labels)
-                )
-            else:
-                reasons.append(
-                    "valid candidate existed but the highest-scoring full-bucket "
-                    "partition left this trade standalone; candidate matches: "
-                    + limited_join(candidate_labels)
-                )
-        elif candidates and status == "UNCLASSIFIED":
             reasons.append(
-                "the bucket had multiple equally scoring partitions, but this trade "
-                "was not part of a valid candidate"
+                "valid candidate existed but the highest-ranked full-bucket "
+                "partition left this trade standalone; candidate matches: "
+                + limited_join(candidate_labels)
             )
         else:
             rejected = [
