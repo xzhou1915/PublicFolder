@@ -505,7 +505,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 .pnl-tooltip{position:absolute;z-index:20;min-width:235px;max-width:310px;padding:11px 13px;border:1px solid #111827;border-radius:8px;background:#111827;color:#fff;box-shadow:0 8px 24px rgba(17,24,39,.24);pointer-events:none}
 .pnl-tooltip[hidden]{display:none}.pnl-tooltip-title{margin-bottom:7px;font-size:12px;font-weight:750}.pnl-tooltip-row{display:flex;justify-content:space-between;gap:18px;padding:3px 0;font-size:11px}.pnl-tooltip-row span{color:#b9c4d2}.pnl-tooltip-row strong{text-align:right;font-weight:700}
 .pnl-gridline{stroke:#e6ebf0;stroke-width:1}.pnl-zero{stroke:#8d99a6;stroke-width:1.2}.pnl-axis{fill:#687789;font-size:10px}.pnl-axis-title{fill:#4e5d6c;font-size:10px;font-weight:700}.pnl-axis-cumulative{fill:#111827}.pnl-axis-exposure{fill:#2f6fed}.pnl-crosshair{stroke:#69788a;stroke-width:1;stroke-dasharray:3 3;pointer-events:none}.pnl-zoom-selection{fill:rgba(47,111,237,.14);stroke:#2f6fed;stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
-.pnl-cumulative{fill:none;stroke:#111827;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pnl-point{fill:#111827}.pnl-exposure{fill:none;stroke:#2f6fed;stroke-width:2.4;stroke-dasharray:7 5;stroke-linecap:round;stroke-linejoin:round}.pnl-exposure-point{fill:#2f6fed}
+.pnl-cumulative{fill:none;stroke:#111827;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pnl-point{fill:#111827}.pnl-exposure-bar{fill:#2f6fed;opacity:.82}
 .pnl-positive{fill:#238a78}.pnl-negative{fill:#d84b5b}.pnl-legend{display:flex;gap:15px;margin-top:7px;color:var(--muted);font-size:11px}
 .pnl-legend span{display:flex;align-items:center;gap:6px}.pnl-legend i{display:inline-block;width:13px;height:4px;border-radius:2px}
 .pnl-status{margin:0;padding:11px 20px;border-top:1px solid var(--line);background:#f7f9fc;color:var(--muted);font-size:12px;line-height:1.45}
@@ -627,11 +627,11 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
           <div class="pnl-zoom-row"><span id="pnlZoomLabel">Drag across the chart to zoom into a period</span><button class="pnl-zoom-reset" id="pnlZoomReset" type="button" disabled>Reset zoom</button></div>
           <div class="pnl-chart" id="pnlChart"></div>
           <div class="pnl-tooltip" id="pnlTooltip" hidden></div>
-          <div class="pnl-legend"><span><i style="background:#238a78"></i>Positive daily MTM · upper left</span><span><i style="background:#d84b5b"></i>Negative daily MTM · upper left</span><span><i style="height:2px;background:#111827"></i>Cumulative P&amp;L · upper right</span><span><i style="height:2px;background:#2f6fed"></i>Exposure · lower plot</span></div>
+          <div class="pnl-legend"><span><i style="background:#238a78"></i>Positive daily MTM · upper left</span><span><i style="background:#d84b5b"></i>Negative daily MTM · upper left</span><span><i style="height:2px;background:#111827"></i>Cumulative P&amp;L · upper right</span><span><i style="background:#2f6fed"></i>Exposure bars · lower plot</span></div>
         </div>
       </div>
       <p class="pnl-status" id="pnlStatus">Checking rate coverage…</p>
-      <p class="pnl-note">Daily MTM = prior exposure × (prior USDXXX rate ÷ current USDXXX rate − 1). CNH/CNY and BRL/BRF use their reported net rows and are priced with CNH and BRL respectively. KRW/KRO uses the calculated net exposure and the KRW rate. Supporting legs are not counted separately. A currency with no net position on the current date has zero daily P&amp;L. When an exact-date rate is missing for an active position, the most recent earlier rate is carried forward and disclosed below.</p>
+      <p class="pnl-note">Daily MTM = prior exposure × (prior USDXXX rate ÷ current USDXXX rate − 1). CNH/CNY and BRL/BRF use their reported net rows and are priced with CNH and BRL respectively. KRW/KRO uses the calculated net exposure and the KRW rate. Supporting legs are not counted separately. Whole book exposure bars reverse the summed local-direction delta sign for display only. A currency with no net position on the current date has zero daily P&amp;L. When an exact-date rate is missing for an active position, the most recent earlier rate is carried forward and disclosed below.</p>
     </section>
 
     <article class="card table-panel exposure-detail-bottom">
@@ -1318,6 +1318,13 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
 (function(){
   function pnlMoney(value,signed){
     if(value===null||value===undefined||!Number.isFinite(value))return "N/A";
+    var rounded=(value<0?-1:1)*Math.round(Math.abs(value)/1000)*1000,absolute=Math.abs(rounded);
+    var unit=absolute>=1e9?[1e9,"bn",6]:absolute>=1e6?[1e6,"m",3]:[1e3,"k",0],number=(absolute/unit[0]).toFixed(unit[2]);
+    if(unit[2])number=number.replace(/0+$/ ,"").replace(/\.$/,"");
+    return (rounded<0?"−":signed&&rounded>0?"+":"")+String.fromCharCode(36)+number+unit[1];
+  }
+  function exposureMoney(value,signed){
+    if(value===null||value===undefined||!Number.isFinite(value))return "N/A";
     var absolute=Math.abs(value),unit=absolute>=1e9?[1e9,"bn"]:absolute>=1e6?[1e6,"m"]:absolute>=1e3?[1e3,"k"]:[1,""];
     var scaled=absolute/unit[0],digits=scaled>=100?0:scaled>=10?1:2;
     return (value<0?"−":signed&&value>0?"+":"")+String.fromCharCode(36)+scaled.toFixed(digits)+unit[1];
@@ -1336,7 +1343,7 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
   }
   function seriesFor(data,label){
     return data.points.map(function(point){
-      if(label==="Whole book")return {date:point.date,daily:point.bookDaily,cumulative:point.bookCumulative,position:point.bookExposure};
+      if(label==="Whole book")return {date:point.date,daily:point.bookDaily,cumulative:point.bookCumulative,position:-point.bookExposure};
       var values=point.currencies[label];
       return {date:point.date,daily:values?values.daily:null,cumulative:values?values.cumulative:null,position:values?values.position:0,exposure:values?values.exposure:null,previousRate:values?values.previousRate:null,previousRateDate:values?values.previousRateDate:null,currentRate:values?values.currentRate:null,currentRateDate:values?values.currentRateDate:null};
     });
@@ -1468,17 +1475,19 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
     mainSvg.push('<rect class="pnl-zoom-selection" id="pnlMainZoomSelection" x="'+left+'" y="'+mainTop+'" width="0" height="'+mainPlotHeight+'" visibility="hidden"/>');
     mainSvg.push('</svg>');
 
-    var exposureSvg=['<svg viewBox="0 0 '+width+' '+exposureHeight+'" role="img" aria-label="Current USD exposure for '+escapeHTML(label)+'">'];
-    exposureSvg.push('<text class="pnl-axis-title pnl-axis-exposure" x="'+left+'" y="13">Exposure · USD delta</text>');
+    var exposureAxisLabel=label==="Whole book"?"Exposure · USD delta · Whole book sign flipped":"Exposure · USD delta";
+    var exposureSvg=['<svg viewBox="0 0 '+width+' '+exposureHeight+'" role="img" aria-label="Displayed USD exposure for '+escapeHTML(label)+'">'];
+    exposureSvg.push('<text class="pnl-axis-title pnl-axis-exposure" x="'+left+'" y="13">'+exposureAxisLabel+'</text>');
     for(var exposureTickIndex=0;exposureTickIndex<5;exposureTickIndex+=1){
       var exposureRatio=exposureTickIndex/4,exposureTick=exposureMinimum+(exposureMaximum-exposureMinimum)*exposureRatio,exposureTickY=yExposure(exposureTick);
       exposureSvg.push('<line class="pnl-gridline" x1="'+left+'" y1="'+exposureTickY+'" x2="'+(width-right)+'" y2="'+exposureTickY+'"/>');
-      exposureSvg.push('<text class="pnl-axis pnl-axis-exposure" x="'+(left-9)+'" y="'+(exposureTickY+4)+'" text-anchor="end">'+pnlMoney(exposureTick,false)+'</text>');
+      exposureSvg.push('<text class="pnl-axis pnl-axis-exposure" x="'+(left-9)+'" y="'+(exposureTickY+4)+'" text-anchor="end">'+exposureMoney(exposureTick,false)+'</text>');
     }
     exposureSvg.push('<line class="pnl-zero" x1="'+left+'" y1="'+exposureZero+'" x2="'+(width-right)+'" y2="'+exposureZero+'"/>');
-    var exposurePoints=series.map(function(point,index){return [x(index),yExposure(point.position),point]});
-    if(exposurePoints.length>1)exposureSvg.push('<path class="pnl-exposure" d="'+exposurePoints.map(function(item,index){return(index?'L ':'M ')+item[0].toFixed(2)+' '+item[1].toFixed(2)}).join(' ')+'"/>');
-    exposurePoints.forEach(function(item){exposureSvg.push('<circle class="pnl-exposure-point" cx="'+item[0]+'" cy="'+item[1]+'" r="3.2"><title>'+displayDate(item[2].date)+' exposure · '+pnlMoney(item[2].position,true)+'</title></circle>')});
+    series.forEach(function(point,index){
+      var pointY=yExposure(point.position),heightValue=Math.max(1,Math.abs(exposureZero-pointY)),barY=point.position>=0?pointY:exposureZero;
+      exposureSvg.push('<rect class="pnl-exposure-bar" x="'+(x(index)-barWidth/2)+'" y="'+barY+'" width="'+barWidth+'" height="'+heightValue+'"><title>'+displayDate(point.date)+' exposure · '+exposureMoney(point.position,true)+'</title></rect>');
+    });
     series.forEach(function(point,index){
       var columnWidth=plotWidth/series.length;
       exposureSvg.push('<rect class="pnl-hover-target" data-pnl-index="'+index+'" tabindex="0" role="button" aria-label="Inspect P&L and exposure for '+displayDate(point.date)+'" x="'+(left+index*columnWidth)+'" y="'+exposureTop+'" width="'+columnWidth+'" height="'+exposurePlotHeight+'" fill="transparent"/>');
@@ -1516,10 +1525,10 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
       var point=series[index],title=document.createElement("div");tooltip.innerHTML="";title.className="pnl-tooltip-title";title.textContent=label+" · "+formatDate(point.date);tooltip.appendChild(title);
       tooltip.appendChild(tooltipRow("Daily MTM",pnlMoney(point.daily,true)));
       tooltip.appendChild(tooltipRow("Cumulative",pnlMoney(point.cumulative,true)));
-      tooltip.appendChild(tooltipRow("Current exposure",pnlMoney(point.position,true)));
+      tooltip.appendChild(tooltipRow(label==="Whole book"?"Displayed exposure · sign flipped":"Current exposure",exposureMoney(point.position,true)));
       if(label!=="Whole book"){
         var rateRequired=point.exposure!==null&&Math.abs(point.exposure)>0;
-        tooltip.appendChild(tooltipRow("MTM exposure used",pnlMoney(point.exposure,true)));
+        tooltip.appendChild(tooltipRow("MTM exposure used",exposureMoney(point.exposure,true)));
         tooltip.appendChild(tooltipRow("Previous USD"+label,rateText(point.previousRate,point.previousRateDate,rateRequired)));
         tooltip.appendChild(tooltipRow("Current USD"+label,rateText(point.currentRate,point.currentRateDate,rateRequired)));
       }
@@ -1588,7 +1597,7 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
       svgElement.addEventListener("dblclick",function(){if(isZoomed){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label,businessUnit)}});
     });
     document.getElementById("pnlChartTitle").textContent=(businessUnit==="ALL"?"All business units":businessUnit)+" · "+label+" P&L and exposure";
-    document.getElementById("pnlChartMeta").textContent="Upper: daily MTM · left axis | cumulative P&L · right axis · Lower: current exposure · through "+formatDate(PNL_DATA.latestDate)+" · linked hover and zoom";
+    document.getElementById("pnlChartMeta").textContent="Upper: daily MTM · left axis | cumulative P&L · right axis · Lower: displayed exposure"+(label==="Whole book"?" · sign flipped":"")+" · through "+formatDate(PNL_DATA.latestDate)+" · linked hover and zoom";
   }
   function renderPnlChartSelection(){
     var data=dataForBusinessUnit(pnlChartBusinessUnit),select=document.getElementById("pnlCurrency");
