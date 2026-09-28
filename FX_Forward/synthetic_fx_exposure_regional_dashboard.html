@@ -505,7 +505,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 .pnl-tooltip{position:absolute;z-index:20;min-width:235px;max-width:310px;padding:11px 13px;border:1px solid #111827;border-radius:8px;background:#111827;color:#fff;box-shadow:0 8px 24px rgba(17,24,39,.24);pointer-events:none}
 .pnl-tooltip[hidden]{display:none}.pnl-tooltip-title{margin-bottom:7px;font-size:12px;font-weight:750}.pnl-tooltip-row{display:flex;justify-content:space-between;gap:18px;padding:3px 0;font-size:11px}.pnl-tooltip-row span{color:#b9c4d2}.pnl-tooltip-row strong{text-align:right;font-weight:700}
 .pnl-gridline{stroke:#e6ebf0;stroke-width:1}.pnl-zero{stroke:#8d99a6;stroke-width:1.2}.pnl-axis{fill:#687789;font-size:10px}.pnl-axis-title{fill:#4e5d6c;font-size:10px;font-weight:700}.pnl-axis-cumulative{fill:#111827}.pnl-axis-exposure{fill:#2f6fed}.pnl-axis-market{fill:#7c3aed}.pnl-crosshair{stroke:#69788a;stroke-width:1;stroke-dasharray:3 3;pointer-events:none}.pnl-zoom-selection{fill:rgba(47,111,237,.14);stroke:#2f6fed;stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
-.pnl-cumulative{fill:none;stroke:#111827;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pnl-point{fill:#111827}.pnl-exposure-bar{fill:#2f6fed;opacity:.82}.pnl-market-rate{fill:none;stroke:#7c3aed;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pnl-market-point{fill:#7c3aed}
+.pnl-cumulative{fill:none;stroke:#111827;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pnl-point{fill:#111827}.pnl-exposure-positive{fill:#2f6fed;opacity:.84}.pnl-exposure-negative{fill:#d84b5b;opacity:.84}.pnl-market-rate{fill:none;stroke:#7c3aed;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pnl-market-point{fill:#7c3aed}.pnl-inline-legend{fill:#4f5e6c;font-size:9px;font-weight:700}
 .pnl-positive{fill:#238a78}.pnl-negative{fill:#d84b5b}.pnl-legend{display:flex;gap:15px;margin-top:7px;color:var(--muted);font-size:11px}
 .pnl-legend span{display:flex;align-items:center;gap:6px}.pnl-legend i{display:inline-block;width:13px;height:4px;border-radius:2px}
 .pnl-status{margin:0;padding:11px 20px;border-top:1px solid var(--line);background:#f7f9fc;color:var(--muted);font-size:12px;line-height:1.45}
@@ -627,7 +627,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
           <div class="pnl-zoom-row"><span id="pnlZoomLabel">Drag across the chart to zoom into a period</span><button class="pnl-zoom-reset" id="pnlZoomReset" type="button" disabled>Reset zoom</button></div>
           <div class="pnl-chart" id="pnlChart"></div>
           <div class="pnl-tooltip" id="pnlTooltip" hidden></div>
-          <div class="pnl-legend"><span><i style="background:#238a78"></i>Positive daily MTM · upper left</span><span><i style="background:#d84b5b"></i>Negative daily MTM · upper left</span><span><i style="height:2px;background:#111827"></i>Cumulative P&amp;L · upper right</span><span><i style="background:#2f6fed"></i>Exposure bars · lower left</span><span><i style="height:2px;background:#7c3aed"></i>XXXUSD / synthetic DXY · lower right</span></div>
+          <div class="pnl-legend"><span><i style="background:#238a78"></i>Positive daily MTM · upper left</span><span><i style="background:#d84b5b"></i>Negative daily MTM · upper left</span><span><i style="height:2px;background:#111827"></i>Cumulative P&amp;L · upper right</span><span><i style="background:#2f6fed"></i>Positive exposure · lower left</span><span><i style="background:#d84b5b"></i>Negative exposure · lower left</span><span><i style="height:2px;background:#7c3aed"></i>XXXUSD / synthetic DXY · lower right</span></div>
         </div>
       </div>
       <p class="pnl-status" id="pnlStatus">Checking rate coverage…</p>
@@ -1444,7 +1444,7 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
     var dailyMinimum=dailyDomain[0],dailyMaximum=dailyDomain[1],cumulativeMinimum=cumulativeDomain[0],cumulativeMaximum=cumulativeDomain[1],exposureMinimum=exposureDomain[0],exposureMaximum=exposureDomain[1],marketMinimum=marketDomain[0],marketMaximum=marketDomain[1];
     var width=900,left=82,right=88,plotWidth=width-left-right;
     var mainHeight=300,mainTop=27,mainBottom=18,mainPlotHeight=mainHeight-mainTop-mainBottom;
-    var exposureHeight=190,exposureTop=25,exposureBottom=48,exposurePlotHeight=exposureHeight-exposureTop-exposureBottom;
+    var exposureHeight=212,exposureTop=47,exposureBottom=48,exposurePlotHeight=exposureHeight-exposureTop-exposureBottom;
     function x(index){return left+(index+.5)/series.length*plotWidth}
     function yDaily(value){return mainTop+(dailyMaximum-value)/(dailyMaximum-dailyMinimum)*mainPlotHeight}
     function yCumulative(value){return mainTop+(cumulativeMaximum-value)/(cumulativeMaximum-cumulativeMinimum)*mainPlotHeight}
@@ -1489,6 +1489,7 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
     var exposureSvg=['<svg viewBox="0 0 '+width+' '+exposureHeight+'" role="img" aria-label="Displayed USD exposure and '+escapeHTML(marketAxisLabel)+' for '+escapeHTML(label)+'">'];
     exposureSvg.push('<text class="pnl-axis-title pnl-axis-exposure" x="'+left+'" y="13">'+exposureAxisLabel+'</text>');
     exposureSvg.push('<text class="pnl-axis-title pnl-axis-market" x="'+(width-right)+'" y="13" text-anchor="end">'+marketAxisLabel+'</text>');
+    exposureSvg.push('<g aria-label="Exposure plot color scheme"><rect class="pnl-exposure-positive" x="'+left+'" y="27" width="11" height="7" rx="2"/><text class="pnl-inline-legend" x="'+(left+16)+'" y="34">Positive exposure</text><rect class="pnl-exposure-negative" x="'+(left+112)+'" y="27" width="11" height="7" rx="2"/><text class="pnl-inline-legend" x="'+(left+128)+'" y="34">Negative exposure</text><line class="pnl-market-rate" x1="'+(left+226)+'" y1="30.5" x2="'+(left+241)+'" y2="30.5"/><text class="pnl-inline-legend" x="'+(left+247)+'" y="34">'+marketAxisLabel+'</text></g>');
     for(var exposureTickIndex=0;exposureTickIndex<5;exposureTickIndex+=1){
       var exposureRatio=exposureTickIndex/4,exposureTick=exposureMinimum+(exposureMaximum-exposureMinimum)*exposureRatio,marketTick=marketMinimum+(marketMaximum-marketMinimum)*exposureRatio,exposureTickY=yExposure(exposureTick);
       exposureSvg.push('<line class="pnl-gridline" x1="'+left+'" y1="'+exposureTickY+'" x2="'+(width-right)+'" y2="'+exposureTickY+'"/>');
@@ -1498,7 +1499,7 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
     exposureSvg.push('<line class="pnl-zero" x1="'+left+'" y1="'+exposureZero+'" x2="'+(width-right)+'" y2="'+exposureZero+'"/>');
     series.forEach(function(point,index){
       var pointY=yExposure(point.position),heightValue=Math.max(1,Math.abs(exposureZero-pointY)),barY=point.position>=0?pointY:exposureZero;
-      exposureSvg.push('<rect class="pnl-exposure-bar" x="'+(x(index)-barWidth/2)+'" y="'+barY+'" width="'+barWidth+'" height="'+heightValue+'"><title>'+displayDate(point.date)+' exposure · '+exposureMoney(point.position,true)+'</title></rect>');
+      exposureSvg.push('<rect class="'+(point.position>=0?'pnl-exposure-positive':'pnl-exposure-negative')+'" x="'+(x(index)-barWidth/2)+'" y="'+barY+'" width="'+barWidth+'" height="'+heightValue+'"><title>'+displayDate(point.date)+' exposure · '+exposureMoney(point.position,true)+'</title></rect>');
     });
     var marketSegments=[],marketSegment=[];
     series.forEach(function(point,index){
