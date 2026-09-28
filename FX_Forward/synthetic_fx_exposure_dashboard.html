@@ -499,7 +499,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 .pnl-summary-wrap{max-height:500px;overflow:auto;border-right:1px solid var(--line)}
 .pnl-summary{width:100%;min-width:700px;font-size:13px}.pnl-summary th{font-size:11px}.pnl-summary th,.pnl-summary td{padding:11px 12px}.pnl-summary th.num{padding:0}.pnl-sort-button{display:flex;width:100%;align-items:center;justify-content:flex-end;gap:5px;padding:11px 12px;border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;letter-spacing:inherit;text-align:right;text-transform:inherit;cursor:pointer}.pnl-sort-indicator{width:10px;color:#95a1ad}.pnl-summary th[aria-sort="ascending"] .pnl-sort-indicator,.pnl-summary th[aria-sort="descending"] .pnl-sort-indicator{color:var(--ink)}
 .pnl-summary tr[data-pnl-row]{cursor:pointer}.pnl-summary tr[data-pnl-row]:hover td{background:#f5f8fb}.pnl-summary tr.pnl-book td{background:#eef3f8;font-weight:750}.pnl-summary tr.pnl-bu-book td{border-top:2px solid #d8e0e8}.pnl-summary tr.pnl-selected td{background:#e7f0ff;box-shadow:inset 0 1px #bed3f7,inset 0 -1px #bed3f7}.pnl-summary tr.pnl-selected td:first-child{box-shadow:inset 3px 0 #2f6fed,inset 0 1px #bed3f7,inset 0 -1px #bed3f7}.pnl-summary td:first-child{font-weight:700}.pnl-summary tr.pnl-ccy td:nth-child(2){padding-left:22px}
-.pnl-chart-card{position:relative;padding:18px 20px}.pnl-chart-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:9px}
+.pnl-chart-card{position:relative;padding:18px 20px}.pnl-chart-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-bottom:9px}.pnl-chart-title-row{display:flex;flex-wrap:wrap;align-items:center;gap:9px}.pnl-skew-chip{padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:#f6f8fb;color:var(--muted);font-size:10px;font-weight:700}.pnl-skew-chip.positive{border-color:#b9dfd6;background:#edf8f4;color:#16725f}.pnl-skew-chip.negative{border-color:#f1c3c9;background:#fff1f3;color:#b52e40}
 .pnl-chart-head h3{margin:0;font-size:18px}.pnl-select{min-width:150px;padding:8px 30px 8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:inherit;font-weight:650}
 .pnl-chart-meta{margin:0 0 8px;color:var(--muted);font-size:12px}.pnl-zoom-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;color:var(--muted);font-size:11px}.pnl-zoom-reset{padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.pnl-zoom-reset:disabled{color:var(--faint);cursor:default;opacity:.6}.pnl-chart svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}.pnl-exposure-chart{margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}.pnl-hover-target{cursor:crosshair;pointer-events:all}
 .pnl-tooltip{position:absolute;z-index:20;min-width:235px;max-width:310px;padding:11px 13px;border:1px solid #111827;border-radius:8px;background:#111827;color:#fff;box-shadow:0 8px 24px rgba(17,24,39,.24);pointer-events:none}
@@ -622,7 +622,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
           </table>
         </div>
         <div class="pnl-chart-card">
-          <div class="pnl-chart-head"><h3 id="pnlChartTitle">Whole book P&amp;L</h3><select class="pnl-select" id="pnlCurrency" aria-label="Select P&L currency"></select></div>
+          <div class="pnl-chart-head"><div class="pnl-chart-title-row"><h3 id="pnlChartTitle">Whole book P&amp;L</h3><span class="pnl-skew-chip" id="pnlSkew">Full-history daily P&amp;L skew · —</span></div><select class="pnl-select" id="pnlCurrency" aria-label="Select P&L currency"></select></div>
           <p class="pnl-chart-meta" id="pnlChartMeta">Daily MTM bars · cumulative P&amp;L line</p>
           <div class="pnl-zoom-row"><span id="pnlZoomLabel">Drag across the chart to zoom into a period</span><button class="pnl-zoom-reset" id="pnlZoomReset" type="button" disabled>Reset zoom</button></div>
           <div class="pnl-chart" id="pnlChart"></div>
@@ -1361,6 +1361,21 @@ const LOCATION_BY_STRATEGY = {};
   function addSummaryCell(row,value){
     var cell=document.createElement("td");cell.className="num "+pnlClass(value);cell.textContent=pnlMoney(value,true);row.appendChild(cell);
   }
+  function dailyPnlSkew(series){
+    var values=series.slice(1).map(function(point){return point.daily}).filter(function(value){return value!==null&&value!==undefined&&Number.isFinite(value)});
+    var count=values.length;
+    if(count<3)return {value:null,count:count};
+    var mean=values.reduce(function(sum,value){return sum+value},0)/count,sum2=0,sum3=0;
+    values.forEach(function(value){var deviation=value-mean;sum2+=deviation*deviation;sum3+=deviation*deviation*deviation});
+    var variance=sum2/count;
+    if(variance<=Number.EPSILON*Math.max(1,mean*mean))return {value:null,count:count};
+    var momentSkew=(sum3/count)/Math.pow(variance,1.5);
+    return {value:Math.sqrt(count*(count-1))/(count-2)*momentSkew,count:count};
+  }
+  function formatSkew(value){
+    if(value===null||value===undefined||!Number.isFinite(value))return "N/A";
+    return (value<0?"−":value>0?"+":"")+Math.abs(value).toFixed(2);
+  }
   var pnlSort={key:null,direction:"desc"},pnlChartBusinessUnit="ALL",pnlChartLabel="Whole book",pnlLastScope=null;
   function dataForBusinessUnit(businessUnit){
     return PNL_DATA.byBusinessUnit[businessUnit]||PNL_DATA.byBusinessUnit.ALL;
@@ -1418,6 +1433,10 @@ const LOCATION_BY_STRATEGY = {};
   function renderPnlChart(data,label,businessUnit){
     var fullSeries=seriesFor(data,label);
     if(!fullSeries.length)return;
+    var skew=dailyPnlSkew(fullSeries),skewChip=document.getElementById("pnlSkew");
+    skewChip.textContent="Full-history daily P&L skew · "+formatSkew(skew.value)+" · n="+skew.count;
+    skewChip.className="pnl-skew-chip"+(skew.value===null||skew.value===0?"":skew.value<0?" negative":" positive");
+    skewChip.title="Bias-adjusted Fisher–Pearson sample skewness using every finite daily P&L observation except the initialization point.";
     var zoomKey=businessUnit+"|"+label,stored=pnlZoomRanges[zoomKey];
     var start=stored?Math.max(0,Math.min(stored[0],fullSeries.length-1)):0;
     var end=stored?Math.max(start,Math.min(stored[1],fullSeries.length-1)):fullSeries.length-1;
