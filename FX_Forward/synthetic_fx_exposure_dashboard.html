@@ -611,13 +611,13 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
       <div class="pnl-kpis" aria-label="Whole-book P&L summary">
         <div class="pnl-kpi"><div class="pnl-kpi-label">Latest MTM</div><div class="pnl-kpi-value" id="pnlLatest">—</div></div>
         <div class="pnl-kpi"><div class="pnl-kpi-label">Past week</div><div class="pnl-kpi-value" id="pnlWeek">—</div></div>
-        <div class="pnl-kpi"><div class="pnl-kpi-label">Past month</div><div class="pnl-kpi-value" id="pnlMonth">—</div></div>
-        <div class="pnl-kpi"><div class="pnl-kpi-label">Cumulative</div><div class="pnl-kpi-value" id="pnlCumulative">—</div></div>
+        <div class="pnl-kpi"><div class="pnl-kpi-label">MTD P&amp;L</div><div class="pnl-kpi-value" id="pnlMtd">—</div></div>
+        <div class="pnl-kpi"><div class="pnl-kpi-label">YTD P&amp;L</div><div class="pnl-kpi-value" id="pnlYtd">—</div></div>
       </div>
       <div class="pnl-layout">
         <div class="pnl-summary-wrap">
           <table class="pnl-summary">
-            <thead><tr><th>Business unit</th><th>Currency</th><th class="num" data-pnl-sort-column="latest" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="latest">Latest MTM <span class="pnl-sort-indicator">↕</span></button></th><th class="num" data-pnl-sort-column="week" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="week">1W P&amp;L <span class="pnl-sort-indicator">↕</span></button></th><th class="num" data-pnl-sort-column="month" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="month">1M P&amp;L <span class="pnl-sort-indicator">↕</span></button></th><th class="num" data-pnl-sort-column="cumulative" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="cumulative">Cumulative <span class="pnl-sort-indicator">↕</span></button></th></tr></thead>
+            <thead><tr><th>Business unit</th><th>Currency</th><th class="num" data-pnl-sort-column="latest" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="latest">Latest MTM <span class="pnl-sort-indicator">↕</span></button></th><th class="num" data-pnl-sort-column="week" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="week">1W P&amp;L <span class="pnl-sort-indicator">↕</span></button></th><th class="num" data-pnl-sort-column="mtd" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="mtd">MTD P&amp;L <span class="pnl-sort-indicator">↕</span></button></th><th class="num" data-pnl-sort-column="ytd" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="ytd">YTD P&amp;L <span class="pnl-sort-indicator">↕</span></button></th></tr></thead>
             <tbody id="pnlSummaryRows"></tbody>
           </table>
         </div>
@@ -1354,9 +1354,17 @@ const LOCATION_BY_STRATEGY = {};
     if(values.some(function(value){return value===null}))return null;
     return values.reduce(function(sum,value){return sum+value},0);
   }
+  function calendarTotal(series,start){
+    var values=series.filter(function(point){return dateMs(point.date)>=start}).map(function(point){return point.daily});
+    if(values.some(function(value){return value===null}))return null;
+    return values.reduce(function(sum,value){return sum+value},0);
+  }
   function summaryFor(series){
     var latest=series[series.length-1];
-    return {latest:latest.daily,week:trailingTotal(series,7),month:trailingTotal(series,30),cumulative:latest.cumulative};
+    var latestDate=new Date(dateMs(latest.date));
+    var monthStart=Date.UTC(latestDate.getUTCFullYear(),latestDate.getUTCMonth(),1);
+    var yearStart=Date.UTC(latestDate.getUTCFullYear(),0,1);
+    return {latest:latest.daily,week:trailingTotal(series,7),mtd:calendarTotal(series,monthStart),ytd:calendarTotal(series,yearStart)};
   }
   function addSummaryCell(row,value){
     var cell=document.createElement("td");cell.className="num "+pnlClass(value);cell.textContent=pnlMoney(value,true);row.appendChild(cell);
@@ -1403,7 +1411,7 @@ const LOCATION_BY_STRATEGY = {};
     var businessUnitCell=document.createElement("td"),currencyCell=document.createElement("td");
     businessUnitCell.textContent=item.businessUnit==="ALL"?"All business units":item.businessUnit;
     currencyCell.textContent=item.label;row.appendChild(businessUnitCell);row.appendChild(currencyCell);
-    addSummaryCell(row,item.values.latest);addSummaryCell(row,item.values.week);addSummaryCell(row,item.values.month);addSummaryCell(row,item.values.cumulative);
+    addSummaryCell(row,item.values.latest);addSummaryCell(row,item.values.week);addSummaryCell(row,item.values.mtd);addSummaryCell(row,item.values.ytd);
     function activate(){pnlChartBusinessUnit=item.businessUnit;pnlChartLabel=item.label;renderPnlChartSelection();renderPnlSummary(document.getElementById("buFilter").value)}
     row.addEventListener("click",activate);
     row.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();activate()}});
@@ -1425,7 +1433,7 @@ const LOCATION_BY_STRATEGY = {};
   }
   function renderPnlHeadline(data){
     var book=summaryFor(seriesFor(data,"Whole book"));
-    [["pnlLatest",book.latest],["pnlWeek",book.week],["pnlMonth",book.month],["pnlCumulative",book.cumulative]].forEach(function(item){
+    [["pnlLatest",book.latest],["pnlWeek",book.week],["pnlMtd",book.mtd],["pnlYtd",book.ytd]].forEach(function(item){
       var element=document.getElementById(item[0]);element.textContent=pnlMoney(item[1],true);element.className="pnl-kpi-value "+pnlClass(item[1]);
     });
   }
