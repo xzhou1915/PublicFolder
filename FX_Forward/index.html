@@ -215,7 +215,9 @@
     .metric-value { font-size: 21px; font-weight: 620; letter-spacing: -.025em; }
 
     .main-grid { display: grid; grid-template-columns: minmax(0, .86fr) minmax(0, 1.6fr); gap: 12px; }
+    .strategy-only-grid { grid-template-columns: 1fr; margin-bottom: 18px; }
     .chart-panel, .table-panel { min-width: 0; padding: 20px; }
+    .exposure-detail-bottom { margin: 0 0 18px; }
 
     .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 22px; }
     .panel-title { margin: 0; font-size: 15px; font-weight: 680; }
@@ -589,7 +591,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
       </div>
     </section>
 
-    <section class="main-grid">
+    <section class="main-grid strategy-only-grid">
       <article class="card chart-panel">
         <div class="panel-head">
           <div>
@@ -600,23 +602,6 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
         </div>
         <div class="bar-chart" id="barChart"></div>
         <p class="scale-note">Basis delta uses the signed CNY, BRL, and KRW rows. CNH, BRF, and KRO are supporting legs and are not counted again. Bar lengths use absolute values.</p>
-      </article>
-
-      <article class="card table-panel">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">Exposure detail</h2>
-            <p class="panel-subtitle" id="tableSubtitle">Latest positions after strategy mapping</p>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Strategy</th><th>CCY</th><th>Business unit</th><th class="num">USD delta</th><th class="num">VaR</th><th>Method</th></tr>
-            </thead>
-            <tbody id="exposureRows"></tbody>
-          </table>
-        </div>
       </article>
     </section>
 
@@ -650,6 +635,23 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
       <p class="pnl-status" id="pnlStatus">Checking rate coverage…</p>
       <p class="pnl-note">Daily MTM = prior exposure × (prior USDXXX rate ÷ current USDXXX rate − 1). CNH/CNY and BRL/BRF use their reported net rows and are priced with CNH and BRL respectively. KRW/KRO uses the calculated net exposure and the KRW rate. Supporting legs are not counted separately. A currency with no net position on the current date has zero daily P&amp;L. When an exact-date rate is missing for an active position, the most recent earlier rate is carried forward and disclosed below.</p>
     </section>
+
+    <article class="card table-panel exposure-detail-bottom">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Exposure detail</h2>
+          <p class="panel-subtitle" id="tableSubtitle">Latest positions after strategy mapping</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Strategy</th><th>CCY</th><th>Business unit</th><th class="num">USD delta</th><th class="num">VaR</th><th>Method</th></tr>
+          </thead>
+          <tbody id="exposureRows"></tbody>
+        </table>
+      </div>
+    </article>
 
     <footer class="footnote">
       <p>VaR is summed across displayed currency rows for monitoring only; no diversification or covariance adjustment is applied. Basis VaR is intentionally not reported.</p>
