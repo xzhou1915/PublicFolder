@@ -498,7 +498,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 .pnl-layout{display:grid;grid-template-columns:minmax(700px,1fr) minmax(520px,1.3fr);gap:0}
 .pnl-summary-wrap{max-height:500px;overflow:auto;border-right:1px solid var(--line)}
 .pnl-summary{width:100%;min-width:700px;font-size:13px}.pnl-summary th{font-size:11px}.pnl-summary th,.pnl-summary td{padding:11px 12px}.pnl-summary th.num{padding:0}.pnl-sort-button{display:flex;width:100%;align-items:center;justify-content:flex-end;gap:5px;padding:11px 12px;border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;letter-spacing:inherit;text-align:right;text-transform:inherit;cursor:pointer}.pnl-sort-indicator{width:10px;color:#95a1ad}.pnl-summary th[aria-sort="ascending"] .pnl-sort-indicator,.pnl-summary th[aria-sort="descending"] .pnl-sort-indicator{color:var(--ink)}
-.pnl-summary th:last-child,.pnl-summary td:last-child{position:sticky;right:0}.pnl-summary th:last-child{z-index:3}.pnl-summary td:last-child{z-index:1;background:#fff;box-shadow:-1px 0 var(--line)}.pnl-summary tbody tr:nth-child(even) td:last-child{background:#f7f9fc}
+.pnl-summary th:last-child,.pnl-summary td:last-child{display:table-cell;position:sticky;right:0}.pnl-summary th:last-child{z-index:3}.pnl-summary td:last-child{z-index:1;background:#fff;box-shadow:-1px 0 var(--line)}.pnl-summary tbody tr:nth-child(even) td:last-child{background:#f7f9fc}
 .pnl-summary tr[data-pnl-row]{cursor:pointer}.pnl-summary tr[data-pnl-row]:hover td{background:#f5f8fb}.pnl-summary tr.pnl-book td{background:#eef3f8;font-weight:750}.pnl-summary tr.pnl-bu-book td{border-top:2px solid #d8e0e8}.pnl-summary tr.pnl-selected td{background:#e7f0ff;box-shadow:inset 0 1px #bed3f7,inset 0 -1px #bed3f7}.pnl-summary tr.pnl-selected td:first-child{box-shadow:inset 3px 0 #2f6fed,inset 0 1px #bed3f7,inset 0 -1px #bed3f7}.pnl-summary td:first-child{font-weight:700}.pnl-summary tr.pnl-ccy td:nth-child(2){padding-left:22px}
 .pnl-chart-card{position:relative;padding:18px 20px}.pnl-chart-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-bottom:9px}.pnl-chart-title-row{display:flex;flex-wrap:wrap;align-items:center;gap:9px}.pnl-skew-chip{padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:#f6f8fb;color:var(--muted);font-size:10px;font-weight:700}.pnl-skew-chip.positive{border-color:#b9dfd6;background:#edf8f4;color:#16725f}.pnl-skew-chip.negative{border-color:#f1c3c9;background:#fff1f3;color:#b52e40}
 .pnl-chart-head h3{margin:0;font-size:18px}.pnl-select{min-width:150px;padding:8px 30px 8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:inherit;font-weight:650}
@@ -1457,10 +1457,17 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
       maximum=maximum>Number.EPSILON?maximum*1.12:1;
       return [-maximum,maximum];
     }
+    function lineDomain(values){
+      var finite=values.filter(function(value){return value!==null&&value!==undefined&&Number.isFinite(value)});
+      if(!finite.length)return [0,1];
+      var minimum=Math.min.apply(null,finite),maximum=Math.max.apply(null,finite),span=maximum-minimum;
+      if(span<=Math.max(Math.abs(minimum),Math.abs(maximum))*1e-12)span=Math.max(Math.abs(minimum),Math.abs(maximum))*.02||1;
+      return [minimum-span*.12,maximum+span*.12];
+    }
     var dailyDomain=symmetricDomain(series.map(function(point){return point.daily}));
     var cumulativeDomain=symmetricDomain(series.map(function(point){return point.cumulative}));
     var exposureDomain=symmetricDomain(series.map(function(point){return point.position}));
-    var marketDomain=symmetricDomain(series.map(function(point){return point.marketRate}));
+    var marketDomain=lineDomain(series.map(function(point){return point.marketRate}));
     var dailyMinimum=dailyDomain[0],dailyMaximum=dailyDomain[1],cumulativeMinimum=cumulativeDomain[0],cumulativeMaximum=cumulativeDomain[1],exposureMinimum=exposureDomain[0],exposureMaximum=exposureDomain[1],marketMinimum=marketDomain[0],marketMaximum=marketDomain[1];
     var width=900,left=82,right=88,plotWidth=width-left-right;
     var mainHeight=300,mainTop=27,mainBottom=18,mainPlotHeight=mainHeight-mainTop-mainBottom;
@@ -1648,7 +1655,7 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "ABC_ALT": "SG", "GFD": "CH", "GFD_AL
       var dxyMeta=PNL_DATA.syntheticDxy||{},constituents=dxyMeta.constituents||[];
       marketDescription=constituents.length?"Synthetic DXY · base 100 on "+formatDate(dxyMeta.baseDate)+" · "+constituents.map(function(item){return item.ccy+" "+(item.weight*100).toFixed(1)+"%"}).join(", "):"Synthetic DXY unavailable · no complete DXY constituent rates";
     }else marketDescription=label+"USD = 1 / USD"+label;
-    document.getElementById("pnlChartMeta").textContent="Upper: daily MTM · left axis | cumulative P&L · right axis · Lower: displayed exposure"+(label==="Whole book"?" · sign flipped":"")+" · "+marketDescription+" · all Y-axes centered on zero · through "+formatDate(PNL_DATA.latestDate)+" · linked hover and zoom";
+    document.getElementById("pnlChartMeta").textContent="Upper: daily MTM · left axis | cumulative P&L · right axis · Lower: displayed exposure"+(label==="Whole book"?" · sign flipped":"")+" · "+marketDescription+" · P&L and exposure axes centered on zero · market axis auto-fitted · through "+formatDate(PNL_DATA.latestDate)+" · linked hover and zoom";
   }
   function renderPnlChartSelection(){
     var data=dataForBusinessUnit(pnlChartBusinessUnit),select=document.getElementById("pnlCurrency");
