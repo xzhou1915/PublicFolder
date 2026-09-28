@@ -460,6 +460,55 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 /* Equal level and change hierarchy */
 .strategy-summary-table td.history-change-value{font-size:16px;font-weight:600;letter-spacing:normal}
 </style>
+
+<style>
+/* Regional Delta attribution */
+.region-breakdown{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:8px}
+.region-breakdown[hidden]{display:none}
+.region-expandable{cursor:pointer;border-radius:7px}
+.region-expandable:focus-visible{outline:2px solid #2463eb;outline-offset:4px}
+.region-item{min-width:0;padding:7px 8px;border:1px solid #dfe6ee;border-radius:7px;background:#f7f9fc}
+.region-item-expandable{cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.region-item-expandable:hover{border-color:#bccbe0;background:#f0f5fb}
+.region-item-expandable:focus-visible{outline:2px solid #2463eb;outline-offset:2px}
+.region-item-label{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:11px;white-space:nowrap}
+.region-item-label i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--region)}
+.region-item-value{display:block;margin-top:3px;font-size:13px;font-weight:700}
+.regional-strategy-list{display:grid;gap:4px;margin-top:7px;padding-top:6px;border-top:1px solid #dfe6ee}
+.regional-strategy-list[hidden]{display:none}
+.regional-strategy-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
+.regional-strategy-name{min-width:0;overflow:hidden;color:var(--ink);font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.regional-strategy-value{flex:0 0 auto;font-weight:700}
+.region-mismatch{grid-column:1/-1;padding:6px 8px;border-radius:6px;color:#8a4800;background:#fff0d5;font-size:11px;font-weight:700}
+.region-empty{grid-column:1/-1;color:var(--muted);font-size:11px}
+@media(max-width:900px){.region-breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+
+
+<style>
+.pnl-panel{margin:0 0 18px;overflow:hidden}
+.pnl-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:20px 22px;border-bottom:1px solid var(--line)}
+.pnl-head h2{margin:0;font-size:23px}.pnl-head p{margin:5px 0 0;color:var(--muted);font-size:14px}
+.pnl-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.pnl-kpi{padding:17px 20px;border-right:1px solid var(--line)}.pnl-kpi:last-child{border-right:0}
+.pnl-kpi-label{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.pnl-kpi-value{margin-top:7px;font-size:24px;font-weight:760;letter-spacing:-.02em}
+.pnl-layout{display:grid;grid-template-columns:minmax(420px,.9fr) minmax(520px,1.3fr);gap:0}
+.pnl-summary-wrap{max-height:500px;overflow:auto;border-right:1px solid var(--line)}
+.pnl-summary{width:100%;font-size:13px}.pnl-summary th{font-size:11px}.pnl-summary th,.pnl-summary td{padding:11px 12px}
+.pnl-summary tr.pnl-book td{background:#eef3f8;font-weight:750}.pnl-summary td:first-child{font-weight:700}
+.pnl-chart-card{padding:18px 20px}.pnl-chart-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:9px}
+.pnl-chart-head h3{margin:0;font-size:18px}.pnl-select{min-width:150px;padding:8px 30px 8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:inherit;font-weight:650}
+.pnl-chart-meta{margin:0 0 8px;color:var(--muted);font-size:12px}.pnl-chart svg{display:block;width:100%;height:auto}
+.pnl-gridline{stroke:#e6ebf0;stroke-width:1}.pnl-zero{stroke:#8d99a6;stroke-width:1.2}.pnl-axis{fill:#687789;font-size:10px}
+.pnl-cumulative{fill:none;stroke:#111827;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pnl-point{fill:#111827}
+.pnl-positive{fill:#238a78}.pnl-negative{fill:#d84b5b}.pnl-legend{display:flex;gap:15px;margin-top:7px;color:var(--muted);font-size:11px}
+.pnl-legend span{display:flex;align-items:center;gap:6px}.pnl-legend i{display:inline-block;width:13px;height:4px;border-radius:2px}
+.pnl-status{margin:0;padding:11px 20px;border-top:1px solid var(--line);background:#f7f9fc;color:var(--muted);font-size:12px;line-height:1.45}
+.pnl-status.warning{background:#fff4df;color:#8a5500}.pnl-note{margin:0;padding:11px 20px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.5}
+@media(max-width:1050px){.pnl-layout{grid-template-columns:1fr}.pnl-summary-wrap{border-right:0;border-bottom:1px solid var(--line)}}
+@media(max-width:760px){.pnl-head{align-items:flex-start;flex-direction:column}.pnl-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pnl-kpi:nth-child(2){border-right:0}.pnl-kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}.pnl-layout{display:block}.pnl-chart-head{align-items:flex-start;flex-direction:column}.pnl-select{width:100%}}
+</style>
 </head>
 <body>
   <main class="shell">
@@ -545,7 +594,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
           <div class="legend" aria-label="Chart legend"><span><i style="color:#65716f"></i>Gross</span><span><i style="color:var(--cyan)"></i>Net</span></div>
         </div>
         <div class="bar-chart" id="barChart"></div>
-        <p class="scale-note">Basis delta uses the signed CNY and BRL rows. CNH and BRF are supporting legs and are not counted again. Bar lengths use absolute values.</p>
+        <p class="scale-note">Basis delta uses the signed CNY, BRL, and KRW rows. CNH, BRF, and KRO are supporting legs and are not counted again. Bar lengths use absolute values.</p>
       </article>
 
       <article class="card table-panel">
@@ -566,24 +615,57 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
       </article>
     </section>
 
+
+    <section class="card pnl-panel" aria-labelledby="pnlTitle">
+      <div class="pnl-head">
+        <div><h2 id="pnlTitle">FX MTM P&amp;L</h2><p>Daily revaluation and cumulative result by currency</p></div>
+        <span class="date-chip">Rates&nbsp; <strong id="pnlRateSource">—</strong></span>
+      </div>
+      <div class="pnl-kpis" aria-label="Whole-book P&L summary">
+        <div class="pnl-kpi"><div class="pnl-kpi-label">Latest MTM</div><div class="pnl-kpi-value" id="pnlLatest">—</div></div>
+        <div class="pnl-kpi"><div class="pnl-kpi-label">Past week</div><div class="pnl-kpi-value" id="pnlWeek">—</div></div>
+        <div class="pnl-kpi"><div class="pnl-kpi-label">Past month</div><div class="pnl-kpi-value" id="pnlMonth">—</div></div>
+        <div class="pnl-kpi"><div class="pnl-kpi-label">Cumulative</div><div class="pnl-kpi-value" id="pnlCumulative">—</div></div>
+      </div>
+      <div class="pnl-layout">
+        <div class="pnl-summary-wrap">
+          <table class="pnl-summary">
+            <thead><tr><th>Currency</th><th class="num">Latest MTM</th><th class="num">1W P&amp;L</th><th class="num">1M P&amp;L</th><th class="num">Cumulative</th></tr></thead>
+            <tbody id="pnlSummaryRows"></tbody>
+          </table>
+        </div>
+        <div class="pnl-chart-card">
+          <div class="pnl-chart-head"><h3 id="pnlChartTitle">Whole book P&amp;L</h3><select class="pnl-select" id="pnlCurrency" aria-label="Select P&L currency"></select></div>
+          <p class="pnl-chart-meta" id="pnlChartMeta">Daily MTM bars · cumulative P&amp;L line</p>
+          <div class="pnl-chart" id="pnlChart"></div>
+          <div class="pnl-legend"><span><i style="background:#238a78"></i>Positive daily MTM</span><span><i style="background:#d84b5b"></i>Negative daily MTM</span><span><i style="height:2px;background:#111827"></i>Cumulative P&amp;L</span></div>
+        </div>
+      </div>
+      <p class="pnl-status" id="pnlStatus">Checking rate coverage…</p>
+      <p class="pnl-note">Daily MTM = prior exposure × (prior USDXXX rate ÷ current USDXXX rate − 1). CNH/CNY and BRL/BRF use their reported net rows and are priced with CNH and BRL respectively. KRW/KRO uses the calculated net exposure and the KRW rate. Supporting legs are not counted separately.</p>
+    </section>
+
     <footer class="footnote">
       <p>VaR is summed across displayed currency rows for monitoring only; no diversification or covariance adjustment is applied. Basis VaR is intentionally not reported.</p>
-      <p>Input order: CobDate · BU · CCY · Delta_USD_LocalDirection · Var</p>
+      <p>Exposure input: CobDate · BU · CCY · Delta_USD_LocalDirection · Var<br>Rate input: Date · CCY3 · Value, where Value is USDXXX</p>
     </footer>
   </main>
 
   <script>
-    const SAMPLE_CSV = "2026-08-14,Global Macro,EUR,15000000,820000\n2026-08-14,Global Macro,JPY,-8000000,660000\n2026-08-14,Global Macro,GBP,9000000,550000\n2026-08-14,Global Macro,AUD,12000000,580000\n2026-08-14,Global Macro,AED,6000000,210000\n2026-08-14,Global Macro,SAR,-2000000,150000\n2026-08-14,Global Macro,HKD,1500000,120000\n2026-08-14,Global Macro,CNY,65000000,1580000\n2026-08-14,Global Macro,CNH,-54000000,1260000\n2026-08-14,Global Macro,CNH/CNY,11000000,\n2026-08-14,Global Macro,BRL,44000000,2050000\n2026-08-14,Global Macro,BRF,-36000000,1690000\n2026-08-14,Global Macro,BRL/BRF,8000000,\n2026-08-14,EM Trading,MXN,-21000000,1280000\n2026-08-14,EM Trading,ZAR,16000000,1020000\n2026-08-14,EM Trading,INR,9000000,500000\n2026-08-14,EM Trading,AED,3800000,150000\n2026-08-14,EM Trading,SAR,1800000,120000\n2026-08-14,EM Trading,HKD,-1200000,80000\n2026-08-14,EM Trading,CNY,36000000,910000\n2026-08-14,EM Trading,CNH,12000000,530000\n2026-08-14,EM Trading,CNH/CNY,48000000,\n2026-08-14,EM Trading,BRL,29000000,1340000\n2026-08-14,EM Trading,BRF,6000000,710000\n2026-08-14,EM Trading,BRL/BRF,35000000,\n2026-09-08,Global Macro,EUR,20000000,960000\n2026-09-08,Global Macro,JPY,-10000000,720000\n2026-09-08,Global Macro,GBP,11000000,620000\n2026-09-08,Global Macro,AUD,10000000,520000\n2026-09-08,Global Macro,AED,6500000,230000\n2026-09-08,Global Macro,SAR,-3000000,170000\n2026-09-08,Global Macro,HKD,2000000,130000\n2026-09-08,Global Macro,CNY,72000000,1720000\n2026-09-08,Global Macro,CNH,-60000000,1380000\n2026-09-08,Global Macro,CNH/CNY,12000000,\n2026-09-08,Global Macro,BRL,48000000,2250000\n2026-09-08,Global Macro,BRF,-41000000,1840000\n2026-09-08,Global Macro,BRL/BRF,7000000,\n2026-09-08,EM Trading,MXN,-25000000,1400000\n2026-09-08,EM Trading,ZAR,19000000,1150000\n2026-09-08,EM Trading,INR,11000000,570000\n2026-09-08,EM Trading,AED,4500000,170000\n2026-09-08,EM Trading,SAR,2200000,130000\n2026-09-08,EM Trading,HKD,-1800000,95000\n2026-09-08,EM Trading,CNY,40000000,1030000\n2026-09-08,EM Trading,CNH,16000000,610000\n2026-09-08,EM Trading,CNH/CNY,56000000,\n2026-09-08,EM Trading,BRL,33000000,1500000\n2026-09-08,EM Trading,BRF,8000000,820000\n2026-09-08,EM Trading,BRL/BRF,41000000,\n2026-09-12,Global Macro,EUR,18000000,900000\n2026-09-12,Global Macro,JPY,-12000000,760000\n2026-09-12,Global Macro,AUD,9000000,510000\n2026-09-12,Global Macro,AED,6000000,220000\n2026-09-12,Global Macro,SAR,-3500000,180000\n2026-09-12,Global Macro,HKD,2500000,140000\n2026-09-12,Global Macro,CNY,68000000,1650000\n2026-09-12,Global Macro,CNH,-57000000,1320000\n2026-09-12,Global Macro,CNH/CNY,11000000,\n2026-09-12,Global Macro,BRL,46000000,2150000\n2026-09-12,Global Macro,BRF,-39000000,1780000\n2026-09-12,Global Macro,BRL/BRF,7000000,\n2026-09-12,EM Trading,MXN,-24000000,1350000\n2026-09-12,EM Trading,ZAR,18000000,1100000\n2026-09-12,EM Trading,INR,10000000,550000\n2026-09-12,EM Trading,AED,4000000,160000\n2026-09-12,EM Trading,SAR,2000000,130000\n2026-09-12,EM Trading,HKD,-1500000,90000\n2026-09-12,EM Trading,CNY,38000000,980000\n2026-09-12,EM Trading,CNH,14000000,580000\n2026-09-12,EM Trading,CNH/CNY,52000000,\n2026-09-12,EM Trading,BRL,31000000,1420000\n2026-09-12,EM Trading,BRF,7000000,770000\n2026-09-12,EM Trading,BRL/BRF,38000000,\n2026-09-15,Global Macro,EUR,24000000,1050000\n2026-09-15,Global Macro,JPY,-15000000,820000\n2026-09-15,Global Macro,GBP,13000000,690000\n2026-09-15,Global Macro,AUD,8000000,480000\n2026-09-15,Global Macro,AED,7000000,240000\n2026-09-15,Global Macro,SAR,-4000000,190000\n2026-09-15,Global Macro,HKD,3000000,150000\n2026-09-15,Global Macro,CNY,75000000,1800000\n2026-09-15,Global Macro,CNH,-62000000,1450000\n2026-09-15,Global Macro,CNH/CNY,13000000,\n2026-09-15,Global Macro,BRL,50000000,2400000\n2026-09-15,Global Macro,BRF,-44000000,1950000\n2026-09-15,Global Macro,BRL/BRF,6000000,\n2026-09-15,EM Trading,MXN,-28000000,1480000\n2026-09-15,EM Trading,ZAR,21000000,1230000\n2026-09-15,EM Trading,INR,12000000,610000\n2026-09-15,EM Trading,AED,5000000,180000\n2026-09-15,EM Trading,SAR,2500000,140000\n2026-09-15,EM Trading,HKD,-2000000,100000\n2026-09-15,EM Trading,CNY,42000000,1100000\n2026-09-15,EM Trading,CNH,18000000,650000\n2026-09-15,EM Trading,CNH/CNY,60000000,\n2026-09-15,EM Trading,BRL,35000000,1600000\n2026-09-15,EM Trading,BRF,10000000,900000\n2026-09-15,EM Trading,BRL/BRF,45000000,\n";
+    const SAMPLE_CSV = "2026-08-14,Global Macro,EUR,15000000,820000\n2026-08-14,Global Macro,JPY,-8000000,660000\n2026-08-14,Global Macro,GBP,9000000,550000\n2026-08-14,Global Macro,AUD,12000000,580000\n2026-08-14,Global Macro,AED,6000000,210000\n2026-08-14,Global Macro,SAR,-2000000,150000\n2026-08-14,Global Macro,HKD,1500000,120000\n2026-08-14,Global Macro,CNY,65000000,1580000\n2026-08-14,Global Macro,CNH,-54000000,1260000\n2026-08-14,Global Macro,CNH/CNY,11000000,\n2026-08-14,Global Macro,BRL,44000000,2050000\n2026-08-14,Global Macro,BRF,-36000000,1690000\n2026-08-14,Global Macro,BRL/BRF,8000000,\n2026-08-14,Global Macro,KRW,30000000,900000\n2026-08-14,Global Macro,KRO,-26000000,760000\n2026-08-14,EM Trading,MXN,-21000000,1280000\n2026-08-14,EM Trading,ZAR,16000000,1020000\n2026-08-14,EM Trading,INR,9000000,500000\n2026-08-14,EM Trading,AED,3800000,150000\n2026-08-14,EM Trading,SAR,1800000,120000\n2026-08-14,EM Trading,HKD,-1200000,80000\n2026-08-14,EM Trading,CNY,36000000,910000\n2026-08-14,EM Trading,CNH,12000000,530000\n2026-08-14,EM Trading,CNH/CNY,48000000,\n2026-08-14,EM Trading,BRL,29000000,1340000\n2026-08-14,EM Trading,BRF,6000000,710000\n2026-08-14,EM Trading,BRL/BRF,35000000,\n2026-08-14,EM Trading,KRW,18000000,620000\n2026-08-14,EM Trading,KRO,-15000000,510000\n2026-09-08,Global Macro,EUR,20000000,960000\n2026-09-08,Global Macro,JPY,-10000000,720000\n2026-09-08,Global Macro,GBP,11000000,620000\n2026-09-08,Global Macro,AUD,10000000,520000\n2026-09-08,Global Macro,AED,6500000,230000\n2026-09-08,Global Macro,SAR,-3000000,170000\n2026-09-08,Global Macro,HKD,2000000,130000\n2026-09-08,Global Macro,CNY,72000000,1720000\n2026-09-08,Global Macro,CNH,-60000000,1380000\n2026-09-08,Global Macro,CNH/CNY,12000000,\n2026-09-08,Global Macro,BRL,48000000,2250000\n2026-09-08,Global Macro,BRF,-41000000,1840000\n2026-09-08,Global Macro,BRL/BRF,7000000,\n2026-09-08,Global Macro,KRW,35000000,980000\n2026-09-08,Global Macro,KRO,-30000000,820000\n2026-09-08,EM Trading,MXN,-25000000,1400000\n2026-09-08,EM Trading,ZAR,19000000,1150000\n2026-09-08,EM Trading,INR,11000000,570000\n2026-09-08,EM Trading,AED,4500000,170000\n2026-09-08,EM Trading,SAR,2200000,130000\n2026-09-08,EM Trading,HKD,-1800000,95000\n2026-09-08,EM Trading,CNY,40000000,1030000\n2026-09-08,EM Trading,CNH,16000000,610000\n2026-09-08,EM Trading,CNH/CNY,56000000,\n2026-09-08,EM Trading,BRL,33000000,1500000\n2026-09-08,EM Trading,BRF,8000000,820000\n2026-09-08,EM Trading,BRL/BRF,41000000,\n2026-09-08,EM Trading,KRW,20000000,680000\n2026-09-08,EM Trading,KRO,-17000000,560000\n2026-09-12,Global Macro,EUR,18000000,900000\n2026-09-12,Global Macro,JPY,-12000000,760000\n2026-09-12,Global Macro,AUD,9000000,510000\n2026-09-12,Global Macro,AED,6000000,220000\n2026-09-12,Global Macro,SAR,-3500000,180000\n2026-09-12,Global Macro,HKD,2500000,140000\n2026-09-12,Global Macro,CNY,68000000,1650000\n2026-09-12,Global Macro,CNH,-57000000,1320000\n2026-09-12,Global Macro,CNH/CNY,11000000,\n2026-09-12,Global Macro,BRL,46000000,2150000\n2026-09-12,Global Macro,BRF,-39000000,1780000\n2026-09-12,Global Macro,BRL/BRF,7000000,\n2026-09-12,Global Macro,KRW,33000000,950000\n2026-09-12,Global Macro,KRO,-29000000,800000\n2026-09-12,EM Trading,MXN,-24000000,1350000\n2026-09-12,EM Trading,ZAR,18000000,1100000\n2026-09-12,EM Trading,INR,10000000,550000\n2026-09-12,EM Trading,AED,4000000,160000\n2026-09-12,EM Trading,SAR,2000000,130000\n2026-09-12,EM Trading,HKD,-1500000,90000\n2026-09-12,EM Trading,CNY,38000000,980000\n2026-09-12,EM Trading,CNH,14000000,580000\n2026-09-12,EM Trading,CNH/CNY,52000000,\n2026-09-12,EM Trading,BRL,31000000,1420000\n2026-09-12,EM Trading,BRF,7000000,770000\n2026-09-12,EM Trading,BRL/BRF,38000000,\n2026-09-12,EM Trading,KRW,19000000,650000\n2026-09-12,EM Trading,KRO,-16000000,540000\n2026-09-15,Global Macro,EUR,24000000,1050000\n2026-09-15,Global Macro,JPY,-15000000,820000\n2026-09-15,Global Macro,GBP,13000000,690000\n2026-09-15,Global Macro,AUD,8000000,480000\n2026-09-15,Global Macro,AED,7000000,240000\n2026-09-15,Global Macro,SAR,-4000000,190000\n2026-09-15,Global Macro,HKD,3000000,150000\n2026-09-15,Global Macro,CNY,75000000,1800000\n2026-09-15,Global Macro,CNH,-62000000,1450000\n2026-09-15,Global Macro,CNH/CNY,13000000,\n2026-09-15,Global Macro,BRL,50000000,2400000\n2026-09-15,Global Macro,BRF,-44000000,1950000\n2026-09-15,Global Macro,BRL/BRF,6000000,\n2026-09-15,Global Macro,KRW,38000000,1050000\n2026-09-15,Global Macro,KRO,-32000000,870000\n2026-09-15,EM Trading,MXN,-28000000,1480000\n2026-09-15,EM Trading,ZAR,21000000,1230000\n2026-09-15,EM Trading,INR,12000000,610000\n2026-09-15,EM Trading,AED,5000000,180000\n2026-09-15,EM Trading,SAR,2500000,140000\n2026-09-15,EM Trading,HKD,-2000000,100000\n2026-09-15,EM Trading,CNY,42000000,1100000\n2026-09-15,EM Trading,CNH,18000000,650000\n2026-09-15,EM Trading,CNH/CNY,60000000,\n2026-09-15,EM Trading,BRL,35000000,1600000\n2026-09-15,EM Trading,BRF,10000000,900000\n2026-09-15,EM Trading,BRL/BRF,45000000,\n2026-09-15,EM Trading,KRW,22000000,730000\n2026-09-15,EM Trading,KRO,-18000000,600000\n";
 
     const COLORS = { Directional: "#2463eb", Basis: "#8b58c7", Carry: "#238a78" };
     const ORDER = ['Directional', 'Basis', 'Carry'];
     const CARRY = new Set(['AED', 'SAR', 'HKD']);
-    const BASIS_SOURCE = new Set(['CNY', 'BRL']);
-    const SUPPORT_LEG = new Set(['CNH', 'BRF']);
+    const BASIS_SOURCE = new Set(['CNY', 'BRL', 'KRW']);
+    const SUPPORT_LEG = new Set(['CNH', 'BRF', 'KRO']);
     const PAIRS = {
       'CNH/CNY': { display: 'CNH', legs: ['CNH', 'CNY'] },
       'BRL/BRF': { display: 'BRL', legs: ['BRL', 'BRF'] }
     };
+    const CALCULATED_PAIRS = [
+      { display: 'KRW', source: 'KRW', support: 'KRO' }
+    ];
 
     let rawRows = [];
     let currentSource = 'Synthetic sample';
@@ -630,7 +712,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     function buildPositions(rows, date, buFilter) {
       const latestRows = rows.filter(row => row.date === date && (buFilter === 'ALL' || row.bu === buFilter));
       const lookup = new Map(latestRows.map(row => [`${row.bu}|${row.ccy}`, row]));
-      return latestRows.map(row => {
+      const positions = latestRows.map(row => {
         if (SUPPORT_LEG.has(row.ccy)) return null;
         if (CARRY.has(row.ccy)) return { ...row, display: row.ccy, strategy: 'Carry', method: 'Reported', derived: false };
         if (BASIS_SOURCE.has(row.ccy)) return { ...row, display: row.ccy, strategy: 'Basis', var: null, method: `${row.ccy} delta source`, derived: false };
@@ -641,6 +723,27 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
         }
         return { ...row, display: row.ccy, strategy: 'Directional', method: 'Reported', derived: false };
       }).filter(Boolean);
+      const businessUnits = [...new Set(latestRows.map(row => row.bu))];
+      CALCULATED_PAIRS.forEach(pair => businessUnits.forEach(bu => {
+        const sourceLeg = lookup.get(`${bu}|${pair.source}`);
+        const supportLeg = lookup.get(`${bu}|${pair.support}`);
+        if (!sourceLeg && !supportLeg) return;
+        const sourceVar = sourceLeg ? sourceLeg.var : 0;
+        const supportVar = supportLeg ? supportLeg.var : 0;
+        const derivedVar = sourceVar != null && supportVar != null ? Math.abs(sourceVar - supportVar) : null;
+        const template = sourceLeg || supportLeg;
+        positions.push({
+          ...template,
+          ccy: `${pair.source}/${pair.support}`,
+          delta: (sourceLeg?.delta ?? 0) + (supportLeg?.delta ?? 0),
+          display: pair.display,
+          strategy: 'Directional',
+          var: derivedVar,
+          method: `${pair.source} + ${pair.support} delta; |${pair.source} VaR − ${pair.support} VaR|`,
+          derived: true
+        });
+      }));
+      return positions;
     }
 
     function summarize(positions) {
@@ -997,5 +1100,318 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
   if(rawRows.length>0)window.render();
 })();
 </script>
+
+<script>
+const PNL_DATA = {"byBusinessUnit":{"ALL":{"currencies":["AED","AUD","BRL","CNH","EUR","GBP","HKD","INR","JPY","KRW","MXN","SAR","ZAR"],"points":[{"bookCumulative":0.0,"bookDaily":0.0,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"AUD":{"cumulative":0.0,"daily":0.0},"BRL":{"cumulative":0.0,"daily":0.0},"CNH":{"cumulative":0.0,"daily":0.0},"EUR":{"cumulative":0.0,"daily":0.0},"GBP":{"cumulative":0.0,"daily":0.0},"HKD":{"cumulative":0.0,"daily":0.0},"INR":{"cumulative":0.0,"daily":0.0},"JPY":{"cumulative":0.0,"daily":0.0},"KRW":{"cumulative":0.0,"daily":0.0},"MXN":{"cumulative":0.0,"daily":0.0},"SAR":{"cumulative":0.0,"daily":0.0},"ZAR":{"cumulative":0.0,"daily":0.0}},"date":"2026-08-14"},{"bookCumulative":697619.6283946917,"bookDaily":697619.6283946917,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"AUD":{"cumulative":118421.05263157698,"daily":118421.05263157698},"BRL":{"cumulative":239332.09647495302,"daily":239332.09647495302},"CNH":{"cumulative":207017.54385964977,"daily":207017.54385964977},"EUR":{"cumulative":70422.53521126862,"daily":70422.53521126862},"GBP":{"cumulative":24489.795918366974,"daily":24489.795918366974},"HKD":{"cumulative":192.43104554198533,"daily":192.43104554198533},"INR":{"cumulative":-25611.838360842466,"daily":-25611.838360842466},"JPY":{"cumulative":59339.17734322414,"daily":59339.17734322414},"KRW":{"cumulative":35558.78084179964,"daily":35558.78084179964},"MXN":{"cumulative":-170270.27027026852,"daily":-170270.27027026852},"SAR":{"cumulative":0.0,"daily":-0.0},"ZAR":{"cumulative":138728.32369942145,"daily":138728.32369942145}},"date":"2026-09-08"},{"bookCumulative":1571119.0289523753,"bookDaily":873499.4005576835,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"AUD":{"cumulative":218088.82671795748,"daily":99667.7740863805},"BRL":{"cumulative":598210.6011478545,"daily":358878.5046729015},"CNH":{"cumulative":446454.16357796686,"daily":239436.6197183171},"EUR":{"cumulative":164762.15785277914,"daily":94339.62264151052},"GBP":{"cumulative":69571.76313148116,"daily":45081.96721311419},"HKD":{"cumulative":320.80075029168324,"daily":128.3697047496979},"INR":{"cumulative":-6797.699250238878,"daily":18814.139110603588},"JPY":{"cumulative":11913.70308848106,"daily":-47425.47425474308},"KRW":{"cumulative":82274.10930895252,"daily":46715.328467152875},"MXN":{"cumulative":-374629.9432947919,"daily":-204359.6730245234},"SAR":{"cumulative":0.0,"daily":-0.0},"ZAR":{"cumulative":360950.5459216415,"daily":222222.2222222201}},"date":"2026-09-12"},{"bookCumulative":2175373.590584631,"bookDaily":604254.5616322558,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"AUD":{"cumulative":278289.4956142765,"daily":60200.66889631903},"BRL":{"cumulative":937193.6519953157,"daily":338983.05084746116},"CNH":{"cumulative":624420.265272877,"daily":177966.10169491012},"EUR":{"cumulative":228667.48329656804,"daily":63905.325443788905},"GBP":{"cumulative":69571.76313148116,"daily":0.0},"HKD":{"cumulative":963.0615081594574,"daily":642.2607578677741},"INR":{"cumulative":10335.367568722882,"daily":17133.06681896176},"JPY":{"cumulative":-45268.053208319165,"daily":-57181.756296800224},"KRW":{"cumulative":123390.11518266797,"daily":41116.00587371545},"MXN":{"cumulative":-572432.1410969943,"daily":-197802.19780220243},"SAR":{"cumulative":0.0,"daily":-0.0},"ZAR":{"cumulative":520242.58131987584,"daily":159292.03539823432}},"date":"2026-09-15"}],"warnings":[]},"EM Trading":{"currencies":["AED","BRL","CNH","HKD","INR","KRW","MXN","SAR","ZAR"],"points":[{"bookCumulative":0.0,"bookDaily":0.0,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"BRL":{"cumulative":0.0,"daily":0.0},"CNH":{"cumulative":0.0,"daily":0.0},"HKD":{"cumulative":0.0,"daily":0.0},"INR":{"cumulative":0.0,"daily":0.0},"KRW":{"cumulative":0.0,"daily":0.0},"MXN":{"cumulative":0.0,"daily":0.0},"SAR":{"cumulative":0.0,"daily":0.0},"ZAR":{"cumulative":0.0,"daily":0.0}},"date":"2026-08-14"},{"bookCumulative":320542.2158265447,"bookDaily":320542.2158265447,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"BRL":{"cumulative":194805.1948051943,"daily":194805.1948051943},"CNH":{"cumulative":168421.05263157949,"daily":168421.05263157949},"HKD":{"cumulative":-769.7241821679413,"daily":-769.7241821679413},"INR":{"cumulative":-25611.838360842466,"daily":-25611.838360842466},"KRW":{"cumulative":15239.477503628417,"daily":15239.477503628417},"MXN":{"cumulative":-170270.27027026852,"daily":-170270.27027026852},"SAR":{"cumulative":0.0,"daily":0.0},"ZAR":{"cumulative":138728.32369942145,"daily":138728.32369942145}},"date":"2026-09-08"},{"bookCumulative":877306.9796336053,"bookDaily":556764.7638070607,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"BRL":{"cumulative":501347.2508799643,"daily":306542.05607477005},"CNH":{"cumulative":365604.1512231347,"daily":197183.09859155526},"HKD":{"cumulative":-1925.0515249152222,"daily":-1155.327342747281},"INR":{"cumulative":-6797.699250238878,"daily":18814.139110603588},"KRW":{"cumulative":32757.725678810748,"daily":17518.24817518233},"MXN":{"cumulative":-374629.9432947919,"daily":-204359.6730245234},"SAR":{"cumulative":0.0,"daily":0.0},"ZAR":{"cumulative":360950.5459216415,"daily":222222.2222222201}},"date":"2026-09-12"},{"bookCumulative":1305732.6477024413,"bookDaily":428425.66806883604,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"BRL":{"cumulative":787599.6049289315,"daily":286252.3540489672},"CNH":{"cumulative":512496.8065903621,"daily":146892.6553672274},"HKD":{"cumulative":-2888.4426617168833,"daily":-963.3911368016612},"INR":{"cumulative":10335.367568722882,"daily":17133.06681896176},"KRW":{"cumulative":50378.87105326023,"daily":17621.145374449476},"MXN":{"cumulative":-572432.1410969943,"daily":-197802.19780220243},"SAR":{"cumulative":0.0,"daily":0.0},"ZAR":{"cumulative":520242.58131987584,"daily":159292.03539823432}},"date":"2026-09-15"}],"warnings":[]},"Global Macro":{"currencies":["AED","AUD","BRL","CNH","EUR","GBP","HKD","JPY","KRW","SAR"],"points":[{"bookCumulative":0.0,"bookDaily":0.0,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"AUD":{"cumulative":0.0,"daily":0.0},"BRL":{"cumulative":0.0,"daily":0.0},"CNH":{"cumulative":0.0,"daily":0.0},"EUR":{"cumulative":0.0,"daily":0.0},"GBP":{"cumulative":0.0,"daily":0.0},"HKD":{"cumulative":0.0,"daily":0.0},"JPY":{"cumulative":0.0,"daily":0.0},"KRW":{"cumulative":0.0,"daily":0.0},"SAR":{"cumulative":0.0,"daily":0.0}},"date":"2026-08-14"},{"bookCumulative":377077.4125681468,"bookDaily":377077.4125681468,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"AUD":{"cumulative":118421.05263157698,"daily":118421.05263157698},"BRL":{"cumulative":44526.9016697587,"daily":44526.9016697587},"CNH":{"cumulative":38596.49122807029,"daily":38596.49122807029},"EUR":{"cumulative":70422.53521126862,"daily":70422.53521126862},"GBP":{"cumulative":24489.795918366974,"daily":24489.795918366974},"HKD":{"cumulative":962.1552277099265,"daily":962.1552277099265},"JPY":{"cumulative":59339.17734322414,"daily":59339.17734322414},"KRW":{"cumulative":20319.303338171223,"daily":20319.303338171223},"SAR":{"cumulative":0.0,"daily":-0.0}},"date":"2026-09-08"},{"bookCumulative":693812.0493187698,"bookDaily":316734.636750623,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"AUD":{"cumulative":218088.82671795748,"daily":99667.7740863805},"BRL":{"cumulative":96863.35026789017,"daily":52336.44859813147},"CNH":{"cumulative":80850.01235483213,"daily":42253.521126761836},"EUR":{"cumulative":164762.15785277914,"daily":94339.62264151052},"GBP":{"cumulative":69571.76313148116,"daily":45081.96721311419},"HKD":{"cumulative":2245.8522752069057,"daily":1283.697047496979},"JPY":{"cumulative":11913.70308848106,"daily":-47425.47425474308},"KRW":{"cumulative":49516.38363014177,"daily":29197.080291970546},"SAR":{"cumulative":0.0,"daily":-0.0}},"date":"2026-09-12"},{"bookCumulative":869640.9428821896,"bookDaily":175828.8935634198,"currencies":{"AED":{"cumulative":0.0,"daily":0.0},"AUD":{"cumulative":278289.4956142765,"daily":60200.66889631903},"BRL":{"cumulative":149594.04706638414,"daily":52730.69679849396},"CNH":{"cumulative":111923.45868251484,"daily":31073.44632768272},"EUR":{"cumulative":228667.48329656804,"daily":63905.325443788905},"GBP":{"cumulative":69571.76313148116,"daily":0.0},"HKD":{"cumulative":3851.504169876341,"daily":1605.6518946694355},"JPY":{"cumulative":-45268.053208319165,"daily":-57181.756296800224},"KRW":{"cumulative":73011.24412940774,"daily":23494.860499265968},"SAR":{"cumulative":0.0,"daily":-0.0}},"date":"2026-09-15"}],"warnings":[]}},"formula":"Prior exposure \u00d7 (prior USDXXX rate / current USDXXX rate \u2212 1)","latestDate":"2026-09-15","rateSource":"synthetic_fx_rates.csv"};
+const REGIONAL_CSV = "";
+const LOCATION_BY_STRATEGY = {};
+
+(function(){
+  var REGION_ORDER=["SG","CH","LATAM","Unmapped"];
+  var REGION_COLORS={"SG":"#2463eb","CH":"#d88917","LATAM":"#14866d","Unmapped":"#7a8795"};
+  var regionalRows=[];
+
+  function parseRegionalCSV(text){
+    if(!text.trim())return [];
+    var errors=[];
+    var rows=text.replace(/^\uFEFF/,"").split(/\r?\n/).map(function(line){return line.trim()}).filter(Boolean).map(function(line,index){
+      var fields=splitCSVLine(line);
+      if(fields.length!==5){errors.push("row "+(index+1)+": expected 5 columns");return null}
+      var date=fields[0],bu=fields[1],strategyLevelOne=fields[2],ccy=fields[3].toUpperCase(),delta=Number(fields[4]);
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!bu||!strategyLevelOne||!ccy||!Number.isFinite(delta)){
+        errors.push("row "+(index+1)+": invalid date, label, or number");return null
+      }
+      return {date:date,bu:bu,strategyLevelOne:strategyLevelOne,ccy:ccy,delta:delta};
+    }).filter(Boolean);
+    if(errors.length)throw new Error("Regional CSV: "+errors[0]);
+    return rows;
+  }
+
+  function regionalClassification(ccy){
+    if(SUPPORT_LEG.has(ccy))return null;
+    if(CARRY.has(ccy))return {strategy:"Carry",display:ccy};
+    if(BASIS_SOURCE.has(ccy))return {strategy:"Basis",display:ccy};
+    if(PAIRS[ccy])return {strategy:"Directional",display:PAIRS[ccy].display};
+    return {strategy:"Directional",display:ccy};
+  }
+
+  function addRegionalExposure(result,key,location,strategyName,delta){
+    var values=result.get(key);
+    if(values===undefined){
+      values={"SG":0,"CH":0,"LATAM":0,"Unmapped":0,strategies:{"SG":new Map(),"CH":new Map(),"LATAM":new Map(),"Unmapped":new Map()}};
+      result.set(key,values);
+    }
+    values[location]+=delta;
+    var strategyValues=values.strategies[location];
+    strategyValues.set(strategyName,(strategyValues.get(strategyName)||0)+delta);
+  }
+
+  function regionalSnapshot(date,selectedBU){
+    var result=new Map();
+    var snapshotRows=regionalRows.filter(function(row){
+      return row.date===date&&(selectedBU==="ALL"||row.bu===selectedBU);
+    });
+    snapshotRows.forEach(function(row){
+      var classification=regionalClassification(row.ccy);
+      if(classification===null)return;
+      var strategyName=row.strategyLevelOne.trim().toUpperCase();
+      var location=LOCATION_BY_STRATEGY[strategyName]||"Unmapped";
+      addRegionalExposure(result,classification.strategy+"|"+classification.display,location,strategyName,row.delta);
+    });
+    CALCULATED_PAIRS.forEach(function(pair){
+      var legGroups=new Map();
+      snapshotRows.forEach(function(row){
+        if(row.ccy!==pair.source&&row.ccy!==pair.support)return;
+        var strategyName=row.strategyLevelOne.trim().toUpperCase();
+        var groupKey=row.bu+"|"+strategyName;
+        var legs=legGroups.get(groupKey);
+        if(legs===undefined){
+          legs={source:0,support:0,strategyName:strategyName,location:LOCATION_BY_STRATEGY[strategyName]||"Unmapped"};
+          legGroups.set(groupKey,legs);
+        }
+        if(row.ccy===pair.source)legs.source+=row.delta;
+        else legs.support+=row.delta;
+      });
+      legGroups.forEach(function(legs){
+        addRegionalExposure(result,"Directional|"+pair.display,legs.location,legs.strategyName,legs.source+legs.support);
+      });
+    });
+    return result;
+  }
+
+  try{
+    regionalRows=parseRegionalCSV(REGIONAL_CSV);
+  }catch(error){
+    regionalRows=[];
+    console.error(error);
+  }
+
+  var regionalBaseRender=window.render;
+  window.render=function(){
+    regionalBaseRender();
+    var selectedBU=document.getElementById("buFilter").value;
+    var date=latestDate(rawRows);
+    var attribution=regionalSnapshot(date,selectedBU);
+    var expected=new Map();
+    buildPositions(rawRows,date,selectedBU).forEach(function(position){
+      var key=position.strategy+"|"+position.display;
+      expected.set(key,(expected.get(key)||0)+position.delta);
+    });
+
+    var grid=document.getElementById("strategyGrid");
+    var deltaCard=grid.children[0];
+    if(!deltaCard)return;
+    var groups=deltaCard.querySelectorAll(".hgroup");
+    ORDER.forEach(function(strategy,index){
+      var group=groups[index];
+      if(!group)return;
+      group.querySelectorAll(".hbar-row.child").forEach(function(row){
+        var currency=row.querySelector(".hbar-name").textContent.trim();
+        var key=strategy+"|"+currency;
+        var values=attribution.get(key);
+        var breakdown=document.createElement("div");
+        breakdown.className="region-breakdown";
+        breakdown.id="region-"+index+"-"+currency.replace(/[^A-Za-z0-9_-]/g,"-");
+        breakdown.hidden=true;
+        row.classList.add("region-expandable");
+        row.tabIndex=0;
+        row.setAttribute("role","button");
+        row.setAttribute("aria-expanded","false");
+        row.setAttribute("aria-controls",breakdown.id);
+        row.setAttribute("aria-label","Toggle regional Delta breakdown for "+currency);
+        function toggleBreakdown(){
+          var expanded=row.getAttribute("aria-expanded")==="true";
+          row.setAttribute("aria-expanded",expanded?"false":"true");
+          breakdown.hidden=expanded;
+        }
+        row.addEventListener("click",toggleBreakdown);
+        row.addEventListener("keydown",function(event){
+          if(event.key==="Enter"||event.key===" "){event.preventDefault();toggleBreakdown()}
+        });
+        if(values===undefined){
+          var empty=document.createElement("span");
+          empty.className="region-empty";
+          empty.textContent="No regional Delta data";
+          breakdown.appendChild(empty);
+          row.appendChild(breakdown);
+          return;
+        }
+        REGION_ORDER.forEach(function(location){
+          var item=document.createElement("div");
+          item.className="region-item";
+          var label=document.createElement("span");
+          label.className="region-item-label";
+          label.style.setProperty("--region",REGION_COLORS[location]);
+          var dot=document.createElement("i");
+          label.appendChild(dot);
+          label.appendChild(document.createTextNode(location));
+          var value=document.createElement("strong");
+          value.className="region-item-value "+(values[location]<0?"negative":"positive");
+          value.textContent=formatMoney(values[location],true);
+          item.appendChild(label);
+          item.appendChild(value);
+          var strategyEntries=Array.from(values.strategies[location].entries()).filter(function(entry){return Math.abs(entry[1])>0.005}).sort(function(a,b){return Math.abs(b[1])-Math.abs(a[1])||a[0].localeCompare(b[0])});
+          if(strategyEntries.length){
+            var strategyList=document.createElement("div");
+            strategyList.className="regional-strategy-list";
+            strategyList.id=breakdown.id+"-"+location.replace(/[^A-Za-z0-9_-]/g,"-")+"-strategies";
+            strategyList.hidden=true;
+            strategyEntries.forEach(function(entry){
+              var strategyRow=document.createElement("div");
+              strategyRow.className="regional-strategy-row";
+              var strategyLabel=document.createElement("span");
+              strategyLabel.className="regional-strategy-name";
+              strategyLabel.textContent=entry[0];
+              var strategyValue=document.createElement("strong");
+              strategyValue.className="regional-strategy-value "+(entry[1]<0?"negative":"positive");
+              strategyValue.textContent=formatMoney(entry[1],true);
+              strategyRow.appendChild(strategyLabel);
+              strategyRow.appendChild(strategyValue);
+              strategyList.appendChild(strategyRow);
+            });
+            item.classList.add("region-item-expandable");
+            item.tabIndex=0;
+            item.setAttribute("role","button");
+            item.setAttribute("aria-expanded","false");
+            item.setAttribute("aria-controls",strategyList.id);
+            item.setAttribute("aria-label","Toggle strategy Delta breakdown for "+location+" "+currency);
+            function toggleStrategies(event){
+              event.stopPropagation();
+              var expanded=item.getAttribute("aria-expanded")=="true";
+              item.setAttribute("aria-expanded",expanded?"false":"true");
+              strategyList.hidden=expanded;
+            }
+            item.addEventListener("click",toggleStrategies);
+            item.addEventListener("keydown",function(event){
+              if(event.key==="Enter"||event.key===" "){event.preventDefault();toggleStrategies(event)}
+            });
+            item.appendChild(strategyList);
+          }
+          breakdown.appendChild(item);
+        });
+        var regionalTotal=REGION_ORDER.reduce(function(sum,location){return sum+values[location]},0);
+        var difference=regionalTotal-(expected.get(key)||0);
+        if(Math.abs(difference)>1){
+          var warning=document.createElement("div");
+          warning.className="region-mismatch";
+          warning.textContent="Regional total mismatch · "+formatMoney(difference,true);
+          breakdown.appendChild(warning);
+        }
+        row.appendChild(breakdown);
+      });
+    });
+  };
+
+  document.getElementById("buFilter").addEventListener("change",function(){window.render()});
+  if(rawRows.length>0)window.render();
+})();
+</script>
+
+
+<script>
+(function(){
+  function pnlMoney(value,signed){
+    if(value===null||value===undefined||!Number.isFinite(value))return "N/A";
+    var absolute=Math.abs(value),unit=absolute>=1e9?[1e9,"bn"]:absolute>=1e6?[1e6,"m"]:absolute>=1e3?[1e3,"k"]:[1,""];
+    var scaled=absolute/unit[0],digits=scaled>=100?0:scaled>=10?1:2;
+    return (value<0?"−":signed&&value>0?"+":"")+String.fromCharCode(36)+scaled.toFixed(digits)+unit[1];
+  }
+  function pnlClass(value){return value===null||value===0?"":value<0?"negative":"positive"}
+  function dateMs(value){return Date.parse(value+"T00:00:00Z")}
+  function displayDate(value){return new Intl.DateTimeFormat("en-GB",{day:"2-digit",month:"short",timeZone:"UTC"}).format(new Date(dateMs(value)))}
+  function dataForSelection(){
+    var selected=document.getElementById("buFilter").value;
+    return PNL_DATA.byBusinessUnit[selected]||PNL_DATA.byBusinessUnit.ALL;
+  }
+  function seriesFor(data,label){
+    return data.points.map(function(point){
+      if(label==="Whole book")return {date:point.date,daily:point.bookDaily,cumulative:point.bookCumulative};
+      var values=point.currencies[label];
+      return {date:point.date,daily:values?values.daily:null,cumulative:values?values.cumulative:null};
+    });
+  }
+  function trailingTotal(series,days){
+    var cutoff=dateMs(PNL_DATA.latestDate)-days*86400000;
+    var values=series.filter(function(point){return dateMs(point.date)>cutoff}).map(function(point){return point.daily});
+    if(values.some(function(value){return value===null}))return null;
+    return values.reduce(function(sum,value){return sum+value},0);
+  }
+  function summaryFor(series){
+    var latest=series[series.length-1];
+    return {latest:latest.daily,week:trailingTotal(series,7),month:trailingTotal(series,30),cumulative:latest.cumulative};
+  }
+  function addSummaryCell(row,value){
+    var cell=document.createElement("td");cell.className="num "+pnlClass(value);cell.textContent=pnlMoney(value,true);row.appendChild(cell);
+  }
+  function renderPnlSummary(data){
+    var body=document.getElementById("pnlSummaryRows");body.innerHTML="";
+    ["Whole book"].concat(data.currencies).forEach(function(label){
+      var values=summaryFor(seriesFor(data,label)),row=document.createElement("tr");
+      if(label==="Whole book")row.className="pnl-book";
+      var name=document.createElement("td");name.textContent=label;row.appendChild(name);
+      addSummaryCell(row,values.latest);addSummaryCell(row,values.week);addSummaryCell(row,values.month);addSummaryCell(row,values.cumulative);body.appendChild(row);
+    });
+    var book=summaryFor(seriesFor(data,"Whole book"));
+    [["pnlLatest",book.latest],["pnlWeek",book.week],["pnlMonth",book.month],["pnlCumulative",book.cumulative]].forEach(function(item){
+      var element=document.getElementById(item[0]);element.textContent=pnlMoney(item[1],true);element.className="pnl-kpi-value "+pnlClass(item[1]);
+    });
+  }
+  function renderPnlChart(data,label){
+    var series=seriesFor(data,label),values=[];
+    series.forEach(function(point){if(point.daily!==null)values.push(point.daily);if(point.cumulative!==null)values.push(point.cumulative)});
+    values.push(0);
+    var minimum=Math.min.apply(null,values),maximum=Math.max.apply(null,values),span=Math.max(maximum-minimum,Math.max(Math.abs(minimum),Math.abs(maximum))*.15,1);
+    minimum-=span*.12;maximum+=span*.12;
+    var width=900,height=350,left=78,right=25,top=20,bottom=52,plotWidth=width-left-right,plotHeight=height-top-bottom;
+    function x(index){return left+(index+.5)/series.length*plotWidth}
+    function y(value){return top+(maximum-value)/(maximum-minimum)*plotHeight}
+    var barWidth=Math.max(5,Math.min(30,plotWidth/series.length*.55)),zero=y(0),svg=['<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Daily and cumulative P&L for '+escapeHTML(label)+'">'];
+    for(var tick=0;tick<5;tick+=1){
+      var tickValue=minimum+(maximum-minimum)*tick/4,tickY=y(tickValue);
+      svg.push('<line class="pnl-gridline" x1="'+left+'" y1="'+tickY+'" x2="'+(width-right)+'" y2="'+tickY+'"/>');
+      svg.push('<text class="pnl-axis" x="'+(left-9)+'" y="'+(tickY+4)+'" text-anchor="end">'+pnlMoney(tickValue,false)+'</text>');
+    }
+    svg.push('<line class="pnl-zero" x1="'+left+'" y1="'+zero+'" x2="'+(width-right)+'" y2="'+zero+'"/>');
+    series.forEach(function(point,index){
+      if(point.daily===null)return;
+      var pointY=y(point.daily),heightValue=Math.max(1,Math.abs(zero-pointY)),barY=point.daily>=0?pointY:zero;
+      svg.push('<rect class="'+(point.daily>=0?'pnl-positive':'pnl-negative')+'" x="'+(x(index)-barWidth/2)+'" y="'+barY+'" width="'+barWidth+'" height="'+heightValue+'"><title>'+displayDate(point.date)+' · '+pnlMoney(point.daily,true)+'</title></rect>');
+    });
+    var segments=[],segment=[];
+    series.forEach(function(point,index){
+      if(point.cumulative===null){if(segment.length)segments.push(segment);segment=[];return}
+      segment.push([x(index),y(point.cumulative),point]);
+    });
+    if(segment.length)segments.push(segment);
+    segments.forEach(function(items){
+      if(items.length>1)svg.push('<path class="pnl-cumulative" d="'+items.map(function(item,index){return(index?'L ':'M ')+item[0].toFixed(2)+' '+item[1].toFixed(2)}).join(' ')+'"/>');
+      items.forEach(function(item){svg.push('<circle class="pnl-point" cx="'+item[0]+'" cy="'+item[1]+'" r="2.8"><title>'+displayDate(item[2].date)+' cumulative · '+pnlMoney(item[2].cumulative,true)+'</title></circle>')});
+    });
+    var labelEvery=Math.max(1,Math.ceil(series.length/6));
+    series.forEach(function(point,index){if(index%labelEvery===0||index===series.length-1)svg.push('<text class="pnl-axis" x="'+x(index)+'" y="'+(height-20)+'" text-anchor="middle">'+displayDate(point.date)+'</text>')});
+    svg.push('</svg>');
+    document.getElementById("pnlChart").innerHTML=svg.join("");
+    document.getElementById("pnlChartTitle").textContent=label+" P&L";
+    document.getElementById("pnlChartMeta").textContent="Daily MTM bars · cumulative P&L line · through "+formatDate(PNL_DATA.latestDate);
+  }
+  function renderPnl(){
+    var data=dataForSelection(),select=document.getElementById("pnlCurrency"),previous=select.value;
+    var labels=["Whole book"].concat(data.currencies);
+    select.innerHTML=labels.map(function(label){return '<option value="'+escapeHTML(label)+'">'+escapeHTML(label)+'</option>'}).join("");
+    select.value=labels.indexOf(previous)>=0?previous:"Whole book";
+    document.getElementById("pnlRateSource").textContent=PNL_DATA.rateSource;
+    renderPnlSummary(data);renderPnlChart(data,select.value);
+    var status=document.getElementById("pnlStatus");
+    if(data.warnings.length){status.className="pnl-status warning";status.textContent="Incomplete P&L · "+data.warnings.join(" · ")}
+    else{status.className="pnl-status";status.textContent="Complete rate coverage for every active currency and exposure date."}
+  }
+  document.getElementById("pnlCurrency").addEventListener("change",function(){renderPnlChart(dataForSelection(),this.value)});
+  var pnlBaseRender=window.render;
+  window.render=function(){pnlBaseRender();renderPnl()};
+  document.getElementById("buFilter").addEventListener("change",function(){window.render()});
+  if(rawRows.length>0)window.render();
+})();
+</script>
+
 </body>
 </html>
