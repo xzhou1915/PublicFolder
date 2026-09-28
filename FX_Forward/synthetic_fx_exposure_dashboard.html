@@ -501,10 +501,10 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 .pnl-summary tr.pnl-book td{background:#eef3f8;font-weight:750}.pnl-summary td:first-child{font-weight:700}
 .pnl-chart-card{position:relative;padding:18px 20px}.pnl-chart-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:9px}
 .pnl-chart-head h3{margin:0;font-size:18px}.pnl-select{min-width:150px;padding:8px 30px 8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:inherit;font-weight:650}
-.pnl-chart-meta{margin:0 0 8px;color:var(--muted);font-size:12px}.pnl-zoom-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;color:var(--muted);font-size:11px}.pnl-zoom-reset{padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.pnl-zoom-reset:disabled{color:var(--faint);cursor:default;opacity:.6}.pnl-chart svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}.pnl-hover-target{cursor:crosshair;pointer-events:all}
+.pnl-chart-meta{margin:0 0 8px;color:var(--muted);font-size:12px}.pnl-zoom-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;color:var(--muted);font-size:11px}.pnl-zoom-reset{padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.pnl-zoom-reset:disabled{color:var(--faint);cursor:default;opacity:.6}.pnl-chart svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}.pnl-exposure-chart{margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}.pnl-hover-target{cursor:crosshair;pointer-events:all}
 .pnl-tooltip{position:absolute;z-index:20;min-width:235px;max-width:310px;padding:11px 13px;border:1px solid #111827;border-radius:8px;background:#111827;color:#fff;box-shadow:0 8px 24px rgba(17,24,39,.24);pointer-events:none}
 .pnl-tooltip[hidden]{display:none}.pnl-tooltip-title{margin-bottom:7px;font-size:12px;font-weight:750}.pnl-tooltip-row{display:flex;justify-content:space-between;gap:18px;padding:3px 0;font-size:11px}.pnl-tooltip-row span{color:#b9c4d2}.pnl-tooltip-row strong{text-align:right;font-weight:700}
-.pnl-gridline{stroke:#e6ebf0;stroke-width:1}.pnl-zero{stroke:#8d99a6;stroke-width:1.2}.pnl-axis{fill:#687789;font-size:10px}.pnl-axis-title{fill:#4e5d6c;font-size:10px;font-weight:700}.pnl-axis-cumulative{fill:#111827}.pnl-axis-exposure{fill:#2f6fed}.pnl-zoom-selection{fill:rgba(47,111,237,.14);stroke:#2f6fed;stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
+.pnl-gridline{stroke:#e6ebf0;stroke-width:1}.pnl-zero{stroke:#8d99a6;stroke-width:1.2}.pnl-axis{fill:#687789;font-size:10px}.pnl-axis-title{fill:#4e5d6c;font-size:10px;font-weight:700}.pnl-axis-cumulative{fill:#111827}.pnl-axis-exposure{fill:#2f6fed}.pnl-crosshair{stroke:#69788a;stroke-width:1;stroke-dasharray:3 3;pointer-events:none}.pnl-zoom-selection{fill:rgba(47,111,237,.14);stroke:#2f6fed;stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
 .pnl-cumulative{fill:none;stroke:#111827;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pnl-point{fill:#111827}.pnl-exposure{fill:none;stroke:#2f6fed;stroke-width:2.4;stroke-dasharray:7 5;stroke-linecap:round;stroke-linejoin:round}.pnl-exposure-point{fill:#2f6fed}
 .pnl-positive{fill:#238a78}.pnl-negative{fill:#d84b5b}.pnl-legend{display:flex;gap:15px;margin-top:7px;color:var(--muted);font-size:11px}
 .pnl-legend span{display:flex;align-items:center;gap:6px}.pnl-legend i{display:inline-block;width:13px;height:4px;border-radius:2px}
@@ -627,7 +627,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
           <div class="pnl-zoom-row"><span id="pnlZoomLabel">Drag across the chart to zoom into a period</span><button class="pnl-zoom-reset" id="pnlZoomReset" type="button" disabled>Reset zoom</button></div>
           <div class="pnl-chart" id="pnlChart"></div>
           <div class="pnl-tooltip" id="pnlTooltip" hidden></div>
-          <div class="pnl-legend"><span><i style="background:#238a78"></i>Positive daily MTM · left axis</span><span><i style="background:#d84b5b"></i>Negative daily MTM · left axis</span><span><i style="height:2px;background:#111827"></i>Cumulative P&amp;L · right axis</span><span><i style="height:2px;background:#2f6fed"></i>Exposure · outer-right axis</span></div>
+          <div class="pnl-legend"><span><i style="background:#238a78"></i>Positive daily MTM · upper left</span><span><i style="background:#d84b5b"></i>Negative daily MTM · upper left</span><span><i style="height:2px;background:#111827"></i>Cumulative P&amp;L · upper right</span><span><i style="height:2px;background:#2f6fed"></i>Exposure · lower plot</span></div>
         </div>
       </div>
       <p class="pnl-status" id="pnlStatus">Checking rate coverage…</p>
@@ -1387,28 +1387,28 @@ const LOCATION_BY_STRATEGY = {};
     var cumulativeDomain=paddedDomain(series.map(function(point){return point.cumulative}));
     var exposureDomain=paddedDomain(series.map(function(point){return point.position}));
     var dailyMinimum=dailyDomain[0],dailyMaximum=dailyDomain[1],cumulativeMinimum=cumulativeDomain[0],cumulativeMaximum=cumulativeDomain[1],exposureMinimum=exposureDomain[0],exposureMaximum=exposureDomain[1];
-    var width=960,height=350,left=82,right=178,top=27,bottom=56,plotWidth=width-left-right,plotHeight=height-top-bottom;
+    var width=900,left=82,right=88,plotWidth=width-left-right;
+    var mainHeight=300,mainTop=27,mainBottom=18,mainPlotHeight=mainHeight-mainTop-mainBottom;
+    var exposureHeight=190,exposureTop=25,exposureBottom=48,exposurePlotHeight=exposureHeight-exposureTop-exposureBottom;
     function x(index){return left+(index+.5)/series.length*plotWidth}
-    function yDaily(value){return top+(dailyMaximum-value)/(dailyMaximum-dailyMinimum)*plotHeight}
-    function yCumulative(value){return top+(cumulativeMaximum-value)/(cumulativeMaximum-cumulativeMinimum)*plotHeight}
-    function yExposure(value){return top+(exposureMaximum-value)/(exposureMaximum-exposureMinimum)*plotHeight}
-    var barWidth=Math.max(5,Math.min(30,plotWidth/series.length*.55)),zero=yDaily(0);
-    var svg=['<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Daily MTM on the left axis, cumulative P&L on the right axis, and exposure on the outer-right axis for '+escapeHTML(label)+'">'];
-    svg.push('<text class="pnl-axis-title" x="'+left+'" y="13">Daily MTM</text>');
-    svg.push('<text class="pnl-axis-title pnl-axis-cumulative" x="'+(width-right+9)+'" y="13">Cumulative P&amp;L</text>');
-    svg.push('<text class="pnl-axis-title pnl-axis-exposure" x="'+(width-4)+'" y="13" text-anchor="end">Exposure</text>');
+    function yDaily(value){return mainTop+(dailyMaximum-value)/(dailyMaximum-dailyMinimum)*mainPlotHeight}
+    function yCumulative(value){return mainTop+(cumulativeMaximum-value)/(cumulativeMaximum-cumulativeMinimum)*mainPlotHeight}
+    function yExposure(value){return exposureTop+(exposureMaximum-value)/(exposureMaximum-exposureMinimum)*exposurePlotHeight}
+    var barWidth=Math.max(5,Math.min(30,plotWidth/series.length*.55)),dailyZero=yDaily(0),exposureZero=yExposure(0);
+    var mainSvg=['<svg viewBox="0 0 '+width+' '+mainHeight+'" role="img" aria-label="Daily MTM bars and cumulative P&L line for '+escapeHTML(label)+'">'];
+    mainSvg.push('<text class="pnl-axis-title" x="'+left+'" y="13">Daily MTM</text>');
+    mainSvg.push('<text class="pnl-axis-title pnl-axis-cumulative" x="'+(width-right)+'" y="13" text-anchor="end">Cumulative P&amp;L</text>');
     for(var tick=0;tick<5;tick+=1){
-      var ratio=tick/4,dailyTick=dailyMinimum+(dailyMaximum-dailyMinimum)*ratio,cumulativeTick=cumulativeMinimum+(cumulativeMaximum-cumulativeMinimum)*ratio,exposureTick=exposureMinimum+(exposureMaximum-exposureMinimum)*ratio,tickY=yDaily(dailyTick);
-      svg.push('<line class="pnl-gridline" x1="'+left+'" y1="'+tickY+'" x2="'+(width-right)+'" y2="'+tickY+'"/>');
-      svg.push('<text class="pnl-axis" x="'+(left-9)+'" y="'+(tickY+4)+'" text-anchor="end">'+pnlMoney(dailyTick,false)+'</text>');
-      svg.push('<text class="pnl-axis pnl-axis-cumulative" x="'+(width-right+9)+'" y="'+(tickY+4)+'" text-anchor="start">'+pnlMoney(cumulativeTick,false)+'</text>');
-      svg.push('<text class="pnl-axis pnl-axis-exposure" x="'+(width-4)+'" y="'+(tickY+4)+'" text-anchor="end">'+pnlMoney(exposureTick,false)+'</text>');
+      var ratio=tick/4,dailyTick=dailyMinimum+(dailyMaximum-dailyMinimum)*ratio,cumulativeTick=cumulativeMinimum+(cumulativeMaximum-cumulativeMinimum)*ratio,tickY=yDaily(dailyTick);
+      mainSvg.push('<line class="pnl-gridline" x1="'+left+'" y1="'+tickY+'" x2="'+(width-right)+'" y2="'+tickY+'"/>');
+      mainSvg.push('<text class="pnl-axis" x="'+(left-9)+'" y="'+(tickY+4)+'" text-anchor="end">'+pnlMoney(dailyTick,false)+'</text>');
+      mainSvg.push('<text class="pnl-axis pnl-axis-cumulative" x="'+(width-right+9)+'" y="'+(tickY+4)+'" text-anchor="start">'+pnlMoney(cumulativeTick,false)+'</text>');
     }
-    svg.push('<line class="pnl-zero" x1="'+left+'" y1="'+zero+'" x2="'+(width-right)+'" y2="'+zero+'"/>');
+    mainSvg.push('<line class="pnl-zero" x1="'+left+'" y1="'+dailyZero+'" x2="'+(width-right)+'" y2="'+dailyZero+'"/>');
     series.forEach(function(point,index){
       if(point.daily===null)return;
-      var pointY=yDaily(point.daily),heightValue=Math.max(1,Math.abs(zero-pointY)),barY=point.daily>=0?pointY:zero;
-      svg.push('<rect class="'+(point.daily>=0?'pnl-positive':'pnl-negative')+'" x="'+(x(index)-barWidth/2)+'" y="'+barY+'" width="'+barWidth+'" height="'+heightValue+'"><title>'+displayDate(point.date)+' · '+pnlMoney(point.daily,true)+'</title></rect>');
+      var pointY=yDaily(point.daily),heightValue=Math.max(1,Math.abs(dailyZero-pointY)),barY=point.daily>=0?pointY:dailyZero;
+      mainSvg.push('<rect class="'+(point.daily>=0?'pnl-positive':'pnl-negative')+'" x="'+(x(index)-barWidth/2)+'" y="'+barY+'" width="'+barWidth+'" height="'+heightValue+'"><title>'+displayDate(point.date)+' · '+pnlMoney(point.daily,true)+'</title></rect>');
     });
     var segments=[],segment=[];
     series.forEach(function(point,index){
@@ -1417,24 +1417,42 @@ const LOCATION_BY_STRATEGY = {};
     });
     if(segment.length)segments.push(segment);
     segments.forEach(function(items){
-      if(items.length>1)svg.push('<path class="pnl-cumulative" d="'+items.map(function(item,index){return(index?'L ':'M ')+item[0].toFixed(2)+' '+item[1].toFixed(2)}).join(' ')+'"/>');
-      items.forEach(function(item){svg.push('<circle class="pnl-point" cx="'+item[0]+'" cy="'+item[1]+'" r="3.8"><title>'+displayDate(item[2].date)+' cumulative · '+pnlMoney(item[2].cumulative,true)+'</title></circle>')});
+      if(items.length>1)mainSvg.push('<path class="pnl-cumulative" d="'+items.map(function(item,index){return(index?'L ':'M ')+item[0].toFixed(2)+' '+item[1].toFixed(2)}).join(' ')+'"/>');
+      items.forEach(function(item){mainSvg.push('<circle class="pnl-point" cx="'+item[0]+'" cy="'+item[1]+'" r="3.8"><title>'+displayDate(item[2].date)+' cumulative · '+pnlMoney(item[2].cumulative,true)+'</title></circle>')});
     });
-    var exposurePoints=series.map(function(point,index){return [x(index),yExposure(point.position),point]});
-    if(exposurePoints.length>1)svg.push('<path class="pnl-exposure" d="'+exposurePoints.map(function(item,index){return(index?'L ':'M ')+item[0].toFixed(2)+' '+item[1].toFixed(2)}).join(' ')+'"/>');
-    exposurePoints.forEach(function(item){svg.push('<circle class="pnl-exposure-point" cx="'+item[0]+'" cy="'+item[1]+'" r="3.2"><title>'+displayDate(item[2].date)+' exposure · '+pnlMoney(item[2].position,true)+'</title></circle>')});
-    series.forEach(function(_point,index){
+    series.forEach(function(point,index){
       var columnWidth=plotWidth/series.length;
-      svg.push('<rect class="pnl-hover-target" data-pnl-index="'+index+'" tabindex="0" role="button" aria-label="Inspect P&L for '+displayDate(series[index].date)+'" x="'+(left+index*columnWidth)+'" y="'+top+'" width="'+columnWidth+'" height="'+plotHeight+'" fill="transparent"/>');
+      mainSvg.push('<rect class="pnl-hover-target" data-pnl-index="'+index+'" tabindex="0" role="button" aria-label="Inspect P&L and exposure for '+displayDate(point.date)+'" x="'+(left+index*columnWidth)+'" y="'+mainTop+'" width="'+columnWidth+'" height="'+mainPlotHeight+'" fill="transparent"/>');
+    });
+    mainSvg.push('<line class="pnl-crosshair" id="pnlMainCrosshair" x1="'+left+'" y1="'+mainTop+'" x2="'+left+'" y2="'+(mainTop+mainPlotHeight)+'" visibility="hidden"/>');
+    mainSvg.push('<rect class="pnl-zoom-selection" id="pnlMainZoomSelection" x="'+left+'" y="'+mainTop+'" width="0" height="'+mainPlotHeight+'" visibility="hidden"/>');
+    mainSvg.push('</svg>');
+
+    var exposureSvg=['<svg viewBox="0 0 '+width+' '+exposureHeight+'" role="img" aria-label="Current USD exposure for '+escapeHTML(label)+'">'];
+    exposureSvg.push('<text class="pnl-axis-title pnl-axis-exposure" x="'+left+'" y="13">Exposure · USD delta</text>');
+    for(var exposureTickIndex=0;exposureTickIndex<5;exposureTickIndex+=1){
+      var exposureRatio=exposureTickIndex/4,exposureTick=exposureMinimum+(exposureMaximum-exposureMinimum)*exposureRatio,exposureTickY=yExposure(exposureTick);
+      exposureSvg.push('<line class="pnl-gridline" x1="'+left+'" y1="'+exposureTickY+'" x2="'+(width-right)+'" y2="'+exposureTickY+'"/>');
+      exposureSvg.push('<text class="pnl-axis pnl-axis-exposure" x="'+(left-9)+'" y="'+(exposureTickY+4)+'" text-anchor="end">'+pnlMoney(exposureTick,false)+'</text>');
+    }
+    exposureSvg.push('<line class="pnl-zero" x1="'+left+'" y1="'+exposureZero+'" x2="'+(width-right)+'" y2="'+exposureZero+'"/>');
+    var exposurePoints=series.map(function(point,index){return [x(index),yExposure(point.position),point]});
+    if(exposurePoints.length>1)exposureSvg.push('<path class="pnl-exposure" d="'+exposurePoints.map(function(item,index){return(index?'L ':'M ')+item[0].toFixed(2)+' '+item[1].toFixed(2)}).join(' ')+'"/>');
+    exposurePoints.forEach(function(item){exposureSvg.push('<circle class="pnl-exposure-point" cx="'+item[0]+'" cy="'+item[1]+'" r="3.2"><title>'+displayDate(item[2].date)+' exposure · '+pnlMoney(item[2].position,true)+'</title></circle>')});
+    series.forEach(function(point,index){
+      var columnWidth=plotWidth/series.length;
+      exposureSvg.push('<rect class="pnl-hover-target" data-pnl-index="'+index+'" tabindex="0" role="button" aria-label="Inspect P&L and exposure for '+displayDate(point.date)+'" x="'+(left+index*columnWidth)+'" y="'+exposureTop+'" width="'+columnWidth+'" height="'+exposurePlotHeight+'" fill="transparent"/>');
     });
     var labelEvery=Math.max(1,Math.ceil(series.length/6));
-    series.forEach(function(point,index){if(index%labelEvery===0||index===series.length-1)svg.push('<text class="pnl-axis" x="'+x(index)+'" y="'+(height-20)+'" text-anchor="middle">'+displayDate(point.date)+'</text>')});
-    svg.push('<rect class="pnl-zoom-selection" id="pnlZoomSelection" x="'+left+'" y="'+top+'" width="0" height="'+plotHeight+'" visibility="hidden"/>');
-    svg.push('</svg>');
+    series.forEach(function(point,index){if(index%labelEvery===0||index===series.length-1)exposureSvg.push('<text class="pnl-axis" x="'+x(index)+'" y="'+(exposureHeight-16)+'" text-anchor="middle">'+displayDate(point.date)+'</text>')});
+    exposureSvg.push('<line class="pnl-crosshair" id="pnlExposureCrosshair" x1="'+left+'" y1="'+exposureTop+'" x2="'+left+'" y2="'+(exposureTop+exposurePlotHeight)+'" visibility="hidden"/>');
+    exposureSvg.push('<rect class="pnl-zoom-selection" id="pnlExposureZoomSelection" x="'+left+'" y="'+exposureTop+'" width="0" height="'+exposurePlotHeight+'" visibility="hidden"/>');
+    exposureSvg.push('</svg>');
+
     var chart=document.getElementById("pnlChart"),tooltip=document.getElementById("pnlTooltip");
-    chart.innerHTML=svg.join("");tooltip.hidden=true;
+    chart.innerHTML='<div class="pnl-main-chart">'+mainSvg.join("")+'</div><div class="pnl-exposure-chart">'+exposureSvg.join("")+'</div>';tooltip.hidden=true;
     var zoomLabel=document.getElementById("pnlZoomLabel"),resetButton=document.getElementById("pnlZoomReset");
-    zoomLabel.textContent=(isZoomed?"Showing "+formatDate(series[0].date)+" – "+formatDate(series[series.length-1].date)+" · ":"Full history · ")+"drag across the chart to zoom";
+    zoomLabel.textContent=(isZoomed?"Showing "+formatDate(series[0].date)+" – "+formatDate(series[series.length-1].date)+" · ":"Full history · ")+"drag across either plot to zoom both";
     resetButton.disabled=!isZoomed;
     resetButton.onclick=function(){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label)};
     function tooltipRow(name,value){
@@ -1445,9 +1463,16 @@ const LOCATION_BY_STRATEGY = {};
       if(value===null||value===undefined)return required?"Unavailable":"Not required";
       return pnlRate(value)+(sourceDate?" · "+formatDate(sourceDate):"");
     }
-    var svgElement=chart.querySelector("svg"),selection=chart.querySelector("#pnlZoomSelection"),dragState=null;
+    var mainSvgElement=chart.querySelector(".pnl-main-chart svg"),exposureSvgElement=chart.querySelector(".pnl-exposure-chart svg");
+    var mainSelection=chart.querySelector("#pnlMainZoomSelection"),exposureSelection=chart.querySelector("#pnlExposureZoomSelection");
+    var mainCrosshair=chart.querySelector("#pnlMainCrosshair"),exposureCrosshair=chart.querySelector("#pnlExposureCrosshair"),dragState=null;
+    function setCrosshairs(index,visible){
+      var position=x(index),visibility=visible?"visible":"hidden";
+      [mainCrosshair,exposureCrosshair].forEach(function(line){line.setAttribute("x1",position);line.setAttribute("x2",position);line.setAttribute("visibility",visibility)});
+    }
+    function hideLinkedHover(){tooltip.hidden=true;setCrosshairs(0,false)}
     function showTooltip(event,index){
-      if(dragState&&dragState.moved){tooltip.hidden=true;return}
+      if(dragState&&dragState.moved){hideLinkedHover();return}
       var point=series[index],title=document.createElement("div");tooltip.innerHTML="";title.className="pnl-tooltip-title";title.textContent=label+" · "+formatDate(point.date);tooltip.appendChild(title);
       tooltip.appendChild(tooltipRow("Daily MTM",pnlMoney(point.daily,true)));
       tooltip.appendChild(tooltipRow("Cumulative",pnlMoney(point.cumulative,true)));
@@ -1458,7 +1483,7 @@ const LOCATION_BY_STRATEGY = {};
         tooltip.appendChild(tooltipRow("Previous USD"+label,rateText(point.previousRate,point.previousRateDate,rateRequired)));
         tooltip.appendChild(tooltipRow("Current USD"+label,rateText(point.currentRate,point.currentRateDate,rateRequired)));
       }
-      tooltip.hidden=false;
+      setCrosshairs(index,true);tooltip.hidden=false;
       var card=tooltip.parentElement,cardBounds=card.getBoundingClientRect(),targetBounds=event.currentTarget.getBoundingClientRect();
       var clientX=Number.isFinite(event.clientX)&&event.clientX>0?event.clientX:targetBounds.left+targetBounds.width/2;
       var clientY=Number.isFinite(event.clientY)&&event.clientY>0?event.clientY:targetBounds.top+targetBounds.height/2;
@@ -1471,48 +1496,59 @@ const LOCATION_BY_STRATEGY = {};
       var index=Number(target.getAttribute("data-pnl-index"));
       target.addEventListener("mouseenter",function(event){showTooltip(event,index)});
       target.addEventListener("mousemove",function(event){showTooltip(event,index)});
-      target.addEventListener("mouseleave",function(){if(!dragState)tooltip.hidden=true});
+      target.addEventListener("mouseleave",function(){if(!dragState)hideLinkedHover()});
       target.addEventListener("focus",function(event){showTooltip(event,index)});
-      target.addEventListener("blur",function(){tooltip.hidden=true});
+      target.addEventListener("blur",hideLinkedHover);
     });
-    function chartX(event){
+    function chartX(event,svgElement){
       var bounds=svgElement.getBoundingClientRect();
       return Math.max(left,Math.min(width-right,(event.clientX-bounds.left)/bounds.width*width));
     }
     function localIndex(position){
       return Math.max(0,Math.min(series.length-1,Math.floor((position-left)/plotWidth*series.length)));
     }
+    function setSelections(from,to,visible){
+      var selectionX=Math.min(from,to),selectionWidth=Math.abs(to-from),visibility=visible?"visible":"hidden";
+      [mainSelection,exposureSelection].forEach(function(selection){selection.setAttribute("x",selectionX);selection.setAttribute("width",selectionWidth);selection.setAttribute("visibility",visibility)});
+    }
     function finishZoom(event){
       if(!dragState||event.pointerId!==dragState.pointerId)return;
-      var moved=dragState.moved,from=localIndex(Math.min(dragState.startX,dragState.currentX)),to=localIndex(Math.max(dragState.startX,dragState.currentX));
-      selection.setAttribute("visibility","hidden");
-      try{svgElement.releasePointerCapture(event.pointerId)}catch(_error){}
+      var state=dragState,moved=state.moved,from=localIndex(Math.min(state.startX,state.currentX)),to=localIndex(Math.max(state.startX,state.currentX));
+      setSelections(state.startX,state.currentX,false);
+      try{state.owner.releasePointerCapture(event.pointerId)}catch(_error){}
       dragState=null;
       if(moved&&to>from){
         pnlZoomRanges[zoomKey]=[start+from,start+to];
-        tooltip.hidden=true;
-        renderPnlChart(data,label);
+        hideLinkedHover();renderPnlChart(data,label);
       }
     }
-    svgElement.addEventListener("pointerdown",function(event){
-      if(event.button!==0||!event.target.classList.contains("pnl-hover-target"))return;
-      var position=chartX(event);
-      dragState={pointerId:event.pointerId,startX:position,currentX:position,moved:false};
-      tooltip.hidden=true;selection.setAttribute("x",position);selection.setAttribute("width",0);selection.setAttribute("visibility","visible");
-      svgElement.setPointerCapture(event.pointerId);event.preventDefault();
-    });
-    svgElement.addEventListener("pointermove",function(event){
+    function cancelZoom(event){
       if(!dragState||event.pointerId!==dragState.pointerId)return;
-      dragState.currentX=chartX(event);dragState.moved=dragState.moved||Math.abs(dragState.currentX-dragState.startX)>6;
-      selection.setAttribute("x",Math.min(dragState.startX,dragState.currentX));
-      selection.setAttribute("width",Math.abs(dragState.currentX-dragState.startX));
-      if(dragState.moved)tooltip.hidden=true;
+      setSelections(dragState.startX,dragState.currentX,false);
+      try{dragState.owner.releasePointerCapture(event.pointerId)}catch(_error){}
+      dragState=null;
+    }
+    function startZoom(event){
+      if(event.button!==0||!event.target.classList.contains("pnl-hover-target"))return;
+      var owner=event.currentTarget,position=chartX(event,owner);
+      dragState={owner:owner,pointerId:event.pointerId,startX:position,currentX:position,moved:false};
+      hideLinkedHover();setSelections(position,position,true);owner.setPointerCapture(event.pointerId);event.preventDefault();
+    }
+    function moveZoom(event){
+      if(!dragState||event.pointerId!==dragState.pointerId)return;
+      dragState.currentX=chartX(event,dragState.owner);dragState.moved=dragState.moved||Math.abs(dragState.currentX-dragState.startX)>6;
+      setSelections(dragState.startX,dragState.currentX,true);
+      if(dragState.moved)hideLinkedHover();
+    }
+    [mainSvgElement,exposureSvgElement].forEach(function(svgElement){
+      svgElement.addEventListener("pointerdown",startZoom);
+      svgElement.addEventListener("pointermove",moveZoom);
+      svgElement.addEventListener("pointerup",finishZoom);
+      svgElement.addEventListener("pointercancel",cancelZoom);
+      svgElement.addEventListener("dblclick",function(){if(isZoomed){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label)}});
     });
-    svgElement.addEventListener("pointerup",finishZoom);
-    svgElement.addEventListener("pointercancel",finishZoom);
-    svgElement.addEventListener("dblclick",function(){if(isZoomed){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label)}});
-    document.getElementById("pnlChartTitle").textContent=label+" P&L";
-    document.getElementById("pnlChartMeta").textContent="Daily MTM · left axis | cumulative P&L · right axis | exposure · outer-right axis · through "+formatDate(PNL_DATA.latestDate)+(label==="Whole book"?" · hover to inspect P&L and exposure":" · hover to inspect exposure and rates");
+    document.getElementById("pnlChartTitle").textContent=label+" P&L and exposure";
+    document.getElementById("pnlChartMeta").textContent="Upper: daily MTM · left axis | cumulative P&L · right axis · Lower: current exposure · through "+formatDate(PNL_DATA.latestDate)+" · linked hover and zoom";
   }
   function renderPnl(){
     var data=dataForSelection(),select=document.getElementById("pnlCurrency"),previous=select.value;
