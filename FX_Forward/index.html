@@ -500,10 +500,10 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 .pnl-summary tr.pnl-book td{background:#eef3f8;font-weight:750}.pnl-summary td:first-child{font-weight:700}
 .pnl-chart-card{position:relative;padding:18px 20px}.pnl-chart-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:9px}
 .pnl-chart-head h3{margin:0;font-size:18px}.pnl-select{min-width:150px;padding:8px 30px 8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:inherit;font-weight:650}
-.pnl-chart-meta{margin:0 0 8px;color:var(--muted);font-size:12px}.pnl-chart svg{display:block;width:100%;height:auto}.pnl-hover-target{cursor:crosshair;pointer-events:all}
+.pnl-chart-meta{margin:0 0 8px;color:var(--muted);font-size:12px}.pnl-zoom-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;color:var(--muted);font-size:11px}.pnl-zoom-reset{padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.pnl-zoom-reset:disabled{color:var(--faint);cursor:default;opacity:.6}.pnl-chart svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}.pnl-hover-target{cursor:crosshair;pointer-events:all}
 .pnl-tooltip{position:absolute;z-index:20;min-width:235px;max-width:310px;padding:11px 13px;border:1px solid #111827;border-radius:8px;background:#111827;color:#fff;box-shadow:0 8px 24px rgba(17,24,39,.24);pointer-events:none}
 .pnl-tooltip[hidden]{display:none}.pnl-tooltip-title{margin-bottom:7px;font-size:12px;font-weight:750}.pnl-tooltip-row{display:flex;justify-content:space-between;gap:18px;padding:3px 0;font-size:11px}.pnl-tooltip-row span{color:#b9c4d2}.pnl-tooltip-row strong{text-align:right;font-weight:700}
-.pnl-gridline{stroke:#e6ebf0;stroke-width:1}.pnl-zero{stroke:#8d99a6;stroke-width:1.2}.pnl-axis{fill:#687789;font-size:10px}
+.pnl-gridline{stroke:#e6ebf0;stroke-width:1}.pnl-zero{stroke:#8d99a6;stroke-width:1.2}.pnl-axis{fill:#687789;font-size:10px}.pnl-axis-title{fill:#4e5d6c;font-size:10px;font-weight:700}.pnl-zoom-selection{fill:rgba(47,111,237,.14);stroke:#2f6fed;stroke-width:1;stroke-dasharray:4 3;pointer-events:none}
 .pnl-cumulative{fill:none;stroke:#111827;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pnl-point{fill:#111827}
 .pnl-positive{fill:#238a78}.pnl-negative{fill:#d84b5b}.pnl-legend{display:flex;gap:15px;margin-top:7px;color:var(--muted);font-size:11px}
 .pnl-legend span{display:flex;align-items:center;gap:6px}.pnl-legend i{display:inline-block;width:13px;height:4px;border-radius:2px}
@@ -627,9 +627,10 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
         <div class="pnl-chart-card">
           <div class="pnl-chart-head"><h3 id="pnlChartTitle">Whole book P&amp;L</h3><select class="pnl-select" id="pnlCurrency" aria-label="Select P&L currency"></select></div>
           <p class="pnl-chart-meta" id="pnlChartMeta">Daily MTM bars · cumulative P&amp;L line</p>
+          <div class="pnl-zoom-row"><span id="pnlZoomLabel">Drag across the chart to zoom into a period</span><button class="pnl-zoom-reset" id="pnlZoomReset" type="button" disabled>Reset zoom</button></div>
           <div class="pnl-chart" id="pnlChart"></div>
           <div class="pnl-tooltip" id="pnlTooltip" hidden></div>
-          <div class="pnl-legend"><span><i style="background:#238a78"></i>Positive daily MTM</span><span><i style="background:#d84b5b"></i>Negative daily MTM</span><span><i style="height:2px;background:#111827"></i>Cumulative P&amp;L</span></div>
+          <div class="pnl-legend"><span><i style="background:#238a78"></i>Positive daily MTM · left axis</span><span><i style="background:#d84b5b"></i>Negative daily MTM · left axis</span><span><i style="height:2px;background:#111827"></i>Cumulative P&amp;L · right axis</span></div>
         </div>
       </div>
       <p class="pnl-status" id="pnlStatus">Checking rate coverage…</p>
@@ -1420,31 +1421,49 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
       var element=document.getElementById(item[0]);element.textContent=pnlMoney(item[1],true);element.className="pnl-kpi-value "+pnlClass(item[1]);
     });
   }
+  var pnlZoomRanges={};
   function renderPnlChart(data,label){
-    var series=seriesFor(data,label),values=[];
-    series.forEach(function(point){if(point.daily!==null)values.push(point.daily);if(point.cumulative!==null)values.push(point.cumulative)});
-    values.push(0);
-    var minimum=Math.min.apply(null,values),maximum=Math.max.apply(null,values),span=Math.max(maximum-minimum,Math.max(Math.abs(minimum),Math.abs(maximum))*.15,1);
-    minimum-=span*.12;maximum+=span*.12;
-    var width=900,height=350,left=78,right=25,top=20,bottom=52,plotWidth=width-left-right,plotHeight=height-top-bottom;
+    var fullSeries=seriesFor(data,label);
+    if(!fullSeries.length)return;
+    var zoomKey=document.getElementById("buFilter").value+"|"+label,stored=pnlZoomRanges[zoomKey];
+    var start=stored?Math.max(0,Math.min(stored[0],fullSeries.length-1)):0;
+    var end=stored?Math.max(start,Math.min(stored[1],fullSeries.length-1)):fullSeries.length-1;
+    var series=fullSeries.slice(start,end+1),isZoomed=start>0||end<fullSeries.length-1;
+    function paddedDomain(values){
+      var finite=values.filter(function(value){return value!==null&&value!==undefined&&Number.isFinite(value)});
+      finite.push(0);
+      var minimum=Math.min.apply(null,finite),maximum=Math.max.apply(null,finite);
+      var span=maximum-minimum;
+      if(span<1)span=Math.max(Math.abs(minimum),Math.abs(maximum))*.15||1;
+      return [minimum-span*.12,maximum+span*.12];
+    }
+    var dailyDomain=paddedDomain(series.map(function(point){return point.daily}));
+    var cumulativeDomain=paddedDomain(series.map(function(point){return point.cumulative}));
+    var dailyMinimum=dailyDomain[0],dailyMaximum=dailyDomain[1],cumulativeMinimum=cumulativeDomain[0],cumulativeMaximum=cumulativeDomain[1];
+    var width=900,height=350,left=82,right=88,top=27,bottom=56,plotWidth=width-left-right,plotHeight=height-top-bottom;
     function x(index){return left+(index+.5)/series.length*plotWidth}
-    function y(value){return top+(maximum-value)/(maximum-minimum)*plotHeight}
-    var barWidth=Math.max(5,Math.min(30,plotWidth/series.length*.55)),zero=y(0),svg=['<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Daily and cumulative P&L for '+escapeHTML(label)+'">'];
+    function yDaily(value){return top+(dailyMaximum-value)/(dailyMaximum-dailyMinimum)*plotHeight}
+    function yCumulative(value){return top+(cumulativeMaximum-value)/(cumulativeMaximum-cumulativeMinimum)*plotHeight}
+    var barWidth=Math.max(5,Math.min(30,plotWidth/series.length*.55)),zero=yDaily(0);
+    var svg=['<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Daily MTM on the left axis and cumulative P&L on the right axis for '+escapeHTML(label)+'">'];
+    svg.push('<text class="pnl-axis-title" x="'+left+'" y="13">Daily MTM</text>');
+    svg.push('<text class="pnl-axis-title" x="'+(width-right)+'" y="13" text-anchor="end">Cumulative P&amp;L</text>');
     for(var tick=0;tick<5;tick+=1){
-      var tickValue=minimum+(maximum-minimum)*tick/4,tickY=y(tickValue);
+      var ratio=tick/4,dailyTick=dailyMinimum+(dailyMaximum-dailyMinimum)*ratio,cumulativeTick=cumulativeMinimum+(cumulativeMaximum-cumulativeMinimum)*ratio,tickY=yDaily(dailyTick);
       svg.push('<line class="pnl-gridline" x1="'+left+'" y1="'+tickY+'" x2="'+(width-right)+'" y2="'+tickY+'"/>');
-      svg.push('<text class="pnl-axis" x="'+(left-9)+'" y="'+(tickY+4)+'" text-anchor="end">'+pnlMoney(tickValue,false)+'</text>');
+      svg.push('<text class="pnl-axis" x="'+(left-9)+'" y="'+(tickY+4)+'" text-anchor="end">'+pnlMoney(dailyTick,false)+'</text>');
+      svg.push('<text class="pnl-axis" x="'+(width-right+9)+'" y="'+(tickY+4)+'" text-anchor="start">'+pnlMoney(cumulativeTick,false)+'</text>');
     }
     svg.push('<line class="pnl-zero" x1="'+left+'" y1="'+zero+'" x2="'+(width-right)+'" y2="'+zero+'"/>');
     series.forEach(function(point,index){
       if(point.daily===null)return;
-      var pointY=y(point.daily),heightValue=Math.max(1,Math.abs(zero-pointY)),barY=point.daily>=0?pointY:zero;
+      var pointY=yDaily(point.daily),heightValue=Math.max(1,Math.abs(zero-pointY)),barY=point.daily>=0?pointY:zero;
       svg.push('<rect class="'+(point.daily>=0?'pnl-positive':'pnl-negative')+'" x="'+(x(index)-barWidth/2)+'" y="'+barY+'" width="'+barWidth+'" height="'+heightValue+'"><title>'+displayDate(point.date)+' · '+pnlMoney(point.daily,true)+'</title></rect>');
     });
     var segments=[],segment=[];
     series.forEach(function(point,index){
       if(point.cumulative===null){if(segment.length)segments.push(segment);segment=[];return}
-      segment.push([x(index),y(point.cumulative),point]);
+      segment.push([x(index),yCumulative(point.cumulative),point]);
     });
     if(segment.length)segments.push(segment);
     segments.forEach(function(items){
@@ -1457,9 +1476,14 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
     });
     var labelEvery=Math.max(1,Math.ceil(series.length/6));
     series.forEach(function(point,index){if(index%labelEvery===0||index===series.length-1)svg.push('<text class="pnl-axis" x="'+x(index)+'" y="'+(height-20)+'" text-anchor="middle">'+displayDate(point.date)+'</text>')});
+    svg.push('<rect class="pnl-zoom-selection" id="pnlZoomSelection" x="'+left+'" y="'+top+'" width="0" height="'+plotHeight+'" visibility="hidden"/>');
     svg.push('</svg>');
     var chart=document.getElementById("pnlChart"),tooltip=document.getElementById("pnlTooltip");
     chart.innerHTML=svg.join("");tooltip.hidden=true;
+    var zoomLabel=document.getElementById("pnlZoomLabel"),resetButton=document.getElementById("pnlZoomReset");
+    zoomLabel.textContent=(isZoomed?"Showing "+formatDate(series[0].date)+" – "+formatDate(series[series.length-1].date)+" · ":"Full history · ")+"drag across the chart to zoom";
+    resetButton.disabled=!isZoomed;
+    resetButton.onclick=function(){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label)};
     function tooltipRow(name,value){
       var row=document.createElement("div"),nameElement=document.createElement("span"),valueElement=document.createElement("strong");
       row.className="pnl-tooltip-row";nameElement.textContent=name;valueElement.textContent=value;row.appendChild(nameElement);row.appendChild(valueElement);return row;
@@ -1468,7 +1492,9 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
       if(value===null||value===undefined)return required?"Unavailable":"Not required";
       return pnlRate(value)+(sourceDate?" · "+formatDate(sourceDate):"");
     }
+    var svgElement=chart.querySelector("svg"),selection=chart.querySelector("#pnlZoomSelection"),dragState=null;
     function showTooltip(event,index){
+      if(dragState&&dragState.moved){tooltip.hidden=true;return}
       var point=series[index],title=document.createElement("div");tooltip.innerHTML="";title.className="pnl-tooltip-title";title.textContent=label+" · "+formatDate(point.date);tooltip.appendChild(title);
       tooltip.appendChild(tooltipRow("Daily MTM",pnlMoney(point.daily,true)));
       tooltip.appendChild(tooltipRow("Cumulative",pnlMoney(point.cumulative,true)));
@@ -1491,12 +1517,48 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
       var index=Number(target.getAttribute("data-pnl-index"));
       target.addEventListener("mouseenter",function(event){showTooltip(event,index)});
       target.addEventListener("mousemove",function(event){showTooltip(event,index)});
-      target.addEventListener("mouseleave",function(){tooltip.hidden=true});
+      target.addEventListener("mouseleave",function(){if(!dragState)tooltip.hidden=true});
       target.addEventListener("focus",function(event){showTooltip(event,index)});
       target.addEventListener("blur",function(){tooltip.hidden=true});
     });
+    function chartX(event){
+      var bounds=svgElement.getBoundingClientRect();
+      return Math.max(left,Math.min(width-right,(event.clientX-bounds.left)/bounds.width*width));
+    }
+    function localIndex(position){
+      return Math.max(0,Math.min(series.length-1,Math.floor((position-left)/plotWidth*series.length)));
+    }
+    function finishZoom(event){
+      if(!dragState||event.pointerId!==dragState.pointerId)return;
+      var moved=dragState.moved,from=localIndex(Math.min(dragState.startX,dragState.currentX)),to=localIndex(Math.max(dragState.startX,dragState.currentX));
+      selection.setAttribute("visibility","hidden");
+      try{svgElement.releasePointerCapture(event.pointerId)}catch(_error){}
+      dragState=null;
+      if(moved&&to>from){
+        pnlZoomRanges[zoomKey]=[start+from,start+to];
+        tooltip.hidden=true;
+        renderPnlChart(data,label);
+      }
+    }
+    svgElement.addEventListener("pointerdown",function(event){
+      if(event.button!==0||!event.target.classList.contains("pnl-hover-target"))return;
+      var position=chartX(event);
+      dragState={pointerId:event.pointerId,startX:position,currentX:position,moved:false};
+      tooltip.hidden=true;selection.setAttribute("x",position);selection.setAttribute("width",0);selection.setAttribute("visibility","visible");
+      svgElement.setPointerCapture(event.pointerId);event.preventDefault();
+    });
+    svgElement.addEventListener("pointermove",function(event){
+      if(!dragState||event.pointerId!==dragState.pointerId)return;
+      dragState.currentX=chartX(event);dragState.moved=dragState.moved||Math.abs(dragState.currentX-dragState.startX)>6;
+      selection.setAttribute("x",Math.min(dragState.startX,dragState.currentX));
+      selection.setAttribute("width",Math.abs(dragState.currentX-dragState.startX));
+      if(dragState.moved)tooltip.hidden=true;
+    });
+    svgElement.addEventListener("pointerup",finishZoom);
+    svgElement.addEventListener("pointercancel",finishZoom);
+    svgElement.addEventListener("dblclick",function(){if(isZoomed){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label)}});
     document.getElementById("pnlChartTitle").textContent=label+" P&L";
-    document.getElementById("pnlChartMeta").textContent="Daily MTM bars · cumulative P&L line · through "+formatDate(PNL_DATA.latestDate)+(label==="Whole book"?" · hover to inspect P&L":" · hover to inspect exposure and rates");
+    document.getElementById("pnlChartMeta").textContent="Daily MTM · left axis | cumulative P&L · right axis · through "+formatDate(PNL_DATA.latestDate)+(label==="Whole book"?" · hover to inspect P&L":" · hover to inspect exposure and rates");
   }
   function renderPnl(){
     var data=dataForSelection(),select=document.getElementById("pnlCurrency"),previous=select.value;
