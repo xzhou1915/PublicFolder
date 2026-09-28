@@ -496,8 +496,8 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
 .pnl-kpi-value{margin-top:7px;font-size:24px;font-weight:760;letter-spacing:-.02em}
 .pnl-layout{display:grid;grid-template-columns:minmax(420px,.9fr) minmax(520px,1.3fr);gap:0}
 .pnl-summary-wrap{max-height:500px;overflow:auto;border-right:1px solid var(--line)}
-.pnl-summary{width:100%;font-size:13px}.pnl-summary th{font-size:11px}.pnl-summary th,.pnl-summary td{padding:11px 12px}
-.pnl-summary tr.pnl-book td{background:#eef3f8;font-weight:750}.pnl-summary td:first-child{font-weight:700}
+.pnl-summary{width:100%;min-width:700px;font-size:13px}.pnl-summary th{font-size:11px}.pnl-summary th,.pnl-summary td{padding:11px 12px}.pnl-summary th.num{padding:0}.pnl-sort-button{display:flex;width:100%;align-items:center;justify-content:flex-end;gap:5px;padding:11px 12px;border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;letter-spacing:inherit;text-align:right;text-transform:inherit;cursor:pointer}.pnl-sort-indicator{width:10px;color:#95a1ad}.pnl-summary th[aria-sort="ascending"] .pnl-sort-indicator,.pnl-summary th[aria-sort="descending"] .pnl-sort-indicator{color:var(--ink)}
+.pnl-summary tr[data-pnl-row]{cursor:pointer}.pnl-summary tr[data-pnl-row]:hover td{background:#f5f8fb}.pnl-summary tr.pnl-book td{background:#eef3f8;font-weight:750}.pnl-summary tr.pnl-bu-book td{border-top:2px solid #d8e0e8}.pnl-summary tr.pnl-selected td{background:#e7f0ff;box-shadow:inset 0 1px #bed3f7,inset 0 -1px #bed3f7}.pnl-summary tr.pnl-selected td:first-child{box-shadow:inset 3px 0 #2f6fed,inset 0 1px #bed3f7,inset 0 -1px #bed3f7}.pnl-summary td:first-child{font-weight:700}.pnl-summary tr.pnl-ccy td:nth-child(2){padding-left:22px}
 .pnl-chart-card{position:relative;padding:18px 20px}.pnl-chart-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:9px}
 .pnl-chart-head h3{margin:0;font-size:18px}.pnl-select{min-width:150px;padding:8px 30px 8px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:inherit;font-weight:650}
 .pnl-chart-meta{margin:0 0 8px;color:var(--muted);font-size:12px}.pnl-zoom-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;color:var(--muted);font-size:11px}.pnl-zoom-reset{padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.pnl-zoom-reset:disabled{color:var(--faint);cursor:default;opacity:.6}.pnl-chart svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}.pnl-exposure-chart{margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}.pnl-hover-target{cursor:crosshair;pointer-events:all}
@@ -620,7 +620,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
       <div class="pnl-layout">
         <div class="pnl-summary-wrap">
           <table class="pnl-summary">
-            <thead><tr><th>Currency</th><th class="num">Latest MTM</th><th class="num">1W P&amp;L</th><th class="num">1M P&amp;L</th><th class="num">Cumulative</th></tr></thead>
+            <thead><tr><th>Business unit</th><th>Currency</th><th class="num" data-pnl-sort-column="latest" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="latest">Latest MTM <span class="pnl-sort-indicator">↕</span></button></th><th class="num" data-pnl-sort-column="week" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="week">1W P&amp;L <span class="pnl-sort-indicator">↕</span></button></th><th class="num" data-pnl-sort-column="month" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="month">1M P&amp;L <span class="pnl-sort-indicator">↕</span></button></th><th class="num" data-pnl-sort-column="cumulative" aria-sort="none"><button class="pnl-sort-button" type="button" data-pnl-sort="cumulative">Cumulative <span class="pnl-sort-indicator">↕</span></button></th></tr></thead>
             <tbody id="pnlSummaryRows"></tbody>
           </table>
         </div>
@@ -1408,24 +1408,64 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
   function addSummaryCell(row,value){
     var cell=document.createElement("td");cell.className="num "+pnlClass(value);cell.textContent=pnlMoney(value,true);row.appendChild(cell);
   }
-  function renderPnlSummary(data){
-    var body=document.getElementById("pnlSummaryRows");body.innerHTML="";
-    ["Whole book"].concat(data.currencies).forEach(function(label){
-      var values=summaryFor(seriesFor(data,label)),row=document.createElement("tr");
-      if(label==="Whole book")row.className="pnl-book";
-      var name=document.createElement("td");name.textContent=label;row.appendChild(name);
-      addSummaryCell(row,values.latest);addSummaryCell(row,values.week);addSummaryCell(row,values.month);addSummaryCell(row,values.cumulative);body.appendChild(row);
+  var pnlSort={key:null,direction:"desc"},pnlChartBusinessUnit="ALL",pnlChartLabel="Whole book",pnlLastScope=null;
+  function dataForBusinessUnit(businessUnit){
+    return PNL_DATA.byBusinessUnit[businessUnit]||PNL_DATA.byBusinessUnit.ALL;
+  }
+  function pnlSummaryItem(businessUnit,label,data){
+    return {businessUnit:businessUnit,label:label,values:summaryFor(seriesFor(data,label)),isBook:label==="Whole book"};
+  }
+  function sortedPnlCurrencies(businessUnit,data){
+    var items=data.currencies.map(function(label){return pnlSummaryItem(businessUnit,label,data)});
+    if(!pnlSort.key)return items.sort(function(a,b){return a.label.localeCompare(b.label)});
+    return items.sort(function(a,b){
+      var left=a.values[pnlSort.key],right=b.values[pnlSort.key],leftMissing=left===null||left===undefined||!Number.isFinite(left),rightMissing=right===null||right===undefined||!Number.isFinite(right);
+      if(leftMissing!==rightMissing)return leftMissing?1:-1;
+      if(!leftMissing&&left!==right)return pnlSort.direction==="asc"?left-right:right-left;
+      return a.label.localeCompare(b.label);
     });
+  }
+  function appendPnlSummaryRow(body,item,groupIndex){
+    var row=document.createElement("tr");
+    row.setAttribute("data-pnl-row",item.businessUnit+"|"+item.label);row.tabIndex=0;row.setAttribute("role","button");
+    row.setAttribute("aria-label","Show "+item.businessUnit+" "+item.label+" P&L and exposure");
+    if(item.isBook)row.className="pnl-book"+(groupIndex>0?" pnl-bu-book":"");
+    else row.className="pnl-ccy";
+    if(item.businessUnit===pnlChartBusinessUnit&&item.label===pnlChartLabel)row.className+=" pnl-selected";
+    var businessUnitCell=document.createElement("td"),currencyCell=document.createElement("td");
+    businessUnitCell.textContent=item.businessUnit==="ALL"?"All business units":item.businessUnit;
+    currencyCell.textContent=item.label;row.appendChild(businessUnitCell);row.appendChild(currencyCell);
+    addSummaryCell(row,item.values.latest);addSummaryCell(row,item.values.week);addSummaryCell(row,item.values.month);addSummaryCell(row,item.values.cumulative);
+    function activate(){pnlChartBusinessUnit=item.businessUnit;pnlChartLabel=item.label;renderPnlChartSelection();renderPnlSummary(document.getElementById("buFilter").value)}
+    row.addEventListener("click",activate);
+    row.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();activate()}});
+    body.appendChild(row);
+  }
+  function renderPnlSummary(scope){
+    var body=document.getElementById("pnlSummaryRows");body.innerHTML="";
+    var groups=scope==="ALL"?["ALL"].concat(Object.keys(PNL_DATA.byBusinessUnit).filter(function(name){return name!=="ALL"}).sort()):[scope];
+    groups.forEach(function(businessUnit,groupIndex){
+      var data=dataForBusinessUnit(businessUnit);
+      appendPnlSummaryRow(body,pnlSummaryItem(businessUnit,"Whole book",data),groupIndex);
+      sortedPnlCurrencies(businessUnit,data).forEach(function(item){appendPnlSummaryRow(body,item,groupIndex)});
+    });
+    document.querySelectorAll("[data-pnl-sort-column]").forEach(function(header){
+      var key=header.getAttribute("data-pnl-sort-column"),active=key===pnlSort.key;
+      header.setAttribute("aria-sort",active?(pnlSort.direction==="asc"?"ascending":"descending"):"none");
+      header.querySelector(".pnl-sort-indicator").textContent=active?(pnlSort.direction==="asc"?"↑":"↓"):"↕";
+    });
+  }
+  function renderPnlHeadline(data){
     var book=summaryFor(seriesFor(data,"Whole book"));
     [["pnlLatest",book.latest],["pnlWeek",book.week],["pnlMonth",book.month],["pnlCumulative",book.cumulative]].forEach(function(item){
       var element=document.getElementById(item[0]);element.textContent=pnlMoney(item[1],true);element.className="pnl-kpi-value "+pnlClass(item[1]);
     });
   }
   var pnlZoomRanges={};
-  function renderPnlChart(data,label){
+  function renderPnlChart(data,label,businessUnit){
     var fullSeries=seriesFor(data,label);
     if(!fullSeries.length)return;
-    var zoomKey=document.getElementById("buFilter").value+"|"+label,stored=pnlZoomRanges[zoomKey];
+    var zoomKey=businessUnit+"|"+label,stored=pnlZoomRanges[zoomKey];
     var start=stored?Math.max(0,Math.min(stored[0],fullSeries.length-1)):0;
     var end=stored?Math.max(start,Math.min(stored[1],fullSeries.length-1)):fullSeries.length-1;
     var series=fullSeries.slice(start,end+1),isZoomed=start>0||end<fullSeries.length-1;
@@ -1508,7 +1548,7 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
     var zoomLabel=document.getElementById("pnlZoomLabel"),resetButton=document.getElementById("pnlZoomReset");
     zoomLabel.textContent=(isZoomed?"Showing "+formatDate(series[0].date)+" – "+formatDate(series[series.length-1].date)+" · ":"Full history · ")+"drag across either plot to zoom both";
     resetButton.disabled=!isZoomed;
-    resetButton.onclick=function(){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label)};
+    resetButton.onclick=function(){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label,businessUnit)};
     function tooltipRow(name,value){
       var row=document.createElement("div"),nameElement=document.createElement("span"),valueElement=document.createElement("strong");
       row.className="pnl-tooltip-row";nameElement.textContent=name;valueElement.textContent=value;row.appendChild(nameElement);row.appendChild(valueElement);return row;
@@ -1573,7 +1613,7 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
       dragState=null;
       if(moved&&to>from){
         pnlZoomRanges[zoomKey]=[start+from,start+to];
-        hideLinkedHover();renderPnlChart(data,label);
+        hideLinkedHover();renderPnlChart(data,label,businessUnit);
       }
     }
     function cancelZoom(event){
@@ -1599,24 +1639,41 @@ const LOCATION_BY_STRATEGY = {"ABC": "SG", "GFD": "CH", "HKM": "LATAM"};
       svgElement.addEventListener("pointermove",moveZoom);
       svgElement.addEventListener("pointerup",finishZoom);
       svgElement.addEventListener("pointercancel",cancelZoom);
-      svgElement.addEventListener("dblclick",function(){if(isZoomed){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label)}});
+      svgElement.addEventListener("dblclick",function(){if(isZoomed){delete pnlZoomRanges[zoomKey];renderPnlChart(data,label,businessUnit)}});
     });
-    document.getElementById("pnlChartTitle").textContent=label+" P&L and exposure";
+    document.getElementById("pnlChartTitle").textContent=(businessUnit==="ALL"?"All business units":businessUnit)+" · "+label+" P&L and exposure";
     document.getElementById("pnlChartMeta").textContent="Upper: daily MTM · left axis | cumulative P&L · right axis · Lower: current exposure · through "+formatDate(PNL_DATA.latestDate)+" · linked hover and zoom";
   }
-  function renderPnl(){
-    var data=dataForSelection(),select=document.getElementById("pnlCurrency"),previous=select.value;
+  function renderPnlChartSelection(){
+    var data=dataForBusinessUnit(pnlChartBusinessUnit),select=document.getElementById("pnlCurrency");
     var labels=["Whole book"].concat(data.currencies);
+    if(labels.indexOf(pnlChartLabel)<0)pnlChartLabel="Whole book";
     select.innerHTML=labels.map(function(label){return '<option value="'+escapeHTML(label)+'">'+escapeHTML(label)+'</option>'}).join("");
-    select.value=labels.indexOf(previous)>=0?previous:"Whole book";
+    select.value=pnlChartLabel;
+    renderPnlChart(data,pnlChartLabel,pnlChartBusinessUnit);
+  }
+  function renderPnl(){
+    var scope=document.getElementById("buFilter").value,data=dataForBusinessUnit(scope);
+    if(pnlLastScope!==scope){pnlChartBusinessUnit=scope;pnlChartLabel="Whole book";pnlLastScope=scope}
     document.getElementById("pnlRateSource").textContent=PNL_DATA.rateSource;
-    renderPnlSummary(data);renderPnlChart(data,select.value);
+    renderPnlHeadline(data);renderPnlSummary(scope);renderPnlChartSelection();
     var status=document.getElementById("pnlStatus");
     if(data.warnings.length){status.className="pnl-status warning";status.textContent="Incomplete P&L · "+data.warnings.join(" · ")}
     else if(data.carriedRates&&data.carriedRates.length){status.className="pnl-status notice";status.textContent="Complete P&L · carried-forward rates: "+data.carriedRates.join(" · ")}
     else{status.className="pnl-status";status.textContent="Complete rate coverage for every active currency and exposure date."}
   }
-  document.getElementById("pnlCurrency").addEventListener("change",function(){renderPnlChart(dataForSelection(),this.value)});
+  document.getElementById("pnlCurrency").addEventListener("change",function(){
+    pnlChartLabel=this.value;renderPnlChart(dataForBusinessUnit(pnlChartBusinessUnit),pnlChartLabel,pnlChartBusinessUnit);
+    renderPnlSummary(document.getElementById("buFilter").value);
+  });
+  document.querySelectorAll("[data-pnl-sort]").forEach(function(button){
+    button.addEventListener("click",function(){
+      var key=this.getAttribute("data-pnl-sort");
+      if(pnlSort.key===key)pnlSort.direction=pnlSort.direction==="desc"?"asc":"desc";
+      else{pnlSort.key=key;pnlSort.direction="desc"}
+      renderPnlSummary(document.getElementById("buFilter").value);
+    });
+  });
   var pnlBaseRender=window.render;
   window.render=function(){pnlBaseRender();renderPnl()};
   document.getElementById("buFilter").addEventListener("change",function(){window.render()});
