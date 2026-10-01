@@ -78,7 +78,7 @@ def parse_args() -> argparse.Namespace:
 
 def fetch_exchange_rate_api_spots(
     pairs: list[str],
-) -> tuple[dict[str, dict], str | None, str | None]:
+) -> tuple[dict[str, dict], dict[str, float], str | None, str | None]:
     try:
         request = Request(
             EXCHANGE_RATE_API_URL,
@@ -103,7 +103,7 @@ def fetch_exchange_rate_api_spots(
                 )
             currency_rates[str(currency).upper()] = value
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-        return {}, None, f"{type(exc).__name__}: {exc}"
+        return {}, {}, None, f"{type(exc).__name__}: {exc}"
 
     spots = {}
     for pair in sorted(set(pairs)):
@@ -118,7 +118,7 @@ def fetch_exchange_rate_api_spots(
             "asOf": reference_time,
             "source": "ExchangeRate-API daily indicative rate",
         }
-    return spots, reference_time, None
+    return spots, currency_rates, reference_time, None
 
 
 def format_fx_rate(value: float) -> str:
@@ -1093,15 +1093,52 @@ def inject_structure_analysis(
     output: Path,
     trades: pd.DataFrame,
     spot_rates: dict[str, dict] | None = None,
+    usd_rates: dict[str, float] | None = None,
+    rate_as_of: str | None = None,
 ) -> list[dict]:
     components = infer_option_structures(trades)
     structures = combine_structures_by_pair(components)
     spot_rates = spot_rates or {}
+    usd_rates = {
+        str(currency).upper(): float(rate)
+        for currency, rate in (usd_rates or {}).items()
+    }
     for structure in structures:
         spot = spot_rates.get(structure["pair"])
         structure["spotRate"] = None if spot is None else float(spot["rate"])
         structure["spotAsOf"] = None if spot is None else str(spot["asOf"])
         structure["spotSource"] = None if spot is None else str(spot["source"])
+        letters = "".join(
+            character
+            for character in structure["pair"].upper()
+            if character.isalpha()
+        )
+        base = letters[:3] if len(letters) == 6 else ""
+        quote = letters[3:] if len(letters) == 6 else ""
+        structure["usdPayoffMode"] = None
+        structure["usdQuotePerUsd"] = None
+        structure["usdConversionAsOf"] = None
+        structure["usdConversionSource"] = None
+        structure["usdPayoffUnavailableReason"] = None
+        if structure["payoffMode"] != "Actual":
+            structure["usdPayoffUnavailableReason"] = (
+                "valid notionals in the base or quote currency are required"
+            )
+        elif quote == "USD":
+            structure["usdPayoffMode"] = "direct"
+        elif base == "USD":
+            structure["usdPayoffMode"] = "terminal"
+        elif quote in usd_rates:
+            structure["usdPayoffMode"] = "spot"
+            structure["usdQuotePerUsd"] = usd_rates[quote]
+            structure["usdConversionAsOf"] = rate_as_of
+            structure["usdConversionSource"] = (
+                "ExchangeRate-API daily indicative rate"
+            )
+        else:
+            structure["usdPayoffUnavailableReason"] = (
+                f"a {quote or 'quote-currency'} per USD conversion rate is unavailable"
+            )
 
     def value_class(value: float) -> str:
         return "pnl-positive" if value > 0 else "pnl-negative" if value < 0 else ""
@@ -1180,6 +1217,7 @@ def inject_structure_analysis(
 .payoff-strike{stroke:#d88917;stroke-width:1;stroke-dasharray:4 4}.payoff-line{fill:none;stroke:#2463eb;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}
 .payoff-spot{stroke:#111827;stroke-width:1.8;stroke-dasharray:6 4}.payoff-spot-label{fill:#111827;font-size:10px;font-weight:700}
 .payoff-axis{fill:#687789;font-size:10px}.payoff-strike-label{fill:#9a5d05;font-size:9px;font-weight:700}
+.payoff-unavailable{display:flex;min-height:260px;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
 .structure-note{padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.45}
 @media(max-width:1200px){.structure-layout{grid-template-columns:1fr}}
 """
@@ -1197,7 +1235,7 @@ def inject_structure_analysis(
       <h3 id="payoffTitle">Terminal payoff</h3>
       <div id="payoffMeta" class="payoff-meta">Select a structure</div>
       <div id="payoffChart"></div>
-      <div class="structure-note">Terminal intrinsic payoff before premium. Current MTM P&amp;L is shown separately and is not added to the curve. When expiries differ, this is a combined terminal-rate scenario rather than a same-date expiry payoff. Indicative daily rates by <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">Exchange Rate API</a>.</div>
+      <div class="structure-note">Terminal intrinsic payoff before premium, reported in USD. USD-base pairs are converted at each scenario terminal rate; cross-currency quote payoffs use the latest indicative quote-currency per USD rate. Current MTM P&amp;L is shown separately and is not added to the curve. When expiries differ, this is a combined terminal-rate scenario rather than a same-date expiry payoff. Indicative daily rates by <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">Exchange Rate API</a>.</div>
     </article>
   </div>
 </section>
@@ -1210,7 +1248,7 @@ const FXO_STRUCTURES=__STRUCTURE_JSON__;
   function compact(value){
     var absolute=Math.abs(value),units=absolute>=1e9?[1e9,"bn"]:absolute>=1e6?[1e6,"m"]:absolute>=1e3?[1e3,"k"]:[1,""];
     var digits=absolute/units[0]>=100?0:1;
-    return (value<0?"−":"")+(absolute/units[0]).toFixed(digits)+units[1];
+    return (value<0?"−":"")+String.fromCharCode(36)+(absolute/units[0]).toFixed(digits)+units[1];
   }
   function formatRate(value){
     var digits=value<1?5:value<10?4:value<100?3:2;
@@ -1221,25 +1259,35 @@ const FXO_STRUCTURES=__STRUCTURE_JSON__;
     if(!structure)return;
     var hasSpot=Number.isFinite(structure.spotRate)&&structure.spotRate>0;
     document.getElementById("payoffTitle").textContent=structure.label+" · "+structure.pair;
-    document.getElementById("payoffMeta").textContent="Expiry: "+structure.expiry+" · "+structure.payoffMode+" payoff in "+structure.payoutCurrency+(hasSpot?" · Spot "+formatRate(structure.spotRate)+" · "+structure.spotSource+" as of "+structure.spotAsOf:" · Daily rate unavailable");
+    var chart=document.getElementById("payoffChart"),conversionDescription="";
+    if(structure.usdPayoffMode==="terminal")conversionDescription=" · "+structure.payoutCurrency+" converted at each terminal "+structure.pair+" rate";
+    else if(structure.usdPayoffMode==="spot")conversionDescription=" · "+structure.payoutCurrency+" converted at "+formatRate(structure.usdQuotePerUsd)+" "+structure.payoutCurrency+" per USD · "+structure.usdConversionSource+" as of "+structure.usdConversionAsOf;
+    if(!structure.usdPayoffMode){
+      document.getElementById("payoffMeta").textContent="Expiry: "+structure.expiry+" · USD payoff unavailable";
+      chart.innerHTML='<div class="payoff-unavailable">USD payoff unavailable: '+structure.usdPayoffUnavailableReason+'.</div>';
+      return;
+    }
+    document.getElementById("payoffMeta").textContent="Expiry: "+structure.expiry+" · Actual payoff in USD"+conversionDescription+(hasSpot?" · Spot "+formatRate(structure.spotRate)+" · "+structure.spotSource+" as of "+structure.spotAsOf:" · Daily pair rate unavailable");
     var strikes=structure.legs.map(function(leg){return leg.strike});
     var anchors=hasSpot?strikes.concat([structure.spotRate]):strikes;
     var minimum=Math.min.apply(null,anchors),maximum=Math.max.apply(null,anchors),span=Math.max(maximum-minimum,Math.abs(minimum)*0.12,0.01);
     var low=Math.max(0,minimum-span*.75),high=maximum+span*.75,points=[];
     for(var index=0;index<=120;index+=1){
-      var terminal=low+(high-low)*index/120,payoff=0;
+      var terminal=low+(high-low)*index/120,quotePayoff=0;
       structure.legs.forEach(function(leg){
         var intrinsic=leg.optionType==="Call"?Math.max(terminal-leg.strike,0):Math.max(leg.strike-terminal,0);
-        payoff+=leg.side*leg.payoffWeight*intrinsic;
+        quotePayoff+=leg.side*leg.payoffWeight*intrinsic;
       });
-      points.push([terminal,payoff]);
+      var payoff=structure.usdPayoffMode==="direct"?quotePayoff:structure.usdPayoffMode==="terminal"?(terminal>0?quotePayoff/terminal:null):quotePayoff/structure.usdQuotePerUsd;
+      if(Number.isFinite(payoff))points.push([terminal,payoff]);
     }
     var values=points.map(function(point){return point[1]}).concat([0]),minY=Math.min.apply(null,values),maxY=Math.max.apply(null,values),pad=Math.max((maxY-minY)*.12,Math.max(Math.abs(minY),Math.abs(maxY))*0.08,1e-9);
     minY-=pad;maxY+=pad;
     var width=720,height=360,left=78,right=24,top=24,bottom=52,plotWidth=width-left-right,plotHeight=height-top-bottom;
     function x(value){return left+(value-low)/(high-low)*plotWidth}
     function y(value){return top+(maxY-value)/(maxY-minY)*plotHeight}
-    var svg=['<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Terminal payoff against terminal FX rate">'];
+    var svg=['<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Terminal payoff in USD against terminal FX rate">'];
+    svg.push('<text class="payoff-axis" x="'+left+'" y="13">USD payoff</text>');
     for(var tick=0;tick<5;tick+=1){
       var yValue=minY+(maxY-minY)*tick/4,yPos=y(yValue);
       svg.push('<line class="payoff-grid" x1="'+left+'" y1="'+yPos+'" x2="'+(width-right)+'" y2="'+yPos+'"/>');
@@ -1263,7 +1311,7 @@ const FXO_STRUCTURES=__STRUCTURE_JSON__;
     svg.push('<path class="payoff-line" d="'+path+'"/>');
     svg.push('<text class="payoff-axis" x="'+(left+plotWidth/2)+'" y="'+(height-3)+'" text-anchor="middle">Terminal '+structure.pair+' rate</text>');
     svg.push('</svg>');
-    document.getElementById("payoffChart").innerHTML=svg.join("");
+    chart.innerHTML=svg.join("");
   }
   function selectStructure(row){
     document.querySelectorAll(".structure-row").forEach(function(item){item.classList.toggle("selected",item===row)});
@@ -1513,8 +1561,16 @@ def main() -> None:
     write_html_dashboard(trades, netted, output, as_of)
     inject_ytd_pnl(output, book_history, pair_history, netted)
     pairs = sorted(trades["Pair"].astype(str).unique().tolist())
-    spot_rates, spot_reference_date, spot_error = fetch_exchange_rate_api_spots(pairs)
-    structures = inject_structure_analysis(output, trades, spot_rates)
+    spot_rates, usd_rates, spot_reference_date, spot_error = (
+        fetch_exchange_rate_api_spots(pairs)
+    )
+    structures = inject_structure_analysis(
+        output,
+        trades,
+        spot_rates,
+        usd_rates,
+        spot_reference_date,
+    )
 
     print(f"Latest CobDate: {as_of:%Y-%m-%d}")
     print(
