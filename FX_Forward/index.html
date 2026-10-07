@@ -656,7 +656,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     </article>
 
     <footer class="footnote">
-      <p>VaR is summed across displayed currency rows for monitoring only; no diversification or covariance adjustment is applied. Basis VaR is intentionally not reported.</p>
+      <p>Basis VaR for CNY/CNH, BRL/BRF, and KRW/KRO uses the two leg VaRs with a fixed correlation of 0.90. VaR is summed across displayed currency rows for monitoring only; no diversification or covariance adjustment is applied between rows.</p>
       <p>Exposure input: CobDate · BU · CCY · Delta_USD_LocalDirection · Var<br>Rate input: Date · CCY3 · Value, where Value is USDXXX</p>
     </footer>
   </main>
@@ -715,7 +715,9 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     const COLORS = { Directional: "#2463eb", Basis: "#8b58c7", Carry: "#238a78" };
     const ORDER = ['Directional', 'Basis', 'Carry'];
     const CARRY = new Set(['AED', 'SAR', 'HKD']);
-    const BASIS_SOURCE = new Set(['CNY', 'BRL', 'KRW']);
+    const BASIS_CORRELATION = 0.90;
+    const BASIS_SUPPORT = { CNY: 'CNH', BRL: 'BRF', KRW: 'KRO' };
+    const BASIS_SOURCE = new Set(Object.keys(BASIS_SUPPORT));
     const SUPPORT_LEG = new Set(['CNH', 'BRF', 'KRO']);
     const PAIRS = {
       'CNH/CNY': { display: 'CNH', legs: ['CNH', 'CNY'] },
@@ -767,13 +769,32 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
       return [...new Set(rows.map(row => row.date))].sort().at(-1);
     }
 
+    function correlatedBasisVar(firstVar, secondVar) {
+      if (firstVar == null || secondVar == null) return null;
+      const first = Math.abs(firstVar);
+      const second = Math.abs(secondVar);
+      const variance = first ** 2 + second ** 2 - 2 * BASIS_CORRELATION * first * second;
+      return Math.sqrt(Math.max(0, variance));
+    }
+
     function buildPositions(rows, date, buFilter) {
       const latestRows = rows.filter(row => row.date === date && (buFilter === 'ALL' || row.bu === buFilter));
       const lookup = new Map(latestRows.map(row => [`${row.bu}|${row.ccy}`, row]));
       const positions = latestRows.map(row => {
         if (SUPPORT_LEG.has(row.ccy)) return null;
         if (CARRY.has(row.ccy)) return { ...row, display: row.ccy, strategy: 'Carry', method: 'Reported', derived: false };
-        if (BASIS_SOURCE.has(row.ccy)) return { ...row, display: row.ccy, strategy: 'Basis', var: null, method: `${row.ccy} delta source`, derived: false };
+        if (BASIS_SOURCE.has(row.ccy)) {
+          const support = BASIS_SUPPORT[row.ccy];
+          const supportRow = lookup.get(`${row.bu}|${support}`);
+          return {
+            ...row,
+            display: row.ccy,
+            strategy: 'Basis',
+            var: correlatedBasisVar(row.var, supportRow?.var),
+            method: `${row.ccy}/${support} leg VaRs · ρ 0.90`,
+            derived: true
+          };
+        }
         if (PAIRS[row.ccy]) {
           const [legA, legB] = PAIRS[row.ccy].legs.map(ccy => lookup.get(`${row.bu}|${ccy}`));
           const derivedVar = legA?.var != null && legB?.var != null ? Math.abs(legA.var - legB.var) : null;
@@ -811,7 +832,9 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
           count: items.length,
           net: items.reduce((sum, item) => sum + item.delta, 0),
           gross: items.reduce((sum, item) => sum + Math.abs(item.delta), 0),
-          var: strategy === 'Basis' ? null : items.reduce((sum, item) => sum + (item.var ?? 0), 0)
+          var: strategy === 'Basis' && !items.some(item => item.var != null)
+            ? null
+            : items.reduce((sum, item) => sum + (item.var ?? 0), 0)
         }];
       }));
     }
@@ -853,7 +876,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
           <div class="strategy-head"><div class="strategy-name"><i class="strategy-dot"></i>${strategy}</div><span class="position-count">${item.count} positions</span></div>
           <div class="strategy-metrics">
             <div><div class="metric-label">Net delta</div><div class="metric-value ${item.net < 0 ? 'negative' : 'positive'}">${formatMoney(item.net, true)}</div></div>
-            <div><div class="metric-label">${strategy === 'Basis' ? 'VaR policy' : 'VaR'}</div><div class="metric-value">${strategy === 'Basis' ? 'N/A' : formatMoney(item.var)}</div></div>
+            <div><div class="metric-label">VaR</div><div class="metric-value">${formatMoney(item.var)}</div></div>
           </div>
         </article>`;
       }).join('');
@@ -876,7 +899,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
         <td class="ccy">${escapeHTML(item.display)}</td>
         <td class="bu">${escapeHTML(item.bu)}</td>
         <td class="num ${item.delta < 0 ? 'negative' : 'positive'}">${formatMoney(item.delta, true)}</td>
-        <td class="num ${item.derived ? 'derived' : ''}">${item.strategy === 'Basis' ? 'N/A' : formatMoney(item.var)}</td>
+        <td class="num ${item.derived ? 'derived' : ''}">${formatMoney(item.var)}</td>
         <td class="method">${escapeHTML(item.method)}${item.derived ? ' · derived' : ''}</td>
       </tr>`).join('');
     }
@@ -936,7 +959,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     var positions=buildPositions(rawRows,date,selectedBU);
     var summary=summarize(positions);
     var maxDelta=Math.max.apply(null,ORDER.map(function(strategy){return Math.abs(summary[strategy].net)}).concat([1]));
-    var maxVar=Math.max(summary.Directional.var||0,summary.Carry.var||0,1);
+    var maxVar=Math.max(summary.Directional.var||0,summary.Basis.var||0,summary.Carry.var||0,1);
     var grid=document.getElementById("strategyGrid");
     function makeNode(tag,className,text){
       var element=document.createElement(tag);
@@ -994,7 +1017,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     }
     grid.innerHTML="";
     grid.appendChild(makeChart("Delta by strategy","Net USD exposure · zero-centred","delta"));
-    grid.appendChild(makeChart("VaR by strategy","USD risk · Basis VaR not reported","var"));
+    grid.appendChild(makeChart("VaR by strategy","USD risk · Basis uses ρ 0.90","var"));
   };
   document.getElementById("buFilter").addEventListener("change",function(){window.render()});
   if(rawRows.length>0)window.render();
@@ -1013,16 +1036,16 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
       var key=position.strategy+"|"+position.display;
       var item=currencyMap.get(key);
       if(item===undefined){
-        item={strategy:position.strategy,display:position.display,delta:0,var:position.strategy==="Basis"?null:0,hasVar:false};
+        item={strategy:position.strategy,display:position.display,delta:0,var:0,hasVar:false};
         currencyMap.set(key,item);
       }
       item.delta+=position.delta;
       if(position.var===null){}else{item.var+=position.var;item.hasVar=true}
     });
     var currencies=Array.from(currencyMap.values());
-    currencies.forEach(function(item){if(item.strategy==="Basis"){}else if(item.hasVar===false)item.var=null});
+    currencies.forEach(function(item){if(item.hasVar===false)item.var=null});
     var deltaValues=ORDER.map(function(strategy){return Math.abs(summary[strategy].net)}).concat(currencies.map(function(item){return Math.abs(item.delta)}));
-    var varValues=[summary.Directional.var||0,summary.Carry.var||0].concat(currencies.map(function(item){return item.var||0}));
+    var varValues=ORDER.map(function(strategy){return summary[strategy].var||0}).concat(currencies.map(function(item){return item.var||0}));
     var maxDelta=Math.max.apply(null,deltaValues.concat([1]));
     var maxVar=Math.max.apply(null,varValues.concat([1]));
     function n(tag,className,text){
@@ -1067,7 +1090,7 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
     }
     var grid=document.getElementById("strategyGrid");grid.innerHTML="";
     grid.appendChild(chart("Delta by strategy and currency","Local-CCY direction · positive means long local / short USD","delta"));
-    grid.appendChild(chart("VaR by strategy and currency","USD risk · Basis VaR not reported","var"));
+    grid.appendChild(chart("VaR by strategy and currency","USD risk · Basis uses ρ 0.90","var"));
     var header=document.querySelector(".table-panel thead tr");
     header.innerHTML="<th>Strategy</th><th>Currency</th><th class=\"num\">Delta USD</th><th class=\"num\">VaR USD</th>";
     var rank={Directional:0,Basis:1,Carry:2};
@@ -1106,10 +1129,10 @@ h1::after,.subtitle,.asof,.date-chip{font-size:16px}
       var currencyMap=new Map();
       positions.forEach(function(position){
         var key=position.strategy+"|"+position.display;var item=currencyMap.get(key);
-        if(item===undefined){item={strategy:position.strategy,display:position.display,delta:0,var:position.strategy==="Basis"?null:0,hasVar:false};currencyMap.set(key,item)}
+        if(item===undefined){item={strategy:position.strategy,display:position.display,delta:0,var:0,hasVar:false};currencyMap.set(key,item)}
         item.delta+=position.delta;if(position.var===null){}else{item.var+=position.var;item.hasVar=true}
       });
-      currencyMap.forEach(function(item){if(item.strategy==="Basis"){}else if(item.hasVar===false)item.var=null});
+      currencyMap.forEach(function(item){if(item.hasVar===false)item.var=null});
       return {summary:summarize(positions),currencies:currencyMap};
     }
     var latestSnapshot=snapshot(currentDate);var weekSnapshot=snapshot(weekDate);var monthSnapshot=snapshot(monthDate);
