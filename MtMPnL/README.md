@@ -51,6 +51,9 @@ The summary and Ticker-detail tables are sortable. Use the Macro group,
 Strategy, and Ticker selectors—or click a table row or composition bar—to move
 through the hierarchy. Selecting a Ticker at Whole-book or Macro-group level
 aggregates its daily and cumulative P&L across the Strategies in that scope.
+After selecting a Ticker, the Strategy selector is enabled and contains only
+Strategies that trade that Ticker. Selecting one automatically sets its parent
+group. For a synthetic Ticker, only Strategies containing both legs are shown.
 
 Three view-only synthetic Tickers can be calculated:
 

@@ -563,9 +563,12 @@ function renderSelectors(){
   macroSelect.innerHTML='<option value="">Whole book</option>'+macroGroups.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
   macroSelect.value=state.macro||'';
   const strategySelect=document.getElementById('strategySelect');
-  const scopedStrategies=state.macro?[...(strategiesByMacro.get(state.macro)||[])].sort((a,b)=>a.localeCompare(b)):[];
-  strategySelect.disabled=!state.macro;
-  strategySelect.innerHTML=`<option value="">${state.macro?'All strategies':'Select Macro group first'}</option>`+scopedStrategies.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
+  let scopedStrategies=state.macro?[...(strategiesByMacro.get(state.macro)||[])]:state.ticker?[...strategies]:[];
+  if(state.ticker)scopedStrategies=scopedStrategies.filter(name=>tickersByStrategy.get(name)?.has(state.ticker));
+  scopedStrategies.sort((a,b)=>a.localeCompare(b));
+  strategySelect.disabled=!state.macro&&!state.ticker;
+  const strategyLabel=state.ticker?state.macro?'All matching strategies':'All matching strategies across book':state.macro?'All strategies':'Select Macro group or Ticker first';
+  strategySelect.innerHTML=`<option value="">${strategyLabel}</option>`+scopedStrategies.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
   strategySelect.value=state.strategy||'';
   const tickerSelect=document.getElementById('tickerSelect');
   tickerSelect.disabled=false;
@@ -757,7 +760,7 @@ document.getElementById('sourceMeta').textContent=`${PAYLOAD.source} · ${PAYLOA
 document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · ${PAYLOAD.positionColumns?'Position columns detected':'No position columns'} · ${PAYLOAD.valueDateColumn?'ValueDT detected':'No ValueDT'} · blank/null P&L treated as $0`;
 document.getElementById('strategySearch').oninput=e=>{state.search=e.target.value;renderStrategies();};
 document.getElementById('macroSelect').onchange=e=>{const next=e.target.value||null;state.macro=next;state.strategy=null;state.search='';if(next&&state.ticker&&!tickersByMacro.get(next)?.has(state.ticker))state.ticker=null;render();};
-document.getElementById('strategySelect').onchange=e=>{const next=e.target.value||null;if(next&&state.ticker&&!tickersByStrategy.get(next)?.has(state.ticker))state.ticker=null;state.strategy=next;state.search='';render();};
+document.getElementById('strategySelect').onchange=e=>{const next=e.target.value||null;if(next){state.macro=macroForStrategy.get(next);if(state.ticker&&!tickersByStrategy.get(next)?.has(state.ticker))state.ticker=null;}state.strategy=next;state.search='';render();};
 document.getElementById('tickerSelect').onchange=e=>{state.ticker=e.target.value||null;render();};
 document.querySelectorAll('#strategyTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.strategySort.key===key)state.strategySort.dir*=-1;else state.strategySort={key,dir:key==='name'?1:-1};renderStrategies();});
 document.querySelectorAll('#tickerTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.tickerSort.key===key)state.tickerSort.dir*=-1;else state.tickerSort={key,dir:key==='name'?1:-1};renderTickers();});
