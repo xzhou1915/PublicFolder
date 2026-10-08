@@ -658,7 +658,7 @@ function renderExpiryDistribution(){
 function renderBars(){
   let rows;
   if(state.strategy&&state.ticker&&syntheticNames.has(state.ticker)){rows=syntheticDefinitions.get(state.ticker).map(name=>({name,value:metrics(byStrategyTicker.get(state.strategy+'\u0000'+name)||zeroSeries()).latest,type:'ticker'}));}
-  else if(state.strategy){rows=tickerRows().filter(r=>!r.synthetic).map(r=>({name:r.name,value:r.latest,type:'ticker'}));}
+  else if(state.strategy){rows=tickerRows().map(r=>({name:r.name,value:r.latest,type:'ticker'}));}
   else if(state.ticker){rows=strategies.filter(name=>tickersByStrategy.get(name)?.has(state.ticker)).map(name=>({name,value:metrics(byStrategyTicker.get(name+'\u0000'+state.ticker)).latest,type:'strategyTicker'}));}
   else{rows=strategyRows().map(r=>({name:r.name,value:r.latest,type:'strategy'}));}
   rows.sort((a,b)=>Math.abs(b.value)-Math.abs(a.value));

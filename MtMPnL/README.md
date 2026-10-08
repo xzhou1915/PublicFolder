@@ -48,6 +48,9 @@ Three view-only synthetic tickers are calculated for every date and strategy:
 - `CNHCNY = USD/CNH + USD/CNY`
 - `KRWKRO = USD/KRW + USD/KRO`
 
-A missing leg contributes zero. Synthetic tickers are excluded from whole-book totals, strategy totals, actual-pair counts, and ordinary composition bars to prevent double-counting.
+A missing leg contributes zero. Synthetic tickers are excluded from whole-book
+totals, strategy totals, and actual-pair counts to prevent double-counting. They
+are displayed alongside their underlying legs in a selected Strategy's latest
+P&L-by-Ticker bars, so those displayed bars should not be summed together.
 When selected in the position breakdown, a synthetic ticker displays its two
 underlying ticker legs separately.
