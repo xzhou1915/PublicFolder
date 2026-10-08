@@ -70,6 +70,8 @@
     .bar-value{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
     .detail{margin-top:16px}
     .detail .table-wrap{max-height:420px}
+    .position-detail th{cursor:default}.position-detail td:first-child{max-width:none}
+    .position-detail td.num{font-size:15px;font-weight:700}
     .empty{padding:32px;text-align:center;color:var(--muted)}
     .footer{color:var(--muted);font-size:11px;margin-top:12px;text-align:right}
     @media(max-width:1050px){.grid{grid-template-columns:1fr}.chart-panel{min-height:580px}.kpis{grid-template-columns:repeat(3,1fr)}}
@@ -138,12 +140,29 @@
       </table>
     </div>
   </section>
+  <section class="panel detail position-detail">
+    <div class="panel-head"><div><div class="panel-title" id="positionTitle">Latest position breakdown</div><div class="panel-sub" id="positionSub"></div></div></div>
+    <div class="table-wrap">
+      <table id="positionTable">
+        <thead><tr>
+          <th>Ticker</th>
+          <th>Strategy</th>
+          <th>CCY1</th>
+          <th>Gross Buy</th>
+          <th>Gross Sell</th>
+          <th>Net Position</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
   <div class="footer" id="footer"></div>
 </main>
 
 <script>
-const PAYLOAD = {"dates":["2026-09-01","2026-09-08","2026-09-15","2026-09-22","2026-09-30","2026-10-01","2026-10-07"],"rows":[["2026-09-01","Asia Carry","USD/CNH",1250000.0],["2026-09-01","Asia Carry","USD/CNY",-210000.0],["2026-09-01","Asia Carry","USD/HKD",420000.0],["2026-09-01","Commodity FX","AUD/USD",375000.0],["2026-09-01","Commodity FX","EUR/USD",-120000.0],["2026-09-01","EM Value","USD/KRO",-55000.0],["2026-09-01","EM Value","USD/KRW",130000.0],["2026-09-01","EM Value","USD/ZAR",260000.0],["2026-09-01","G10 Momentum","EUR/USD",610000.0],["2026-09-01","G10 Momentum","USD/JPY",-340000.0],["2026-09-01","LatAm RV","USD/BRF",90000.0],["2026-09-01","LatAm RV","USD/BRL",-780000.0],["2026-09-01","Scandi Macro","USD/SEK",-185000.0],["2026-09-08","Asia Carry","USD/CNH",1380000.0],["2026-09-08","Asia Carry","USD/CNY",-240000.0],["2026-09-08","Asia Carry","USD/HKD",445000.0],["2026-09-08","Commodity FX","AUD/USD",410000.0],["2026-09-08","Commodity FX","EUR/USD",-90000.0],["2026-09-08","EM Value","USD/KRO",-60000.0],["2026-09-08","EM Value","USD/KRW",145000.0],["2026-09-08","EM Value","USD/ZAR",315000.0],["2026-09-08","G10 Momentum","EUR/USD",540000.0],["2026-09-08","G10 Momentum","USD/JPY",-210000.0],["2026-09-08","LatAm RV","USD/BRF",75000.0],["2026-09-08","LatAm RV","USD/BRL",-640000.0],["2026-09-08","Scandi Macro","USD/SEK",-125000.0],["2026-09-15","Asia Carry","USD/CNH",1295000.0],["2026-09-15","Asia Carry","USD/CNY",-185000.0],["2026-09-15","Asia Carry","USD/HKD",470000.0],["2026-09-15","Commodity FX","AUD/USD",455000.0],["2026-09-15","Commodity FX","EUR/USD",-145000.0],["2026-09-15","EM Value","USD/KRO",-45000.0],["2026-09-15","EM Value","USD/KRW",120000.0],["2026-09-15","EM Value","USD/ZAR",280000.0],["2026-09-15","G10 Momentum","EUR/USD",720000.0],["2026-09-15","G10 Momentum","USD/JPY",-95000.0],["2026-09-15","LatAm RV","USD/BRF",60000.0],["2026-09-15","LatAm RV","USD/BRL",-420000.0],["2026-09-15","Scandi Macro","USD/SEK",-65000.0],["2026-09-22","Asia Carry","USD/CNH",1460000.0],["2026-09-22","Asia Carry","USD/CNY",-260000.0],["2026-09-22","Asia Carry","USD/HKD",510000.0],["2026-09-22","Commodity FX","AUD/USD",390000.0],["2026-09-22","Commodity FX","EUR/USD",-65000.0],["2026-09-22","EM Value","USD/KRO",-65000.0],["2026-09-22","EM Value","USD/KRW",155000.0],["2026-09-22","EM Value","USD/ZAR",350000.0],["2026-09-22","G10 Momentum","EUR/USD",830000.0],["2026-09-22","G10 Momentum","USD/JPY",45000.0],["2026-09-22","LatAm RV","USD/BRF",45000.0],["2026-09-22","LatAm RV","USD/BRL",-255000.0],["2026-09-22","Scandi Macro","USD/SEK",25000.0],["2026-09-30","Asia Carry","USD/CNH",1525000.0],["2026-09-30","Asia Carry","USD/CNY",-225000.0],["2026-09-30","Asia Carry","USD/HKD",485000.0],["2026-09-30","Commodity FX","AUD/USD",520000.0],["2026-09-30","Commodity FX","EUR/USD",-110000.0],["2026-09-30","EM Value","USD/KRO",-75000.0],["2026-09-30","EM Value","USD/KRW",170000.0],["2026-09-30","EM Value","USD/ZAR",425000.0],["2026-09-30","G10 Momentum","EUR/USD",760000.0],["2026-09-30","G10 Momentum","USD/JPY",180000.0],["2026-09-30","LatAm RV","USD/BRF",35000.0],["2026-09-30","LatAm RV","USD/BRL",-110000.0],["2026-09-30","Scandi Macro","USD/SEK",95000.0],["2026-10-01","Asia Carry","USD/CNH",1490000.0],["2026-10-01","Asia Carry","USD/CNY",-205000.0],["2026-10-01","Asia Carry","USD/HKD",505000.0],["2026-10-01","Commodity FX","AUD/USD",565000.0],["2026-10-01","Commodity FX","EUR/USD",-75000.0],["2026-10-01","EM Value","USD/KRO",-68000.0],["2026-10-01","EM Value","USD/KRW",165000.0],["2026-10-01","EM Value","USD/ZAR",395000.0],["2026-10-01","G10 Momentum","EUR/USD",805000.0],["2026-10-01","G10 Momentum","USD/JPY",225000.0],["2026-10-01","LatAm RV","USD/BRF",30000.0],["2026-10-01","LatAm RV","USD/BRL",-45000.0],["2026-10-01","Scandi Macro","USD/SEK",120000.0],["2026-10-07","Asia Carry","USD/CNH",1615000.0],["2026-10-07","Asia Carry","USD/CNY",-250000.0],["2026-10-07","Asia Carry","USD/HKD",535000.0],["2026-10-07","Commodity FX","AUD/USD",610000.0],["2026-10-07","Commodity FX","EUR/USD",-90000.0],["2026-10-07","EM Value","USD/KRO",-70000.0],["2026-10-07","EM Value","USD/KRW",160000.0],["2026-10-07","EM Value","USD/ZAR",470000.0],["2026-10-07","G10 Momentum","EUR/USD",910000.0],["2026-10-07","G10 Momentum","USD/JPY",155000.0],["2026-10-07","LatAm RV","USD/BRF",25000.0],["2026-10-07","LatAm RV","USD/BRL",85000.0],["2026-10-07","Scandi Macro","USD/SEK",175000.0]],"source":"sample_mtm_pnl.csv","sourceRows":91,"headerDetected":true,"generatedAt":"2026-10-08 11:14 CST"};
+const PAYLOAD = {"dates":["2026-09-01","2026-09-08","2026-09-15","2026-09-22","2026-09-30","2026-10-01","2026-10-07"],"rows":[["2026-09-01","Asia Carry","USD/CNH",1250000.0],["2026-09-01","Asia Carry","USD/CNY",-210000.0],["2026-09-01","Asia Carry","USD/HKD",420000.0],["2026-09-01","Commodity FX","AUD/USD",375000.0],["2026-09-01","Commodity FX","EUR/USD",-120000.0],["2026-09-01","EM Value","USD/KRO",-55000.0],["2026-09-01","EM Value","USD/KRW",130000.0],["2026-09-01","EM Value","USD/ZAR",260000.0],["2026-09-01","G10 Momentum","EUR/USD",610000.0],["2026-09-01","G10 Momentum","USD/JPY",-340000.0],["2026-09-01","LatAm RV","USD/BRF",90000.0],["2026-09-01","LatAm RV","USD/BRL",-780000.0],["2026-09-01","Scandi Macro","USD/SEK",-185000.0],["2026-09-08","Asia Carry","USD/CNH",1380000.0],["2026-09-08","Asia Carry","USD/CNY",-240000.0],["2026-09-08","Asia Carry","USD/HKD",445000.0],["2026-09-08","Commodity FX","AUD/USD",410000.0],["2026-09-08","Commodity FX","EUR/USD",-90000.0],["2026-09-08","EM Value","USD/KRO",-60000.0],["2026-09-08","EM Value","USD/KRW",145000.0],["2026-09-08","EM Value","USD/ZAR",315000.0],["2026-09-08","G10 Momentum","EUR/USD",540000.0],["2026-09-08","G10 Momentum","USD/JPY",-210000.0],["2026-09-08","LatAm RV","USD/BRF",75000.0],["2026-09-08","LatAm RV","USD/BRL",-640000.0],["2026-09-08","Scandi Macro","USD/SEK",-125000.0],["2026-09-15","Asia Carry","USD/CNH",1295000.0],["2026-09-15","Asia Carry","USD/CNY",-185000.0],["2026-09-15","Asia Carry","USD/HKD",470000.0],["2026-09-15","Commodity FX","AUD/USD",455000.0],["2026-09-15","Commodity FX","EUR/USD",-145000.0],["2026-09-15","EM Value","USD/KRO",-45000.0],["2026-09-15","EM Value","USD/KRW",120000.0],["2026-09-15","EM Value","USD/ZAR",280000.0],["2026-09-15","G10 Momentum","EUR/USD",720000.0],["2026-09-15","G10 Momentum","USD/JPY",-95000.0],["2026-09-15","LatAm RV","USD/BRF",60000.0],["2026-09-15","LatAm RV","USD/BRL",-420000.0],["2026-09-15","Scandi Macro","USD/SEK",-65000.0],["2026-09-22","Asia Carry","USD/CNH",1460000.0],["2026-09-22","Asia Carry","USD/CNY",-260000.0],["2026-09-22","Asia Carry","USD/HKD",510000.0],["2026-09-22","Commodity FX","AUD/USD",390000.0],["2026-09-22","Commodity FX","EUR/USD",-65000.0],["2026-09-22","EM Value","USD/KRO",-65000.0],["2026-09-22","EM Value","USD/KRW",155000.0],["2026-09-22","EM Value","USD/ZAR",350000.0],["2026-09-22","G10 Momentum","EUR/USD",830000.0],["2026-09-22","G10 Momentum","USD/JPY",45000.0],["2026-09-22","LatAm RV","USD/BRF",45000.0],["2026-09-22","LatAm RV","USD/BRL",-255000.0],["2026-09-22","Scandi Macro","USD/SEK",25000.0],["2026-09-30","Asia Carry","USD/CNH",1525000.0],["2026-09-30","Asia Carry","USD/CNY",-225000.0],["2026-09-30","Asia Carry","USD/HKD",485000.0],["2026-09-30","Commodity FX","AUD/USD",520000.0],["2026-09-30","Commodity FX","EUR/USD",-110000.0],["2026-09-30","EM Value","USD/KRO",-75000.0],["2026-09-30","EM Value","USD/KRW",170000.0],["2026-09-30","EM Value","USD/ZAR",425000.0],["2026-09-30","G10 Momentum","EUR/USD",760000.0],["2026-09-30","G10 Momentum","USD/JPY",180000.0],["2026-09-30","LatAm RV","USD/BRF",35000.0],["2026-09-30","LatAm RV","USD/BRL",-110000.0],["2026-09-30","Scandi Macro","USD/SEK",95000.0],["2026-10-01","Asia Carry","USD/CNH",1490000.0],["2026-10-01","Asia Carry","USD/CNY",-205000.0],["2026-10-01","Asia Carry","USD/HKD",505000.0],["2026-10-01","Commodity FX","AUD/USD",565000.0],["2026-10-01","Commodity FX","EUR/USD",-75000.0],["2026-10-01","EM Value","USD/KRO",-68000.0],["2026-10-01","EM Value","USD/KRW",165000.0],["2026-10-01","EM Value","USD/ZAR",395000.0],["2026-10-01","G10 Momentum","EUR/USD",805000.0],["2026-10-01","G10 Momentum","USD/JPY",225000.0],["2026-10-01","LatAm RV","USD/BRF",30000.0],["2026-10-01","LatAm RV","USD/BRL",-45000.0],["2026-10-01","Scandi Macro","USD/SEK",120000.0],["2026-10-07","Asia Carry","USD/CNH",1615000.0],["2026-10-07","Asia Carry","USD/CNY",-250000.0],["2026-10-07","Asia Carry","USD/HKD",535000.0],["2026-10-07","Commodity FX","AUD/USD",610000.0],["2026-10-07","Commodity FX","EUR/USD",-90000.0],["2026-10-07","EM Value","USD/KRO",-70000.0],["2026-10-07","EM Value","USD/KRW",160000.0],["2026-10-07","EM Value","USD/ZAR",470000.0],["2026-10-07","G10 Momentum","EUR/USD",910000.0],["2026-10-07","G10 Momentum","USD/JPY",155000.0],["2026-10-07","LatAm RV","USD/BRF",25000.0],["2026-10-07","LatAm RV","USD/BRL",85000.0],["2026-10-07","Scandi Macro","USD/SEK",175000.0]],"positions":[["2026-10-07","Asia Carry","USD/CNH","Buy","USD",161500000.0],["2026-10-07","Asia Carry","USD/CNY","Sell","USD",25000000.0],["2026-10-07","Asia Carry","USD/HKD","Buy","USD",53500000.0],["2026-10-07","Commodity FX","AUD/USD","Buy","AUD",61000000.0],["2026-10-07","Commodity FX","EUR/USD","Sell","EUR",9000000.0],["2026-10-07","EM Value","USD/KRO","Sell","USD",7000000.0],["2026-10-07","EM Value","USD/KRW","Buy","USD",16000000.0],["2026-10-07","EM Value","USD/ZAR","Buy","USD",47000000.0],["2026-10-07","G10 Momentum","EUR/USD","Buy","EUR",91000000.0],["2026-10-07","G10 Momentum","USD/JPY","Buy","USD",15500000.0],["2026-10-07","LatAm RV","USD/BRF","Buy","USD",2500000.0],["2026-10-07","LatAm RV","USD/BRL","Buy","USD",8500000.0],["2026-10-07","Scandi Macro","USD/SEK","Buy","USD",17500000.0]],"positionColumns":true,"source":"sample_mtm_pnl.csv","sourceRows":91,"headerDetected":true,"generatedAt":"2026-10-08 11:30 CST"};
 const dates = PAYLOAD.dates;
+const positionRows = PAYLOAD.positions || [];
 const strategies = [...new Set(PAYLOAD.rows.map(r => r[1]))].sort((a,b)=>a.localeCompare(b));
 const dateIndex = new Map(dates.map((d,i)=>[d,i]));
 const zeroSeries = () => Array(dates.length).fill(0);
@@ -203,6 +222,13 @@ function fmt(v) {
   return sign+'$'+Math.round(a).toLocaleString();
 }
 const exact = v => (v<0?'−':'')+'$'+Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:0});
+function fmtPosition(v,signed=true) {
+  const a=Math.abs(v),sign=v<0?'−':signed&&v>0?'+':'';
+  if(a>=1e9)return sign+(a/1e9).toFixed(a>=10e9?1:2)+'bn';
+  if(a>=1e6)return sign+(a/1e6).toFixed(a>=10e6?1:2)+'m';
+  if(a>=1e3)return sign+Math.round(a/1e3).toLocaleString()+'k';
+  return sign+Math.round(a).toLocaleString();
+}
 function periodStartIndex(kind) {
   const last = new Date(dates.at(-1)+'T00:00:00Z');
   let cutoff=last;
@@ -282,6 +308,25 @@ function renderTickers(){
   body.querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{state.ticker=tr.dataset.name;render();});
   updateSortMarks('tickerTable',state.tickerSort);
 }
+function renderPositions(){
+  const body=document.querySelector('#positionTable tbody');
+  const title=document.getElementById('positionTitle'),sub=document.getElementById('positionSub');
+  title.textContent=state.strategy||state.ticker?`${activeLabel()} · latest position breakdown`:'Latest position breakdown';
+  sub.textContent=`As of ${dates.at(-1)} · grouped by Ticker; CCY1 is the Amount1 unit`;
+  if(!PAYLOAD.positionColumns){body.innerHTML='<tr><td colspan="6" class="empty">PS1, CCY1, and Amount1 are not present in this input file.</td></tr>';return;}
+  if(!state.strategy&&!state.ticker){body.innerHTML='<tr><td colspan="6" class="empty">Select a Strategy or Ticker to inspect its latest position.</td></tr>';return;}
+  const selectedTickers=state.ticker?(syntheticNames.has(state.ticker)?new Set(syntheticDefinitions.get(state.ticker)):new Set([state.ticker])):null;
+  const grouped=new Map();
+  for(const [,strategy,ticker,side,currency,amount] of positionRows){
+    if(state.strategy&&strategy!==state.strategy)continue;
+    if(selectedTickers&&!selectedTickers.has(ticker))continue;
+    const key=strategy+'\u0000'+ticker+'\u0000'+currency;
+    if(!grouped.has(key))grouped.set(key,{strategy,ticker,currency,buy:0,sell:0});
+    grouped.get(key)[side.toLowerCase()]+=amount;
+  }
+  const rows=[...grouped.values()].map(row=>({...row,net:row.buy-row.sell})).sort((a,b)=>a.ticker.localeCompare(b.ticker)||a.strategy.localeCompare(b.strategy)||a.currency.localeCompare(b.currency));
+  body.innerHTML=rows.map(row=>`<tr><td>${esc(row.ticker)}</td><td>${esc(row.strategy)}</td><td>${esc(row.currency)}</td><td class="num positive">${fmtPosition(row.buy,false)}</td><td class="num negative">${fmtPosition(row.sell,false)}</td><td class="num ${signClass(row.net)}">${fmtPosition(row.net)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No latest-date positions match this selection.</td></tr>';
+}
 function renderBars(){
   let rows;
   if(state.strategy&&state.ticker&&syntheticNames.has(state.ticker)){rows=syntheticDefinitions.get(state.ticker).map(name=>({name,value:metrics(byStrategyTicker.get(state.strategy+'\u0000'+name)||zeroSeries()).latest,type:'ticker'}));}
@@ -331,11 +376,11 @@ function renderChart(){
   document.getElementById('chartSub').textContent=`${dates[0]} to ${dates.at(-1)} · bars are daily P&L; blue curve is cumulative P&L`;
   drawChart();renderBars();
 }
-function render(){renderCrumbs();renderSelectors();renderKpis();renderStrategies();renderTickers();renderChart();}
+function render(){renderCrumbs();renderSelectors();renderKpis();renderStrategies();renderTickers();renderPositions();renderChart();}
 
 document.getElementById('asOf').textContent=`As of ${dates.at(-1)}`;
 document.getElementById('sourceMeta').textContent=`${PAYLOAD.source} · ${PAYLOAD.sourceRows.toLocaleString()} source rows`;
-document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · blank/null P&L treated as $0`;
+document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · ${PAYLOAD.positionColumns?'Position columns detected':'No position columns'} · blank/null P&L treated as $0`;
 document.getElementById('strategySearch').oninput=e=>{state.search=e.target.value;renderStrategies();};
 document.getElementById('strategySelect').onchange=e=>{const next=e.target.value||null;if(next&&state.ticker&&!tickersByStrategy.get(next)?.has(state.ticker))state.ticker=null;state.strategy=next;render();};
 document.getElementById('tickerSelect').onchange=e=>{state.ticker=e.target.value||null;render();};

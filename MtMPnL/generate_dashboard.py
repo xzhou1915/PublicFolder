@@ -13,7 +13,8 @@ from datetime import datetime
 from pathlib import Path
 
 
-EXPECTED_COLUMNS = ("CobDate", "Strategy", "Ticker", "MtM_PnL")
+CORE_COLUMNS = ("CobDate", "Strategy", "Ticker", "MtM_PnL")
+POSITION_COLUMNS = ("PS1", "CCY1", "Amount1")
 
 
 def normalized_header(value: str) -> str:
@@ -56,7 +57,30 @@ def parse_pnl(value: str, line_number: int) -> float:
     return -number if negative else number
 
 
-def read_csv(path: Path) -> tuple[list[list[object]], list[str], bool, int]:
+def parse_position_amount(value: str, line_number: int) -> float:
+    raw = value.strip()
+    if not raw or raw.lower() in {"na", "n/a", "null", "none", "nan"}:
+        raise ValueError(f"line {line_number}: Amount1 is blank")
+    cleaned = re.sub(r"[$,\s]", "", raw)
+    try:
+        number = float(cleaned)
+    except ValueError as exc:
+        raise ValueError(f"line {line_number}: invalid Amount1 {value!r}") from exc
+    if not math.isfinite(number) or number < 0:
+        raise ValueError(f"line {line_number}: Amount1 must be non-negative")
+    return number
+
+
+def read_csv(
+    path: Path,
+) -> tuple[
+    list[list[object]],
+    list[str],
+    bool,
+    int,
+    list[list[object]],
+    bool,
+]:
     text = path.read_text(encoding="utf-8-sig")
     if not text.strip():
         raise ValueError("input CSV is empty")
@@ -66,24 +90,62 @@ def read_csv(path: Path) -> tuple[list[list[object]], list[str], bool, int]:
     except csv.Error:
         dialect = csv.excel
 
-    raw_rows = [row for row in csv.reader(text.splitlines(), dialect) if any(x.strip() for x in row)]
+    raw_rows = [
+        row
+        for row in csv.reader(text.splitlines(), dialect)
+        if any(x.strip() for x in row)
+    ]
     if not raw_rows:
         raise ValueError("input CSV has no data rows")
 
-    wanted = {normalized_header(name): name for name in EXPECTED_COLUMNS}
+    core_wanted = {normalized_header(name): name for name in CORE_COLUMNS}
+    position_wanted = {
+        normalized_header(name): name for name in POSITION_COLUMNS
+    }
     first = [normalized_header(cell) for cell in raw_rows[0]]
-    has_header = all(name in first for name in wanted)
+    has_header = all(name in first for name in core_wanted)
 
     if has_header:
-        indexes = {wanted[name]: first.index(name) for name in wanted}
+        indexes = {
+            core_wanted[name]: first.index(name) for name in core_wanted
+        }
+        position_presence = [name in first for name in position_wanted]
+        if any(position_presence) and not all(position_presence):
+            raise ValueError(
+                "position columns must include PS1, CCY1, and Amount1 together"
+            )
+        has_positions = all(position_presence)
+        if has_positions:
+            indexes.update(
+                {
+                    position_wanted[name]: first.index(name)
+                    for name in position_wanted
+                }
+            )
         data_rows = raw_rows[1:]
         first_line = 2
     else:
-        indexes = {name: index for index, name in enumerate(EXPECTED_COLUMNS)}
+        if 4 < len(raw_rows[0]) < 7:
+            raise ValueError(
+                "headerless input must contain either four columns or seven "
+                "columns ending with PS1, CCY1, Amount1"
+            )
+        has_positions = len(raw_rows[0]) >= 7
+        indexes = {name: index for index, name in enumerate(CORE_COLUMNS)}
+        if has_positions:
+            indexes.update(
+                {
+                    name: len(CORE_COLUMNS) + index
+                    for index, name in enumerate(POSITION_COLUMNS)
+                }
+            )
         data_rows = raw_rows
         first_line = 1
 
     aggregated: defaultdict[tuple[str, str, str], float] = defaultdict(float)
+    position_aggregated: defaultdict[
+        tuple[str, str, str, str, str], float
+    ] = defaultdict(float)
     source_rows = 0
     for offset, row in enumerate(data_rows):
         line_number = first_line + offset
@@ -104,6 +166,26 @@ def read_csv(path: Path) -> tuple[list[list[object]], list[str], bool, int]:
         if not ticker:
             raise ValueError(f"line {line_number}: Ticker is blank")
         aggregated[(cob_date, strategy, ticker)] += pnl
+        if has_positions:
+            try:
+                side = row[indexes["PS1"]].strip().title()
+                currency = row[indexes["CCY1"]].strip().upper()
+                amount = parse_position_amount(
+                    row[indexes["Amount1"]], line_number
+                )
+            except IndexError as exc:
+                raise ValueError(
+                    f"line {line_number}: missing PS1, CCY1, or Amount1 value"
+                ) from exc
+            if side not in {"Buy", "Sell"}:
+                raise ValueError(
+                    f"line {line_number}: PS1 must be Buy or Sell; found {side!r}"
+                )
+            if not currency:
+                raise ValueError(f"line {line_number}: CCY1 is blank")
+            position_aggregated[
+                (cob_date, strategy, ticker, side, currency)
+            ] += amount
         source_rows += 1
 
     rows = [
@@ -113,7 +195,21 @@ def read_csv(path: Path) -> tuple[list[list[object]], list[str], bool, int]:
     dates = sorted({row[0] for row in rows})
     if not dates:
         raise ValueError("input CSV contains no valid data rows")
-    return rows, dates, has_header, source_rows
+    position_rows = [
+        [date, strategy, ticker, side, currency, round(value, 6)]
+        for (date, strategy, ticker, side, currency), value in sorted(
+            position_aggregated.items()
+        )
+        if date == dates[-1]
+    ]
+    return (
+        rows,
+        dates,
+        has_header,
+        source_rows,
+        position_rows,
+        has_positions,
+    )
 
 
 HTML_TEMPLATE = r'''<!doctype html>
@@ -188,6 +284,8 @@ HTML_TEMPLATE = r'''<!doctype html>
     .bar-value{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
     .detail{margin-top:16px}
     .detail .table-wrap{max-height:420px}
+    .position-detail th{cursor:default}.position-detail td:first-child{max-width:none}
+    .position-detail td.num{font-size:15px;font-weight:700}
     .empty{padding:32px;text-align:center;color:var(--muted)}
     .footer{color:var(--muted);font-size:11px;margin-top:12px;text-align:right}
     @media(max-width:1050px){.grid{grid-template-columns:1fr}.chart-panel{min-height:580px}.kpis{grid-template-columns:repeat(3,1fr)}}
@@ -256,12 +354,29 @@ HTML_TEMPLATE = r'''<!doctype html>
       </table>
     </div>
   </section>
+  <section class="panel detail position-detail">
+    <div class="panel-head"><div><div class="panel-title" id="positionTitle">Latest position breakdown</div><div class="panel-sub" id="positionSub"></div></div></div>
+    <div class="table-wrap">
+      <table id="positionTable">
+        <thead><tr>
+          <th>Ticker</th>
+          <th>Strategy</th>
+          <th>CCY1</th>
+          <th>Gross Buy</th>
+          <th>Gross Sell</th>
+          <th>Net Position</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
   <div class="footer" id="footer"></div>
 </main>
 
 <script>
 const PAYLOAD = __PAYLOAD__;
 const dates = PAYLOAD.dates;
+const positionRows = PAYLOAD.positions || [];
 const strategies = [...new Set(PAYLOAD.rows.map(r => r[1]))].sort((a,b)=>a.localeCompare(b));
 const dateIndex = new Map(dates.map((d,i)=>[d,i]));
 const zeroSeries = () => Array(dates.length).fill(0);
@@ -321,6 +436,13 @@ function fmt(v) {
   return sign+'$'+Math.round(a).toLocaleString();
 }
 const exact = v => (v<0?'−':'')+'$'+Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:0});
+function fmtPosition(v,signed=true) {
+  const a=Math.abs(v),sign=v<0?'−':signed&&v>0?'+':'';
+  if(a>=1e9)return sign+(a/1e9).toFixed(a>=10e9?1:2)+'bn';
+  if(a>=1e6)return sign+(a/1e6).toFixed(a>=10e6?1:2)+'m';
+  if(a>=1e3)return sign+Math.round(a/1e3).toLocaleString()+'k';
+  return sign+Math.round(a).toLocaleString();
+}
 function periodStartIndex(kind) {
   const last = new Date(dates.at(-1)+'T00:00:00Z');
   let cutoff=last;
@@ -400,6 +522,25 @@ function renderTickers(){
   body.querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{state.ticker=tr.dataset.name;render();});
   updateSortMarks('tickerTable',state.tickerSort);
 }
+function renderPositions(){
+  const body=document.querySelector('#positionTable tbody');
+  const title=document.getElementById('positionTitle'),sub=document.getElementById('positionSub');
+  title.textContent=state.strategy||state.ticker?`${activeLabel()} · latest position breakdown`:'Latest position breakdown';
+  sub.textContent=`As of ${dates.at(-1)} · grouped by Ticker; CCY1 is the Amount1 unit`;
+  if(!PAYLOAD.positionColumns){body.innerHTML='<tr><td colspan="6" class="empty">PS1, CCY1, and Amount1 are not present in this input file.</td></tr>';return;}
+  if(!state.strategy&&!state.ticker){body.innerHTML='<tr><td colspan="6" class="empty">Select a Strategy or Ticker to inspect its latest position.</td></tr>';return;}
+  const selectedTickers=state.ticker?(syntheticNames.has(state.ticker)?new Set(syntheticDefinitions.get(state.ticker)):new Set([state.ticker])):null;
+  const grouped=new Map();
+  for(const [,strategy,ticker,side,currency,amount] of positionRows){
+    if(state.strategy&&strategy!==state.strategy)continue;
+    if(selectedTickers&&!selectedTickers.has(ticker))continue;
+    const key=strategy+'\u0000'+ticker+'\u0000'+currency;
+    if(!grouped.has(key))grouped.set(key,{strategy,ticker,currency,buy:0,sell:0});
+    grouped.get(key)[side.toLowerCase()]+=amount;
+  }
+  const rows=[...grouped.values()].map(row=>({...row,net:row.buy-row.sell})).sort((a,b)=>a.ticker.localeCompare(b.ticker)||a.strategy.localeCompare(b.strategy)||a.currency.localeCompare(b.currency));
+  body.innerHTML=rows.map(row=>`<tr><td>${esc(row.ticker)}</td><td>${esc(row.strategy)}</td><td>${esc(row.currency)}</td><td class="num positive">${fmtPosition(row.buy,false)}</td><td class="num negative">${fmtPosition(row.sell,false)}</td><td class="num ${signClass(row.net)}">${fmtPosition(row.net)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No latest-date positions match this selection.</td></tr>';
+}
 function renderBars(){
   let rows;
   if(state.strategy&&state.ticker&&syntheticNames.has(state.ticker)){rows=syntheticDefinitions.get(state.ticker).map(name=>({name,value:metrics(byStrategyTicker.get(state.strategy+'\u0000'+name)||zeroSeries()).latest,type:'ticker'}));}
@@ -449,11 +590,11 @@ function renderChart(){
   document.getElementById('chartSub').textContent=`${dates[0]} to ${dates.at(-1)} · bars are daily P&L; blue curve is cumulative P&L`;
   drawChart();renderBars();
 }
-function render(){renderCrumbs();renderSelectors();renderKpis();renderStrategies();renderTickers();renderChart();}
+function render(){renderCrumbs();renderSelectors();renderKpis();renderStrategies();renderTickers();renderPositions();renderChart();}
 
 document.getElementById('asOf').textContent=`As of ${dates.at(-1)}`;
 document.getElementById('sourceMeta').textContent=`${PAYLOAD.source} · ${PAYLOAD.sourceRows.toLocaleString()} source rows`;
-document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · blank/null P&L treated as $0`;
+document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · ${PAYLOAD.positionColumns?'Position columns detected':'No position columns'} · blank/null P&L treated as $0`;
 document.getElementById('strategySearch').oninput=e=>{state.search=e.target.value;renderStrategies();};
 document.getElementById('strategySelect').onchange=e=>{const next=e.target.value||null;if(next&&state.ticker&&!tickersByStrategy.get(next)?.has(state.ticker))state.ticker=null;state.strategy=next;render();};
 document.getElementById('tickerSelect').onchange=e=>{state.ticker=e.target.value||null;render();};
@@ -468,10 +609,19 @@ render();
 
 
 def build_dashboard(input_path: Path, output_path: Path) -> None:
-    rows, dates, has_header, source_rows = read_csv(input_path)
+    (
+        rows,
+        dates,
+        has_header,
+        source_rows,
+        position_rows,
+        has_positions,
+    ) = read_csv(input_path)
     payload = {
         "dates": dates,
         "rows": rows,
+        "positions": position_rows,
+        "positionColumns": has_positions,
         "source": input_path.name,
         "sourceRows": source_rows,
         "headerDetected": has_header,
@@ -493,7 +643,8 @@ def build_dashboard(input_path: Path, output_path: Path) -> None:
     print(f"Generated: {output_path.resolve()}")
     print(
         f"Dates: {dates[0]} to {dates[-1]} | "
-        f"Strategies: {strategies} | Tickers: {tickers} | Source rows: {source_rows}"
+        f"Strategies: {strategies} | Tickers: {tickers} | "
+        f"Source rows: {source_rows} | Latest position rows: {len(position_rows)}"
     )
 
 

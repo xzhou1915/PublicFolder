@@ -3,10 +3,11 @@
 Generate a self-contained static HTML dashboard from a CSV containing:
 
 ```text
-CobDate,Strategy,Ticker,MtM_PnL
+CobDate,Strategy,Ticker,MtM_PnL,PS1,CCY1,Amount1
 ```
 
-The file may include that header or be headerless in the same column order.
+The file may include that header or be headerless in the same column order. The
+earlier four-column format remains supported, but it cannot display positions.
 
 ## Run
 
@@ -27,6 +28,10 @@ Open `index.html` in a browser. The generated file has no server or internet dep
 - `Cumulative` is the sum of all available daily P&L in the input file.
 - Repeated rows for the same `CobDate` / `Strategy` / `Ticker` are summed.
 - Blank or null `MtM_PnL` values are treated as zero.
+- `PS1` must be `Buy` or `Sell`; `Amount1` must be non-negative.
+- Latest positions are grouped by `Ticker`. `CCY1` is displayed only as the
+  currency unit of `Amount1`.
+- Net position is calculated as gross Buy `Amount1` minus gross Sell `Amount1`.
 
 The strategy table and ticker-detail table are sortable. Use the Strategy and Ticker selectors, or click a table row or composition bar, to view an exact strategy/ticker combination. With `Strategy` set to `Whole book`, selecting a ticker aggregates its daily and cumulative P&L across all strategies.
 
@@ -37,3 +42,5 @@ Three view-only synthetic tickers are calculated for every date and strategy:
 - `KRWKRO = USD/KRW + USD/KRO`
 
 A missing leg contributes zero. Synthetic tickers are excluded from whole-book totals, strategy totals, actual-pair counts, and ordinary composition bars to prevent double-counting.
+When selected in the position breakdown, a synthetic ticker displays its two
+underlying ticker legs separately.
