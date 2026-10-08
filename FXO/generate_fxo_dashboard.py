@@ -191,6 +191,10 @@ def load_position_history(
     )
     if trades["Pair"].eq("").any():
         raise ValueError("Underlying contains blank values")
+    trades["Portfolio"] = (
+        trades["Portfolio"].astype("string").fillna("").str.strip()
+    )
+    trades.loc[trades["Portfolio"].eq(""), "Portfolio"] = "Unassigned"
 
     duplicate = trades.duplicated(["CobDate", "UniqueID"], keep=False)
     if duplicate.any():
@@ -213,35 +217,56 @@ def load_position_history(
 def build_ytd_pnl_streams(
     trades: pd.DataFrame,
     latest_cob: pd.Timestamp,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     history = trades.loc[trades["CobDate"].dt.year.eq(latest_cob.year)].copy()
     history = history.sort_values(["CobDate", "UniqueID"])
 
-    state: dict[str, tuple[str, float]] = {}
-    snapshots: list[tuple[pd.Timestamp, dict[str, float]]] = []
+    state: dict[str, tuple[str, str, float]] = {}
+    snapshots: list[
+        tuple[pd.Timestamp, dict[str, float], dict[str, float]]
+    ] = []
     for cob_date, day in history.groupby("CobDate", sort=True):
         for row in day.itertuples():
-            state[str(row.UniqueID)] = (str(row.Pair), float(row.PnL))
+            state[str(row.UniqueID)] = (
+                str(row.Pair),
+                str(row.Portfolio),
+                float(row.PnL),
+            )
 
-        totals: defaultdict[str, float] = defaultdict(float)
-        for pair, pnl in state.values():
-            totals[pair] += pnl
-        snapshots.append((pd.Timestamp(cob_date), dict(totals)))
+        pair_totals: defaultdict[str, float] = defaultdict(float)
+        portfolio_totals: defaultdict[str, float] = defaultdict(float)
+        for pair, portfolio, pnl in state.values():
+            pair_totals[pair] += pnl
+            portfolio_totals[portfolio] += pnl
+        snapshots.append(
+            (pd.Timestamp(cob_date), dict(pair_totals), dict(portfolio_totals))
+        )
 
     if not snapshots:
         raise ValueError(f"No positions found for {latest_cob.year}")
 
-    pairs = sorted({pair for _, totals in snapshots for pair in totals})
-    first_totals = snapshots[0][1]
-    opening_book = sum(first_totals.values())
+    pairs = sorted(
+        {pair for _, pair_totals, _ in snapshots for pair in pair_totals}
+    )
+    portfolios = sorted(
+        {
+            portfolio
+            for _, _, portfolio_totals in snapshots
+            for portfolio in portfolio_totals
+        }
+    )
+    first_pair_totals = snapshots[0][1]
+    first_portfolio_totals = snapshots[0][2]
+    opening_book = sum(first_pair_totals.values())
 
     book_rows = []
     pair_rows = []
-    for cob_date, totals in snapshots:
+    portfolio_rows = []
+    for cob_date, pair_totals, portfolio_totals in snapshots:
         book_rows.append(
             {
                 "CobDate": cob_date,
-                "YtdPnL": sum(totals.values()) - opening_book,
+                "YtdPnL": sum(pair_totals.values()) - opening_book,
             }
         )
         for pair in pairs:
@@ -249,11 +274,25 @@ def build_ytd_pnl_streams(
                 {
                     "CobDate": cob_date,
                     "Pair": pair,
-                    "YtdPnL": totals.get(pair, 0.0) - first_totals.get(pair, 0.0),
+                    "YtdPnL": pair_totals.get(pair, 0.0)
+                    - first_pair_totals.get(pair, 0.0),
+                }
+            )
+        for portfolio in portfolios:
+            portfolio_rows.append(
+                {
+                    "CobDate": cob_date,
+                    "Portfolio": portfolio,
+                    "YtdPnL": portfolio_totals.get(portfolio, 0.0)
+                    - first_portfolio_totals.get(portfolio, 0.0),
                 }
             )
 
-    return pd.DataFrame(book_rows), pd.DataFrame(pair_rows)
+    return (
+        pd.DataFrame(book_rows),
+        pd.DataFrame(pair_rows),
+        pd.DataFrame(portfolio_rows),
+    )
 
 
 def build_wow_summary(
@@ -1344,6 +1383,7 @@ def inject_ytd_pnl(
     output: Path,
     book_history: pd.DataFrame,
     pair_history: pd.DataFrame,
+    portfolio_history: pd.DataFrame,
     netted: pd.DataFrame,
 ) -> None:
     book_points = [
@@ -1363,6 +1403,43 @@ def inject_ytd_pnl(
     greek_columns = [column for _, column in greek_metrics]
     greeks_by_pair = netted.groupby("Pair")[greek_columns].sum()
     book_greeks = greeks_by_pair.sum()
+
+    latest_date = book_points[-1][0]
+    latest_portfolios = portfolio_history.loc[
+        portfolio_history["CobDate"].eq(latest_date)
+    ].set_index("Portfolio")["YtdPnL"]
+    if comparison_date is None:
+        previous_portfolios = None
+    else:
+        previous_portfolios = portfolio_history.loc[
+            portfolio_history["CobDate"].eq(comparison_date)
+        ].set_index("Portfolio")["YtdPnL"]
+
+    portfolio_performance = []
+    for portfolio in latest_portfolios.index:
+        current = float(latest_portfolios.loc[portfolio])
+        change = (
+            None
+            if previous_portfolios is None
+            else current - float(previous_portfolios.loc[portfolio])
+        )
+        portfolio_performance.append((str(portfolio), current, change))
+    portfolio_performance.sort(
+        key=lambda item: abs(item[2] if item[2] is not None else item[1]),
+        reverse=True,
+    )
+
+    portfolio_current_total = sum(item[1] for item in portfolio_performance)
+    current_tolerance = max(1e-6, abs(current_pnl) * 1e-12)
+    if abs(portfolio_current_total - current_pnl) > current_tolerance:
+        raise RuntimeError("Portfolio current P&L does not match whole-book P&L")
+    if wow_change is not None:
+        portfolio_wow_total = sum(
+            item[2] for item in portfolio_performance if item[2] is not None
+        )
+        wow_tolerance = max(1e-6, abs(wow_change) * 1e-12)
+        if abs(portfolio_wow_total - wow_change) > wow_tolerance:
+            raise RuntimeError("Portfolio WoW P&L does not match whole-book WoW")
 
     def value_class(value: float) -> str:
         return (
@@ -1440,6 +1517,27 @@ def inject_ytd_pnl(
         "</tr></tfoot>"
     )
 
+    portfolio_rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(portfolio)}</td>"
+        f'<td class="num {value_class(current)}">'
+        f"{html.escape(format_money(current))}</td>"
+        + (
+            '<td class="num">N/A</td>'
+            if change is None
+            else f'<td class="num {value_class(change)}">'
+            f"{html.escape(format_money(change))}</td>"
+        )
+        + "</tr>"
+        for portfolio, current, change in portfolio_performance
+    )
+    portfolio_whole_book_row = (
+        '<tfoot><tr class="pnl-total-row"><td>Whole book</td>'
+        f'<td class="num {current_class}">{html.escape(format_money(current_pnl))}</td>'
+        f'<td class="num {wow_class}">{html.escape(wow_text)}</td>'
+        "</tr></tfoot>"
+    )
+
     book_svg = line_chart_svg(
         [("Whole book", "#14866d", book_points)],
         "book-pnl",
@@ -1477,6 +1575,39 @@ def inject_ytd_pnl(
         "YTD P&L history by currency pair",
     )
 
+    latest_by_portfolio = (
+        portfolio_history.sort_values("CobDate")
+        .groupby("Portfolio", as_index=True)["YtdPnL"]
+        .last()
+    )
+    portfolio_order = (
+        latest_by_portfolio.abs().sort_values(ascending=False).index.tolist()
+    )
+    portfolio_series = []
+    portfolio_legend_items = []
+    for index, portfolio in enumerate(portfolio_order):
+        color = PAIR_COLORS[index % len(PAIR_COLORS)]
+        subset = portfolio_history.loc[
+            portfolio_history["Portfolio"].eq(portfolio)
+        ]
+        points = [
+            (pd.Timestamp(row.CobDate), float(row.YtdPnL))
+            for row in subset.itertuples()
+        ]
+        portfolio_series.append((str(portfolio), color, points))
+        portfolio_legend_items.append(
+            '<span class="pnl-legend-item">'
+            f'<i style="background:{color}"></i>{html.escape(str(portfolio))} '
+            f'<strong>{html.escape(format_money(float(latest_by_portfolio.loc[portfolio])))}</strong>'
+            "</span>"
+        )
+
+    portfolio_svg = line_chart_svg(
+        portfolio_series,
+        "portfolio-pnl",
+        "YTD P&L history by portfolio",
+    )
+
     css = """
 .pnl-section{margin:0 0 24px}.pnl-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin:0 0 12px}
 .pnl-section-head h2{margin:0;font-size:21px}.pnl-section-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
@@ -1499,6 +1630,7 @@ def inject_ytd_pnl(
 .pnl-legend{display:flex;flex-wrap:wrap;gap:8px 15px;padding:0 13px 12px;color:var(--muted);font-size:11px}
 .pnl-legend-item{display:inline-flex;align-items:center;gap:5px}.pnl-legend-item i{display:inline-block;width:9px;height:9px;border-radius:50%}
 .pnl-legend-item strong{color:var(--ink);font-weight:600}
+.pnl-portfolio-card{grid-column:1/-1}
 @media(max-width:1100px){.pnl-section-head{align-items:flex-start;flex-direction:column}.pnl-headlines{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.pnl-headlines{grid-template-columns:1fr}}
 """
@@ -1515,6 +1647,10 @@ def inject_ytd_pnl(
     <div class="pnl-contribution-head"><h3>Currency-pair contribution to WoW P&amp;L</h3><span>Only non-zero changes shown</span></div>
     <table><thead><tr><th>Currency pair</th><th class="num">Current P&amp;L</th><th class="num">WoW contribution</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Vega</th><th class="num">Theta</th><th>Expiry dates</th></tr></thead><tbody>{contribution_rows}</tbody>{whole_book_row}</table>
   </div>
+  <div class="pnl-contribution-card">
+    <div class="pnl-contribution-head"><h3>Portfolio performance</h3><span>All portfolios · {html.escape(comparison_label)}</span></div>
+    <table><thead><tr><th>Portfolio</th><th class="num">Current YTD P&amp;L</th><th class="num">WoW P&amp;L</th></tr></thead><tbody>{portfolio_rows}</tbody>{portfolio_whole_book_row}</table>
+  </div>
   <div class="chart-grid">
     <article class="chart-card pnl-card">
       <div class="pnl-card-head"><h2>Whole book</h2><div class="pnl-latest">{html.escape(format_money(latest_book))}</div></div>
@@ -1524,6 +1660,11 @@ def inject_ytd_pnl(
       <div class="pnl-card-head"><h2>Individual currency pairs</h2></div>
       {pair_svg}
       <div class="pnl-legend">{''.join(legend_items)}</div>
+    </article>
+    <article class="chart-card pnl-card pnl-portfolio-card">
+      <div class="pnl-card-head"><h2>Individual portfolios</h2></div>
+      {portfolio_svg}
+      <div class="pnl-legend">{''.join(portfolio_legend_items)}</div>
     </article>
   </div>
 </section>
@@ -1557,9 +1698,13 @@ def main() -> None:
     if output.suffix.lower() != ".html":
         raise ValueError("Output path must use the .html extension")
 
-    book_history, pair_history = build_ytd_pnl_streams(history, as_of)
+    book_history, pair_history, portfolio_history = build_ytd_pnl_streams(
+        history, as_of
+    )
     write_html_dashboard(trades, netted, output, as_of)
-    inject_ytd_pnl(output, book_history, pair_history, netted)
+    inject_ytd_pnl(
+        output, book_history, pair_history, portfolio_history, netted
+    )
     pairs = sorted(trades["Pair"].astype(str).unique().tolist())
     spot_rates, usd_rates, spot_reference_date, spot_error = (
         fetch_exchange_rate_api_spots(pairs)
@@ -1577,6 +1722,7 @@ def main() -> None:
         f"YTD P&L range: {book_history['CobDate'].min():%Y-%m-%d} "
         f"to {book_history['CobDate'].max():%Y-%m-%d}"
     )
+    print(f"Portfolios: {portfolio_history['Portfolio'].nunique()}")
     print(f"Dashboard HTML: {output.resolve()}")
     print(
         f"{len(trades)} latest-snapshot trades -> "
