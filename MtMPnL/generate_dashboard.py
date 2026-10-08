@@ -15,16 +15,17 @@ from pathlib import Path
 
 CORE_COLUMNS = ("CobDate", "Strategy", "Ticker", "MtM_PnL")
 POSITION_COLUMNS = ("PS1", "CCY1", "Amount1")
+VALUE_DATE_COLUMN = "ValueDT"
 
 
 def normalized_header(value: str) -> str:
     return re.sub(r"[^a-z0-9]", "", value.strip().lower())
 
 
-def parse_date(value: str, line_number: int) -> str:
+def parse_named_date(value: str, line_number: int, field_name: str) -> str:
     raw = value.strip()
     if not raw:
-        raise ValueError(f"line {line_number}: CobDate is blank")
+        raise ValueError(f"line {line_number}: {field_name} is blank")
 
     iso_candidate = raw[:10]
     try:
@@ -38,8 +39,13 @@ def parse_date(value: str, line_number: int) -> str:
         except ValueError:
             continue
     raise ValueError(
-        f"line {line_number}: unsupported CobDate {value!r}; use YYYY-MM-DD"
+        f"line {line_number}: unsupported {field_name} {value!r}; "
+        "use YYYY-MM-DD"
     )
+
+
+def parse_date(value: str, line_number: int) -> str:
+    return parse_named_date(value, line_number, "CobDate")
 
 
 def parse_pnl(value: str, line_number: int) -> float:
@@ -80,6 +86,7 @@ def read_csv(
     int,
     list[list[object]],
     bool,
+    bool,
 ]:
     text = path.read_text(encoding="utf-8-sig")
     if not text.strip():
@@ -102,6 +109,7 @@ def read_csv(
     position_wanted = {
         normalized_header(name): name for name in POSITION_COLUMNS
     }
+    value_date_header = normalized_header(VALUE_DATE_COLUMN)
     first = [normalized_header(cell) for cell in raw_rows[0]]
     has_header = all(name in first for name in core_wanted)
 
@@ -115,6 +123,11 @@ def read_csv(
                 "position columns must include PS1, CCY1, and Amount1 together"
             )
         has_positions = all(position_presence)
+        has_value_dates = value_date_header in first
+        if has_value_dates and not has_positions:
+            raise ValueError(
+                "ValueDT requires PS1, CCY1, and Amount1 position columns"
+            )
         if has_positions:
             indexes.update(
                 {
@@ -122,15 +135,19 @@ def read_csv(
                     for name in position_wanted
                 }
             )
+        if has_value_dates:
+            indexes[VALUE_DATE_COLUMN] = first.index(value_date_header)
         data_rows = raw_rows[1:]
         first_line = 2
     else:
         if 4 < len(raw_rows[0]) < 7:
             raise ValueError(
                 "headerless input must contain either four columns or seven "
-                "columns ending with PS1, CCY1, Amount1"
+                "columns ending with PS1, CCY1, Amount1; ValueDT may be an "
+                "eighth column"
             )
         has_positions = len(raw_rows[0]) >= 7
+        has_value_dates = len(raw_rows[0]) >= 8
         indexes = {name: index for index, name in enumerate(CORE_COLUMNS)}
         if has_positions:
             indexes.update(
@@ -139,12 +156,14 @@ def read_csv(
                     for index, name in enumerate(POSITION_COLUMNS)
                 }
             )
+        if has_value_dates:
+            indexes[VALUE_DATE_COLUMN] = 7
         data_rows = raw_rows
         first_line = 1
 
     aggregated: defaultdict[tuple[str, str, str], float] = defaultdict(float)
     position_aggregated: defaultdict[
-        tuple[str, str, str, str, str], float
+        tuple[str, str, str, str, str, str], float
     ] = defaultdict(float)
     source_rows = 0
     for offset, row in enumerate(data_rows):
@@ -173,9 +192,19 @@ def read_csv(
                 amount = parse_position_amount(
                     row[indexes["Amount1"]], line_number
                 )
+                value_date = (
+                    parse_named_date(
+                        row[indexes[VALUE_DATE_COLUMN]],
+                        line_number,
+                        VALUE_DATE_COLUMN,
+                    )
+                    if has_value_dates
+                    else ""
+                )
             except IndexError as exc:
                 raise ValueError(
-                    f"line {line_number}: missing PS1, CCY1, or Amount1 value"
+                    f"line {line_number}: missing PS1, CCY1, Amount1, or "
+                    "ValueDT value"
                 ) from exc
             if side not in {"Buy", "Sell"}:
                 raise ValueError(
@@ -184,7 +213,7 @@ def read_csv(
             if not currency:
                 raise ValueError(f"line {line_number}: CCY1 is blank")
             position_aggregated[
-                (cob_date, strategy, ticker, side, currency)
+                (cob_date, strategy, ticker, side, currency, value_date)
             ] += amount
         source_rows += 1
 
@@ -196,10 +225,23 @@ def read_csv(
     if not dates:
         raise ValueError("input CSV contains no valid data rows")
     position_rows = [
-        [date, strategy, ticker, side, currency, round(value, 6)]
-        for (date, strategy, ticker, side, currency), value in sorted(
-            position_aggregated.items()
-        )
+        [
+            date,
+            strategy,
+            ticker,
+            side,
+            currency,
+            round(value, 6),
+            value_date or None,
+        ]
+        for (
+            date,
+            strategy,
+            ticker,
+            side,
+            currency,
+            value_date,
+        ), value in sorted(position_aggregated.items())
         if date == dates[-1]
     ]
     return (
@@ -209,6 +251,7 @@ def read_csv(
         source_rows,
         position_rows,
         has_positions,
+        has_value_dates,
     )
 
 
@@ -286,6 +329,12 @@ HTML_TEMPLATE = r'''<!doctype html>
     .detail .table-wrap{max-height:420px}
     .position-detail th{cursor:default}.position-detail td:first-child{max-width:none}
     .position-detail td.num{font-size:15px;font-weight:700}
+    .expiry-chart-area{position:relative;height:330px;overflow-x:auto;overflow-y:hidden;padding:12px 16px 8px}
+    #expiryChart{display:none;height:100%}
+    .expiry-empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:28px}
+    .expiry-tooltip{white-space:normal;min-width:190px;max-width:310px}
+    .expiry-tooltip .contributor{display:flex;justify-content:space-between;gap:16px;margin-top:3px}
+    .expiry-tooltip .contributor-label{max-width:190px;overflow:hidden;text-overflow:ellipsis}
     .empty{padding:32px;text-align:center;color:var(--muted)}
     .footer{color:var(--muted);font-size:11px;margin-top:12px;text-align:right}
     @media(max-width:1050px){.grid{grid-template-columns:1fr}.chart-panel{min-height:580px}.kpis{grid-template-columns:repeat(3,1fr)}}
@@ -352,6 +401,14 @@ HTML_TEMPLATE = r'''<!doctype html>
         </tr></thead>
         <tbody></tbody>
       </table>
+    </div>
+  </section>
+  <section class="panel detail expiry-detail">
+    <div class="panel-head"><div><div class="panel-title" id="expiryTitle">Expiry distribution</div><div class="panel-sub" id="expirySub"></div></div></div>
+    <div class="expiry-chart-area" id="expiryChartArea">
+      <div class="expiry-empty" id="expiryEmpty">Select a Ticker to view its expiry distribution.</div>
+      <svg id="expiryChart" role="img"></svg>
+      <div class="tooltip expiry-tooltip" id="expiryTooltip"></div>
     </div>
   </section>
   <section class="panel detail">
@@ -541,6 +598,62 @@ function renderPositions(){
   const rows=[...grouped.values()].map(row=>({...row,net:row.buy-row.sell})).sort((a,b)=>a.ticker.localeCompare(b.ticker)||a.strategy.localeCompare(b.strategy)||a.currency.localeCompare(b.currency));
   body.innerHTML=rows.map(row=>`<tr><td>${esc(row.ticker)}</td><td>${esc(row.strategy)}</td><td>${esc(row.currency)}</td><td class="num positive">${fmtPosition(row.buy,false)}</td><td class="num negative">${fmtPosition(row.sell,false)}</td><td class="num ${signClass(row.net)}">${fmtPosition(row.net)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No latest-date positions match this selection.</td></tr>';
 }
+function renderExpiryDistribution(){
+  const area=document.getElementById('expiryChartArea'),svg=document.getElementById('expiryChart'),empty=document.getElementById('expiryEmpty'),tip=document.getElementById('expiryTooltip');
+  const title=document.getElementById('expiryTitle'),sub=document.getElementById('expirySub');
+  title.textContent=state.ticker?`${state.strategy||'Whole book'} / ${state.ticker} · expiry distribution`:'Expiry distribution';
+  tip.style.display='none';
+  const showMessage=message=>{svg.style.display='none';empty.style.display='flex';empty.textContent=message;sub.textContent=`As of ${dates.at(-1)}`;};
+  if(!PAYLOAD.valueDateColumn){showMessage('ValueDT is not present in this input file.');return;}
+  if(!state.ticker){showMessage('Select a Ticker to view its expiry distribution.');return;}
+  const selectedTickers=syntheticNames.has(state.ticker)?new Set(syntheticDefinitions.get(state.ticker)):new Set([state.ticker]);
+  const filtered=positionRows.filter(([,strategy,ticker,,,,valueDate])=>(!state.strategy||strategy===state.strategy)&&selectedTickers.has(ticker)&&valueDate);
+  if(!filtered.length){showMessage('No latest-date positions with ValueDT match this selection.');return;}
+  const currencies=[...new Set(filtered.map(row=>row[4]))];
+  if(currencies.length!==1){showMessage(`Cannot aggregate this Ticker because it has multiple CCY1 units: ${currencies.join(', ')}.`);return;}
+  const currency=currencies[0],grouped=new Map();
+  for(const [,strategy,ticker,side,,amount,valueDate] of filtered){
+    if(!grouped.has(valueDate))grouped.set(valueDate,{date:valueDate,buy:0,sell:0,contributors:new Map()});
+    const row=grouped.get(valueDate),sideKey=side.toLowerCase();
+    row[sideKey]+=amount;
+    const contributorKey=ticker+'\u0000'+strategy;
+    if(!row.contributors.has(contributorKey))row.contributors.set(contributorKey,{ticker,strategy,buy:0,sell:0});
+    row.contributors.get(contributorKey)[sideKey]+=amount;
+  }
+  const data=[...grouped.values()].map(row=>({...row,net:row.buy-row.sell})).sort((a,b)=>a.date.localeCompare(b.date));
+  empty.style.display='none';svg.style.display='block';
+  const syntheticNote=syntheticNames.has(state.ticker)?' · underlying legs combined':'';
+  sub.textContent=`As of ${dates.at(-1)} · net Amount1 (Buy − Sell) in ${currency}${syntheticNote} · hover for contributors`;
+  const pad={l:86,r:30,t:35,b:58},h=Math.max(285,area.clientHeight-20),w=Math.max(560,area.clientWidth-32,data.length*110+pad.l+pad.r);
+  svg.style.width=w+'px';svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  const plotHeight=h-pad.t-pad.b,plotWidth=w-pad.l-pad.r,maxAbs=Math.max(1,...data.map(row=>Math.abs(row.net)))*1.12;
+  const y=value=>pad.t+(maxAbs-value)/(maxAbs*2)*plotHeight;
+  const slot=plotWidth/data.length,x=index=>pad.l+(index+.5)*slot,zeroY=y(0),barWidth=Math.min(54,slot*.58),parts=[];
+  parts.push(`<text x="${pad.l}" y="17" fill="#65738a" font-size="11" font-weight="700">NET POSITION (${esc(currency)})</text>`);
+  for(let index=0;index<5;index++){
+    const value=maxAbs-index*(maxAbs*2)/4,yy=pad.t+index*plotHeight/4;
+    parts.push(`<line x1="${pad.l}" y1="${yy}" x2="${w-pad.r}" y2="${yy}" stroke="${index===2?'#9aa5b4':'#e8edf4'}" stroke-width="${index===2?'1.3':'1'}"/><text x="${pad.l-10}" y="${yy+4}" text-anchor="end" fill="#748096" font-size="11">${fmtPosition(value)}</text>`);
+  }
+  data.forEach((row,index)=>{
+    const yy=y(row.net),top=Math.min(yy,zeroY),height=Math.max(2,Math.abs(yy-zeroY)),fill=row.net>0?'#29a37a':row.net<0?'#e05b68':'#9aa5b4';
+    parts.push(`<rect x="${x(index)-barWidth/2}" y="${row.net===0?zeroY-1:top}" width="${barWidth}" height="${height}" rx="3" fill="${fill}" opacity=".9"/>`,`<text x="${x(index)}" y="${h-24}" text-anchor="middle" fill="#65738a" font-size="11">${row.date}</text>`,`<rect class="expiry-hit" data-index="${index}" x="${pad.l+index*slot}" y="${pad.t}" width="${slot}" height="${plotHeight}" fill="transparent"/>`);
+  });
+  svg.innerHTML=parts.join('');svg.setAttribute('aria-label',`${state.strategy||'Whole book'} / ${state.ticker} net position by ValueDT`);
+  const exactPosition=(value,signed=true)=>`${value<0?'−':signed&&value>0?'+':''}${Math.abs(value).toLocaleString(undefined,{maximumFractionDigits:0})} ${currency}`;
+  svg.querySelectorAll('.expiry-hit').forEach(hit=>{
+    hit.onmousemove=event=>{
+      const row=data[Number(hit.dataset.index)];
+      const contributors=[...row.contributors.values()].map(item=>({...item,net:item.buy-item.sell})).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
+      const contributorHtml=contributors.map(item=>{const label=syntheticNames.has(state.ticker)?`${item.ticker} · ${item.strategy}`:item.strategy;return `<div class="contributor"><span class="contributor-label" title="${esc(label)}">${esc(label)}</span><b class="${signClass(item.net)}">${exactPosition(item.net)}</b></div>`;}).join('');
+      tip.innerHTML=`<strong>${row.date}</strong><div>Gross Buy: <b>${exactPosition(row.buy,false)}</b></div><div>Gross Sell: <b>${exactPosition(row.sell,false)}</b></div><div>Net: <b class="${signClass(row.net)}">${exactPosition(row.net)}</b></div><div class="small" style="margin-top:7px">Contributors</div>${contributorHtml}`;
+      tip.style.display='block';
+      const rect=area.getBoundingClientRect();let left=event.clientX-rect.left+area.scrollLeft+14;
+      if(left+315>area.scrollLeft+area.clientWidth)left-=330;
+      tip.style.left=Math.max(area.scrollLeft+4,left)+'px';tip.style.top=Math.max(8,event.clientY-rect.top-65)+'px';
+    };
+    hit.onmouseleave=()=>tip.style.display='none';
+  });
+}
 function renderBars(){
   let rows;
   if(state.strategy&&state.ticker&&syntheticNames.has(state.ticker)){rows=syntheticDefinitions.get(state.ticker).map(name=>({name,value:metrics(byStrategyTicker.get(state.strategy+'\u0000'+name)||zeroSeries()).latest,type:'ticker'}));}
@@ -590,17 +703,18 @@ function renderChart(){
   document.getElementById('chartSub').textContent=`${dates[0]} to ${dates.at(-1)} · bars are daily P&L; blue curve is cumulative P&L`;
   drawChart();renderBars();
 }
-function render(){renderCrumbs();renderSelectors();renderKpis();renderStrategies();renderTickers();renderPositions();renderChart();}
+function render(){renderCrumbs();renderSelectors();renderKpis();renderStrategies();renderTickers();renderPositions();renderExpiryDistribution();renderChart();}
 
 document.getElementById('asOf').textContent=`As of ${dates.at(-1)}`;
 document.getElementById('sourceMeta').textContent=`${PAYLOAD.source} · ${PAYLOAD.sourceRows.toLocaleString()} source rows`;
-document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · ${PAYLOAD.positionColumns?'Position columns detected':'No position columns'} · blank/null P&L treated as $0`;
+document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · ${PAYLOAD.positionColumns?'Position columns detected':'No position columns'} · ${PAYLOAD.valueDateColumn?'ValueDT detected':'No ValueDT'} · blank/null P&L treated as $0`;
 document.getElementById('strategySearch').oninput=e=>{state.search=e.target.value;renderStrategies();};
 document.getElementById('strategySelect').onchange=e=>{const next=e.target.value||null;if(next&&state.ticker&&!tickersByStrategy.get(next)?.has(state.ticker))state.ticker=null;state.strategy=next;render();};
 document.getElementById('tickerSelect').onchange=e=>{state.ticker=e.target.value||null;render();};
 document.querySelectorAll('#strategyTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.strategySort.key===key)state.strategySort.dir*=-1;else state.strategySort={key,dir:key==='name'?1:-1};renderStrategies();});
 document.querySelectorAll('#tickerTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.tickerSort.key===key)state.tickerSort.dir*=-1;else state.tickerSort={key,dir:key==='name'?1:-1};renderTickers();});
 new ResizeObserver(()=>drawChart()).observe(document.getElementById('chartArea'));
+new ResizeObserver(()=>renderExpiryDistribution()).observe(document.getElementById('expiryChartArea'));
 render();
 </script>
 </body>
@@ -616,12 +730,14 @@ def build_dashboard(input_path: Path, output_path: Path) -> None:
         source_rows,
         position_rows,
         has_positions,
+        has_value_dates,
     ) = read_csv(input_path)
     payload = {
         "dates": dates,
         "rows": rows,
         "positions": position_rows,
         "positionColumns": has_positions,
+        "valueDateColumn": has_value_dates,
         "source": input_path.name,
         "sourceRows": source_rows,
         "headerDetected": has_header,

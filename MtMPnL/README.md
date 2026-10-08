@@ -3,11 +3,12 @@
 Generate a self-contained static HTML dashboard from a CSV containing:
 
 ```text
-CobDate,Strategy,Ticker,MtM_PnL,PS1,CCY1,Amount1
+CobDate,Strategy,Ticker,MtM_PnL,PS1,CCY1,Amount1,ValueDT
 ```
 
 The file may include that header or be headerless in the same column order. The
-earlier four-column format remains supported, but it cannot display positions.
+earlier four-column and seven-column formats remain supported, but they cannot
+display an expiry distribution without `ValueDT`.
 
 ## Run
 
@@ -32,6 +33,12 @@ Open `index.html` in a browser. The generated file has no server or internet dep
 - Latest positions are grouped by `Ticker`. `CCY1` is displayed only as the
   currency unit of `Amount1`.
 - Net position is calculated as gross Buy `Amount1` minus gross Sell `Amount1`.
+- `ValueDT` is the position expiry date. After selecting a Ticker, the expiry
+  chart plots its latest-date net `Amount1` by `ValueDT`.
+- At Whole-book level, the expiry chart aggregates the selected Ticker across
+  strategies. Selecting both a Strategy and Ticker filters it to that Strategy.
+- Hovering an expiry bar shows gross Buy, gross Sell, net position, and the
+  contributing strategies. Synthetic Tickers combine their underlying legs.
 
 The strategy table and ticker-detail table are sortable. Use the Strategy and Ticker selectors, or click a table row or composition bar, to view an exact strategy/ticker combination. With `Strategy` set to `Whole book`, selecting a ticker aggregates its daily and cumulative P&L across all strategies.
 
