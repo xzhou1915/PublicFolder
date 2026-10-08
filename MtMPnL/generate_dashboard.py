@@ -221,11 +221,11 @@ HTML_TEMPLATE = r'''<!doctype html>
         <table id="strategyTable">
           <thead><tr>
             <th data-key="name">Strategy <span class="sort-mark"></span></th>
-            <th data-key="latest">Latest <span class="sort-mark"></span></th>
-            <th data-key="w1">1W <span class="sort-mark"></span></th>
-            <th data-key="mtd">MTD <span class="sort-mark"></span></th>
-            <th data-key="ytd">YTD <span class="sort-mark"></span></th>
-            <th data-key="cumulative">Cumulative <span class="sort-mark"></span></th>
+            <th data-key="latest"><span class="latest-date-label">__LATEST_DATE__</span> <span class="sort-mark"></span></th>
+            <th data-key="w1">1W P&amp;L <span class="sort-mark"></span></th>
+            <th data-key="mtd">MTD P&amp;L <span class="sort-mark"></span></th>
+            <th data-key="ytd">YTD P&amp;L <span class="sort-mark"></span></th>
+            <th data-key="cumulative">Cumulative P&amp;L <span class="sort-mark"></span></th>
             <th data-key="tickers">Pairs <span class="sort-mark"></span></th>
           </tr></thead>
           <tbody></tbody>
@@ -246,11 +246,11 @@ HTML_TEMPLATE = r'''<!doctype html>
       <table id="tickerTable">
         <thead><tr>
           <th data-key="name">Ticker <span class="sort-mark"></span></th>
-          <th data-key="latest">Latest <span class="sort-mark"></span></th>
-          <th data-key="w1">1W <span class="sort-mark"></span></th>
-          <th data-key="mtd">MTD <span class="sort-mark"></span></th>
-          <th data-key="ytd">YTD <span class="sort-mark"></span></th>
-          <th data-key="cumulative">Cumulative <span class="sort-mark"></span></th>
+          <th data-key="latest"><span class="latest-date-label">__LATEST_DATE__</span> <span class="sort-mark"></span></th>
+          <th data-key="w1">1W P&amp;L <span class="sort-mark"></span></th>
+          <th data-key="mtd">MTD P&amp;L <span class="sort-mark"></span></th>
+          <th data-key="ytd">YTD P&amp;L <span class="sort-mark"></span></th>
+          <th data-key="cumulative">Cumulative P&amp;L <span class="sort-mark"></span></th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -482,7 +482,10 @@ def build_dashboard(input_path: Path, output_path: Path) -> None:
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
-        HTML_TEMPLATE.replace("__PAYLOAD__", payload_json), encoding="utf-8"
+        HTML_TEMPLATE.replace("__LATEST_DATE__", dates[-1]).replace(
+            "__PAYLOAD__", payload_json
+        ),
+        encoding="utf-8",
     )
 
     strategies = len({row[1] for row in rows})
