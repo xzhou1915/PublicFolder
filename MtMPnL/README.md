@@ -28,4 +28,4 @@ Open `index.html` in a browser. The generated file has no server or internet dep
 - Repeated rows for the same `CobDate` / `Strategy` / `Ticker` are summed.
 - Blank or null `MtM_PnL` values are treated as zero.
 
-The strategy table and ticker-detail table are sortable. Use the Strategy and Ticker selectors, or click a table row or composition bar, to view an exact strategy/ticker combination.
+The strategy table and ticker-detail table are sortable. Use the Strategy and Ticker selectors, or click a table row or composition bar, to view an exact strategy/ticker combination. With `Strategy` set to `Whole book`, selecting a ticker aggregates its daily and cumulative P&L across all strategies.
