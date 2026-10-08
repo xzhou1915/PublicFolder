@@ -20,11 +20,12 @@ Open `index.html` in a browser. The generated file has no server or internet dep
 
 ## Dashboard behavior
 
-- `Current MtM` is the summed MtM level on the latest available `CobDate`.
-- `Day change` compares with the previous available snapshot.
-- `1 week` compares with the latest snapshot on or before seven calendar days earlier.
-- `MTD` and `YTD` compare with the last snapshot before the period; if none exists, they use the first snapshot inside the period.
+- `MtM_PnL` is treated as daily P&L.
+- The chart shows daily P&L as positive/negative bars and its running cumulative sum as a blue curve.
+- `Latest` is the summed daily P&L on the latest available `CobDate`.
+- `1W`, `MTD`, and `YTD` are sums of daily P&L inside their respective periods.
+- `Cumulative` is the sum of all available daily P&L in the input file.
 - Repeated rows for the same `CobDate` / `Strategy` / `Ticker` are summed.
 - Blank or null `MtM_PnL` values are treated as zero.
 
-The strategy table and ticker-detail table are sortable. Click a strategy, ticker, or composition bar to drill into its P&L history.
+The strategy table and ticker-detail table are sortable. Use the Strategy and Ticker selectors, or click a table row or composition bar, to view an exact strategy/ticker combination.

@@ -131,17 +131,24 @@ HTML_TEMPLATE = r'''<!doctype html>
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-    button,input{font:inherit}
+    button,input,select{font:inherit}
     .shell{max-width:1580px;margin:0 auto;padding:24px}
     .top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}
     h1{font-size:26px;line-height:1.15;margin:0 0 7px;letter-spacing:-.02em}
     .subtitle{color:var(--muted);font-size:14px}
     .asof{text-align:right;color:var(--muted);font-size:13px;white-space:nowrap}
     .asof strong{display:block;color:var(--text);font-size:15px;margin-bottom:2px}
-    .crumbs{display:flex;align-items:center;gap:8px;margin:0 0 14px;min-height:34px}
+    .nav-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 14px}
+    .crumbs{display:flex;align-items:center;gap:8px;min-height:36px;flex-wrap:wrap}
     .crumb{border:1px solid var(--line);background:#fff;color:var(--muted);padding:7px 11px;border-radius:8px;cursor:pointer}
     .crumb.active{border-color:#b8caf6;background:var(--blue-soft);color:var(--blue);font-weight:700}
     .chev{color:#a4adbb}
+    .filters{display:flex;align-items:end;gap:10px}
+    .filter-field{display:grid;gap:3px}
+    .filter-field label{font-size:10px;color:var(--muted);font-weight:750;text-transform:uppercase;letter-spacing:.055em}
+    .filter-field select{min-width:180px;border:1px solid var(--line);border-radius:8px;padding:7px 30px 7px 9px;background:#fff;color:var(--text);outline:none}
+    .filter-field select:focus{border-color:#9bb5f5;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+    .filter-field select:disabled{background:#f1f4f8;color:#9ba5b4}
     .kpis{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin-bottom:16px}
     .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 16px;box-shadow:var(--shadow)}
     .kpi-label{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.055em;margin-bottom:7px}
@@ -183,17 +190,24 @@ HTML_TEMPLATE = r'''<!doctype html>
     .empty{padding:32px;text-align:center;color:var(--muted)}
     .footer{color:var(--muted);font-size:11px;margin-top:12px;text-align:right}
     @media(max-width:1050px){.grid{grid-template-columns:1fr}.chart-panel{min-height:580px}.kpis{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:780px){.nav-row{display:block}.filters{margin-top:10px}.filter-field{flex:1}.filter-field select{width:100%;min-width:0}}
     @media(max-width:680px){.shell{padding:14px}.top{display:block}.asof{text-align:left;margin-top:10px}.kpis{grid-template-columns:repeat(2,1fr)}.grid{display:block}.panel{margin-bottom:14px}.search{width:145px}.kpi-value{font-size:21px}.chart-area{height:330px}}
   </style>
 </head>
 <body>
 <main class="shell">
   <div class="top">
-    <div><h1>Strategy MtM P&amp;L</h1><div class="subtitle">Whole-book, strategy and currency-pair views from one source file</div></div>
+    <div><h1>Strategy MtM P&amp;L</h1><div class="subtitle">Daily and cumulative performance by strategy and currency pair</div></div>
     <div class="asof"><strong id="asOf"></strong><span id="sourceMeta"></span></div>
   </div>
 
-  <div class="crumbs" id="crumbs"></div>
+  <div class="nav-row">
+    <div class="crumbs" id="crumbs"></div>
+    <div class="filters">
+      <div class="filter-field"><label for="strategySelect">Strategy</label><select id="strategySelect"></select></div>
+      <div class="filter-field"><label for="tickerSelect">Ticker</label><select id="tickerSelect" disabled></select></div>
+    </div>
+  </div>
   <section class="kpis" id="kpis"></section>
 
   <section class="grid">
@@ -206,11 +220,11 @@ HTML_TEMPLATE = r'''<!doctype html>
         <table id="strategyTable">
           <thead><tr>
             <th data-key="name">Strategy <span class="sort-mark"></span></th>
-            <th data-key="current">Current <span class="sort-mark"></span></th>
-            <th data-key="dod">DoD <span class="sort-mark"></span></th>
+            <th data-key="latest">Latest <span class="sort-mark"></span></th>
             <th data-key="w1">1W <span class="sort-mark"></span></th>
             <th data-key="mtd">MTD <span class="sort-mark"></span></th>
             <th data-key="ytd">YTD <span class="sort-mark"></span></th>
+            <th data-key="cumulative">Cumulative <span class="sort-mark"></span></th>
             <th data-key="tickers">Pairs <span class="sort-mark"></span></th>
           </tr></thead>
           <tbody></tbody>
@@ -231,11 +245,11 @@ HTML_TEMPLATE = r'''<!doctype html>
       <table id="tickerTable">
         <thead><tr>
           <th data-key="name">Ticker <span class="sort-mark"></span></th>
-          <th data-key="current">Current <span class="sort-mark"></span></th>
-          <th data-key="dod">DoD <span class="sort-mark"></span></th>
+          <th data-key="latest">Latest <span class="sort-mark"></span></th>
           <th data-key="w1">1W <span class="sort-mark"></span></th>
           <th data-key="mtd">MTD <span class="sort-mark"></span></th>
           <th data-key="ytd">YTD <span class="sort-mark"></span></th>
+          <th data-key="cumulative">Cumulative <span class="sort-mark"></span></th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -267,7 +281,7 @@ for (const [date,strategy,ticker,value] of PAYLOAD.rows) {
   tickersByStrategy.get(strategy).add(ticker);
 }
 
-const state = {strategy:null, ticker:null, strategySort:{key:'current',dir:-1}, tickerSort:{key:'current',dir:-1}, search:''};
+const state = {strategy:null, ticker:null, strategySort:{key:'latest',dir:-1}, tickerSort:{key:'latest',dir:-1}, search:''};
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const signClass = v => v == null || Math.abs(v) < 0.000001 ? 'neutral' : v > 0 ? 'positive' : 'negative';
 function fmt(v) {
@@ -279,32 +293,27 @@ function fmt(v) {
   return sign+'$'+Math.round(a).toLocaleString();
 }
 const exact = v => (v<0?'−':'')+'$'+Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:0});
-function baselineIndex(kind) {
+function periodStartIndex(kind) {
   const last = new Date(dates.at(-1)+'T00:00:00Z');
-  let cutoff;
-  if (kind==='w1') cutoff = new Date(last.getTime()-7*86400000);
-  if (kind==='mtd') cutoff = new Date(Date.UTC(last.getUTCFullYear(),last.getUTCMonth(),1)-86400000);
-  if (kind==='ytd') cutoff = new Date(Date.UTC(last.getUTCFullYear(),0,1)-86400000);
+  let cutoff=last;
+  if (kind==='w1') cutoff = new Date(last.getTime()-6*86400000);
+  if (kind==='mtd') cutoff = new Date(Date.UTC(last.getUTCFullYear(),last.getUTCMonth(),1));
+  if (kind==='ytd') cutoff = new Date(Date.UTC(last.getUTCFullYear(),0,1));
   const target=cutoff.toISOString().slice(0,10);
-  let idx=-1;
-  for(let i=0;i<dates.length;i++){if(dates[i]<=target)idx=i;else break;}
-  if(idx>=0)return idx;
-  if(kind==='mtd'){const p=dates.findIndex(d=>d.slice(0,7)===dates.at(-1).slice(0,7));return p>=0?p:null;}
-  if(kind==='ytd'){const p=dates.findIndex(d=>d.slice(0,4)===dates.at(-1).slice(0,4));return p>=0?p:null;}
-  return null;
+  const idx=dates.findIndex(d=>d>=target);
+  return idx>=0?idx:dates.length-1;
 }
-const refs={dod:dates.length>1?dates.length-2:null,w1:baselineIndex('w1'),mtd:baselineIndex('mtd'),ytd:baselineIndex('ytd')};
+const starts={w1:periodStartIndex('w1'),mtd:periodStartIndex('mtd'),ytd:periodStartIndex('ytd')};
 function metrics(series) {
-  const current=series.at(-1);
-  const change=i=>i==null?null:current-series[i];
-  return {current,dod:change(refs.dod),w1:change(refs.w1),mtd:change(refs.mtd),ytd:change(refs.ytd)};
+  const sumFrom=i=>series.slice(i).reduce((a,b)=>a+b,0);
+  return {latest:series.at(-1),w1:sumFrom(starts.w1),mtd:sumFrom(starts.mtd),ytd:sumFrom(starts.ytd),cumulative:sumFrom(0)};
 }
 function activeSeries() {
   if (!state.strategy) return book;
   if (!state.ticker) return byStrategy.get(state.strategy) || zeroSeries();
   return byStrategyTicker.get(state.strategy+'\u0000'+state.ticker) || zeroSeries();
 }
-function activeLabel() { return state.ticker || state.strategy || 'Whole book'; }
+function activeLabel() { return state.ticker ? `${state.strategy} / ${state.ticker}` : state.strategy || 'Whole book'; }
 function metricCell(v){return `<td class="money ${signClass(v)}">${fmt(v)}</td>`}
 
 function renderCrumbs(){
@@ -314,9 +323,20 @@ function renderCrumbs(){
   const el=document.getElementById('crumbs');el.innerHTML=parts.join('');
   el.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.dataset.level==='book'){state.strategy=null;state.ticker=null;}if(b.dataset.level==='strategy')state.ticker=null;render();});
 }
+function renderSelectors(){
+  const strategySelect=document.getElementById('strategySelect');
+  strategySelect.innerHTML='<option value="">Whole book</option>'+strategies.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
+  strategySelect.value=state.strategy||'';
+  const tickerSelect=document.getElementById('tickerSelect');
+  if(!state.strategy){tickerSelect.innerHTML='<option value="">Select a strategy first</option>';tickerSelect.disabled=true;return;}
+  const tickers=[...(tickersByStrategy.get(state.strategy)||[])].sort((a,b)=>a.localeCompare(b));
+  tickerSelect.disabled=false;
+  tickerSelect.innerHTML='<option value="">All tickers</option>'+tickers.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
+  tickerSelect.value=state.ticker||'';
+}
 function renderKpis(){
   const m=metrics(activeSeries());
-  const items=[['Current MtM',m.current,'Latest level'],['Day change',m.dod,refs.dod==null?'No prior date':`vs ${dates[refs.dod]}`],['1 week',m.w1,refs.w1==null?'No history':`vs ${dates[refs.w1]}`],['MTD',m.mtd,refs.mtd==null?'No history':`vs ${dates[refs.mtd]}`],['YTD',m.ytd,refs.ytd==null?'No history':`vs ${dates[refs.ytd]}`]];
+  const items=[['Latest daily P&L',m.latest,dates.at(-1)],['1 week P&L',m.w1,`from ${dates[starts.w1]}`],['MTD P&L',m.mtd,`from ${dates[starts.mtd]}`],['YTD P&L',m.ytd,`from ${dates[starts.ytd]}`],['Cumulative P&L',m.cumulative,`from ${dates[0]}`]];
   document.getElementById('kpis').innerHTML=items.map(([label,v,note])=>`<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value ${signClass(v)}">${fmt(v)}</div><div class="kpi-note">${note}</div></div>`).join('');
 }
 function strategyRows(){
@@ -334,7 +354,7 @@ function updateSortMarks(tableId,sort){
 function renderStrategies(){
   const query=state.search.toLowerCase();
   const rows=strategyRows().filter(r=>r.name.toLowerCase().includes(query)).sort((a,b)=>compareRows(a,b,state.strategySort));
-  document.querySelector('#strategyTable tbody').innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.strategy===r.name?'selected':''}"><td title="${esc(r.name)}">${esc(r.name)}</td>${metricCell(r.current)}${metricCell(r.dod)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}<td>${r.tickers}</td></tr>`).join('');
+  document.querySelector('#strategyTable tbody').innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.strategy===r.name?'selected':''}"><td title="${esc(r.name)}">${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}<td>${r.tickers}</td></tr>`).join('');
   document.querySelectorAll('#strategyTable tbody tr').forEach(tr=>tr.onclick=()=>{state.strategy=tr.dataset.name;state.ticker=null;render();});
   document.getElementById('strategyCount').textContent=`${rows.length} of ${strategies.length} strategies · click a row to drill down`;
   updateSortMarks('strategyTable',state.strategySort);
@@ -349,55 +369,65 @@ function renderTickers(){
   const rows=tickerRows();
   document.getElementById('detailTitle').textContent=`${state.strategy} · currency-pair detail`;
   document.getElementById('detailSub').textContent=`${rows.length} ticker${rows.length===1?'':'s'} · click a row to isolate its history`;
-  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}</td>${metricCell(r.current)}${metricCell(r.dod)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}</tr>`).join('');
+  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('');
   body.querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{state.ticker=tr.dataset.name;render();});
   updateSortMarks('tickerTable',state.tickerSort);
 }
 function renderBars(){
   let rows;
-  if(state.strategy){rows=tickerRows().map(r=>({name:r.name,value:r.current,type:'ticker'}));}
-  else{rows=strategyRows().map(r=>({name:r.name,value:r.current,type:'strategy'}));}
+  if(state.strategy){rows=tickerRows().map(r=>({name:r.name,value:r.latest,type:'ticker'}));}
+  else{rows=strategyRows().map(r=>({name:r.name,value:r.latest,type:'strategy'}));}
   rows.sort((a,b)=>Math.abs(b.value)-Math.abs(a.value));
   const max=Math.max(1,...rows.map(r=>Math.abs(r.value)));
-  document.getElementById('barTitle').textContent=state.strategy?`Latest ticker composition · ${state.strategy}`:'Latest strategy composition';
+  document.getElementById('barTitle').textContent=state.strategy?`Latest daily P&L by ticker · ${state.strategy}`:'Latest daily P&L by strategy';
   const el=document.getElementById('bars');
   el.innerHTML=rows.map(r=>{const width=50*Math.abs(r.value)/max;const cls=r.value>=0?'pos':'neg';return `<div class="bar-row" data-name="${esc(r.name)}" data-type="${r.type}"><div class="bar-name" title="${esc(r.name)}">${esc(r.name)}</div><div class="bar-track"><span class="bar-zero"></span><span class="bar ${cls}" style="width:${width}%"></span></div><div class="bar-value ${signClass(r.value)}">${fmt(r.value)}</div></div>`}).join('')||'<div class="empty">No values on the latest date.</div>';
   el.querySelectorAll('.bar-row').forEach(row=>row.onclick=()=>{if(row.dataset.type==='strategy'){state.strategy=row.dataset.name;state.ticker=null;}else state.ticker=row.dataset.name;render();});
 }
 function drawChart(){
-  const svg=document.getElementById('lineChart'), box=svg.getBoundingClientRect(), w=Math.max(420,box.width),h=Math.max(300,box.height),pad={l:72,r:20,t:18,b:43};
+  const svg=document.getElementById('lineChart'), box=svg.getBoundingClientRect(), w=Math.max(420,box.width),h=Math.max(300,box.height),pad={l:72,r:76,t:30,b:43};
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
-  const series=activeSeries(), minValue=Math.min(0,...series),maxValue=Math.max(0,...series);
-  let span=maxValue-minValue;if(span===0)span=1;
-  const margin=span*.12,yMin=minValue-margin,yMax=maxValue+margin;
-  const x=i=>pad.l+(dates.length===1?0.5:(i/(dates.length-1)))*(w-pad.l-pad.r);
-  const y=v=>pad.t+(yMax-v)/(yMax-yMin)*(h-pad.t-pad.b);
+  const daily=activeSeries(), cumulative=[];
+  daily.reduce((sum,value,i)=>(cumulative[i]=sum+value,sum+value),0);
+  const range=values=>{let lo=Math.min(0,...values),hi=Math.max(0,...values),span=hi-lo;if(span===0)span=1;return [lo-span*.10,hi+span*.10];};
+  const [dailyMin,dailyMax]=range(daily),[cumMin,cumMax]=range(cumulative);
+  const plotWidth=w-pad.l-pad.r;
+  const x=i=>pad.l+((i+.5)/dates.length)*plotWidth;
+  const yDaily=v=>pad.t+(dailyMax-v)/(dailyMax-dailyMin)*(h-pad.t-pad.b);
+  const yCum=v=>pad.t+(cumMax-v)/(cumMax-cumMin)*(h-pad.t-pad.b);
   const parts=[];
-  for(let j=0;j<5;j++){const val=yMax-j*(yMax-yMin)/4,yy=y(val);parts.push(`<line x1="${pad.l}" y1="${yy}" x2="${w-pad.r}" y2="${yy}" stroke="#e8edf4"/><text x="${pad.l-10}" y="${yy+4}" text-anchor="end" fill="#748096" font-size="11">${fmt(val)}</text>`);}
-  if(yMin<=0&&yMax>=0)parts.push(`<line x1="${pad.l}" y1="${y(0)}" x2="${w-pad.r}" y2="${y(0)}" stroke="#8f9bad" stroke-width="1.3"/>`);
+  parts.push(`<text x="${pad.l}" y="14" fill="#65738a" font-size="11" font-weight="700">DAILY P&L</text>`,`<text x="${w-pad.r}" y="14" text-anchor="end" fill="#2563eb" font-size="11" font-weight="700">CUMULATIVE P&L</text>`);
+  for(let j=0;j<5;j++){
+    const dailyValue=dailyMax-j*(dailyMax-dailyMin)/4,yy=pad.t+j*(h-pad.t-pad.b)/4,cumValue=cumMax-j*(cumMax-cumMin)/4;
+    parts.push(`<line x1="${pad.l}" y1="${yy}" x2="${w-pad.r}" y2="${yy}" stroke="#e8edf4"/><text x="${pad.l-10}" y="${yy+4}" text-anchor="end" fill="#748096" font-size="11">${fmt(dailyValue)}</text><text x="${w-pad.r+10}" y="${yy+4}" fill="#2563eb" font-size="11">${fmt(cumValue)}</text>`);
+  }
+  parts.push(`<line x1="${pad.l}" y1="${yDaily(0)}" x2="${w-pad.r}" y2="${yDaily(0)}" stroke="#8f9bad" stroke-width="1.3"/>`);
   const tickCount=Math.min(5,dates.length),used=new Set();
   for(let j=0;j<tickCount;j++){const i=Math.round(j*(dates.length-1)/Math.max(1,tickCount-1));if(used.has(i))continue;used.add(i);parts.push(`<text x="${x(i)}" y="${h-15}" text-anchor="middle" fill="#748096" font-size="11">${dates[i]}</text>`);}
-  const points=series.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
-  const area=`${x(0)},${y(0)} ${points} ${x(series.length-1)},${y(0)}`;
-  parts.push(`<polygon points="${area}" fill="rgba(37,99,235,.09)"/>`,`<polyline points="${points}" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`);
-  const last=series.length-1;parts.push(`<circle cx="${x(last)}" cy="${y(series[last])}" r="4" fill="#2563eb" stroke="#fff" stroke-width="2"/>`);
+  const slot=plotWidth/Math.max(1,dates.length),barWidth=Math.max(1,Math.min(18,slot*.66)),zeroY=yDaily(0);
+  daily.forEach((value,i)=>{const yy=yDaily(value),top=Math.min(yy,zeroY),height=Math.max(1,Math.abs(yy-zeroY)),fill=value>=0?'#29a37a':'#e05b68';parts.push(`<rect x="${x(i)-barWidth/2}" y="${top}" width="${barWidth}" height="${height}" rx="1.5" fill="${fill}" opacity=".88"/>`);});
+  const points=cumulative.map((v,i)=>`${x(i)},${yCum(v)}`).join(' ');
+  parts.push(`<polyline points="${points}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`);
+  const last=cumulative.length-1;parts.push(`<circle cx="${x(last)}" cy="${yCum(cumulative[last])}" r="4" fill="#2563eb" stroke="#fff" stroke-width="2"/>`);
   parts.push(`<rect id="chartOverlay" x="${pad.l}" y="${pad.t}" width="${w-pad.l-pad.r}" height="${h-pad.t-pad.b}" fill="transparent"/>`);
-  svg.innerHTML=parts.join('');svg.setAttribute('aria-label',`${activeLabel()} MtM P&L history`);
+  svg.innerHTML=parts.join('');svg.setAttribute('aria-label',`${activeLabel()} daily and cumulative P&L history`);
   const overlay=svg.querySelector('#chartOverlay'),tip=document.getElementById('tooltip'),areaEl=document.getElementById('chartArea');
-  overlay.onmousemove=e=>{const rect=svg.getBoundingClientRect(),sx=(e.clientX-rect.left)*(w/rect.width),i=Math.max(0,Math.min(dates.length-1,Math.round((sx-pad.l)/(w-pad.l-pad.r)*(dates.length-1))));tip.style.display='block';tip.innerHTML=`${dates[i]}<strong>${exact(series[i])}</strong>`;let left=e.clientX-areaEl.getBoundingClientRect().left+12;if(left+150>areaEl.clientWidth)left-=165;tip.style.left=left+'px';tip.style.top=(e.clientY-areaEl.getBoundingClientRect().top-48)+'px';};
+  overlay.onmousemove=e=>{const rect=svg.getBoundingClientRect(),sx=(e.clientX-rect.left)*(w/rect.width),i=Math.max(0,Math.min(dates.length-1,Math.floor((sx-pad.l)/plotWidth*dates.length)));tip.style.display='block';tip.innerHTML=`${dates[i]}<div>Daily: <b>${exact(daily[i])}</b></div><div>Cumulative: <b>${exact(cumulative[i])}</b></div>`;let left=e.clientX-areaEl.getBoundingClientRect().left+12;if(left+190>areaEl.clientWidth)left-=200;tip.style.left=left+'px';tip.style.top=(e.clientY-areaEl.getBoundingClientRect().top-62)+'px';};
   overlay.onmouseleave=()=>tip.style.display='none';
 }
 function renderChart(){
-  document.getElementById('chartTitle').textContent=`${activeLabel()} · MtM history`;
-  document.getElementById('chartSub').textContent=`${dates[0]} to ${dates.at(-1)} · daily snapshot levels`;
+  document.getElementById('chartTitle').textContent=`${activeLabel()} · daily and cumulative P&L`;
+  document.getElementById('chartSub').textContent=`${dates[0]} to ${dates.at(-1)} · bars are daily P&L; blue curve is cumulative P&L`;
   drawChart();renderBars();
 }
-function render(){renderCrumbs();renderKpis();renderStrategies();renderTickers();renderChart();}
+function render(){renderCrumbs();renderSelectors();renderKpis();renderStrategies();renderTickers();renderChart();}
 
 document.getElementById('asOf').textContent=`As of ${dates.at(-1)}`;
 document.getElementById('sourceMeta').textContent=`${PAYLOAD.source} · ${PAYLOAD.sourceRows.toLocaleString()} source rows`;
-document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · blank/null P&L treated as $0`;
+document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · blank/null P&L treated as $0`;
 document.getElementById('strategySearch').oninput=e=>{state.search=e.target.value;renderStrategies();};
+document.getElementById('strategySelect').onchange=e=>{state.strategy=e.target.value||null;state.ticker=null;render();};
+document.getElementById('tickerSelect').onchange=e=>{state.ticker=e.target.value||null;render();};
 document.querySelectorAll('#strategyTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.strategySort.key===key)state.strategySort.dir*=-1;else state.strategySort={key,dir:key==='name'?1:-1};renderStrategies();});
 document.querySelectorAll('#tickerTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.tickerSort.key===key)state.tickerSort.dir*=-1;else state.tickerSort={key,dir:key==='name'?1:-1};renderTickers();});
 new ResizeObserver(()=>drawChart()).observe(document.getElementById('chartArea'));
