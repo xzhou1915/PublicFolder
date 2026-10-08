@@ -170,6 +170,7 @@ HTML_TEMPLATE = r'''<!doctype html>
     tbody tr{cursor:pointer;transition:.12s background}
     tbody tr:hover{background:#f6f9ff}tbody tr.selected{background:var(--blue-soft)}
     .money{font-weight:680}.small{font-size:12px;color:var(--muted)}
+    .tag{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:999px;background:#eef3ff;color:#4869b2;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;vertical-align:1px}
     .chart-panel{min-height:626px}
     .chart-area{position:relative;padding:10px 16px 0;height:405px}
     #lineChart{display:block;width:100%;height:100%}
@@ -270,8 +271,15 @@ const byTicker = new Map();
 const byStrategyTicker = new Map();
 const tickersByStrategy = new Map();
 const allTickers = new Set();
+const syntheticDefinitions = new Map([
+  ['BRLBRF',['USDBRL','USDBRF']],
+  ['CNHCNY',['USDCNH','USDCNY']],
+  ['KRWKRO',['USDKRW','USDKRO']]
+]);
+const syntheticNames = new Set();
 
 for (const [date,strategy,ticker,value] of PAYLOAD.rows) {
+  if (syntheticDefinitions.has(ticker)) continue;
   const i = dateIndex.get(date);
   book[i] += value;
   if (!byStrategy.has(strategy)) byStrategy.set(strategy, zeroSeries());
@@ -284,6 +292,21 @@ for (const [date,strategy,ticker,value] of PAYLOAD.rows) {
   if (!tickersByStrategy.has(strategy)) tickersByStrategy.set(strategy, new Set());
   tickersByStrategy.get(strategy).add(ticker);
   allTickers.add(ticker);
+}
+
+const addSeries = seriesList => dates.map((_,i)=>seriesList.reduce((sum,series)=>sum+(series?.[i]||0),0));
+for (const [synthetic,legs] of syntheticDefinitions) {
+  const bookLegs=legs.filter(leg=>byTicker.has(leg)).map(leg=>byTicker.get(leg));
+  if (!bookLegs.length) continue;
+  byTicker.set(synthetic,addSeries(bookLegs));
+  allTickers.add(synthetic);
+  syntheticNames.add(synthetic);
+  for (const strategy of strategies) {
+    const strategyLegs=legs.map(leg=>byStrategyTicker.get(strategy+'\u0000'+leg)).filter(Boolean);
+    if (!strategyLegs.length) continue;
+    byStrategyTicker.set(strategy+'\u0000'+synthetic,addSeries(strategyLegs));
+    tickersByStrategy.get(strategy)?.add(synthetic);
+  }
 }
 
 const state = {strategy:null, ticker:null, strategySort:{key:'latest',dir:-1}, tickerSort:{key:'latest',dir:-1}, search:''};
@@ -336,7 +359,7 @@ function renderSelectors(){
   tickerSelect.disabled=false;
   const tickers=[...(state.strategy?tickersByStrategy.get(state.strategy)||[]:allTickers)].sort((a,b)=>a.localeCompare(b));
   const allLabel=state.strategy?'All tickers':'All tickers across strategies';
-  tickerSelect.innerHTML=`<option value="">${allLabel}</option>`+tickers.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
+  tickerSelect.innerHTML=`<option value="">${allLabel}</option>`+tickers.map(name=>`<option value="${esc(name)}">${esc(name)}${syntheticNames.has(name)?' · synthetic':''}</option>`).join('');
   tickerSelect.value=state.ticker||'';
 }
 function renderKpis(){
@@ -345,7 +368,7 @@ function renderKpis(){
   document.getElementById('kpis').innerHTML=items.map(([label,v,note])=>`<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value ${signClass(v)}">${fmt(v)}</div><div class="kpi-note">${note}</div></div>`).join('');
 }
 function strategyRows(){
-  return strategies.map(name=>{const m=metrics(byStrategy.get(name));return {...m,name,tickers:tickersByStrategy.get(name)?.size||0};});
+  return strategies.map(name=>{const m=metrics(byStrategy.get(name)||zeroSeries());const tickers=[...(tickersByStrategy.get(name)||[])].filter(ticker=>!syntheticNames.has(ticker)).length;return {...m,name,tickers};});
 }
 function compareRows(a,b,sort){
   const av=a[sort.key],bv=b[sort.key];
@@ -366,25 +389,26 @@ function renderStrategies(){
 }
 function tickerRows(){
   const tickers=state.strategy?[...(tickersByStrategy.get(state.strategy)||[])]:[...allTickers];
-  return tickers.map(name=>{const series=state.strategy?byStrategyTicker.get(state.strategy+'\u0000'+name):byTicker.get(name);const m=metrics(series||zeroSeries());return {...m,name};}).sort((a,b)=>compareRows(a,b,state.tickerSort));
+  return tickers.map(name=>{const series=state.strategy?byStrategyTicker.get(state.strategy+'\u0000'+name):byTicker.get(name);const m=metrics(series||zeroSeries());return {...m,name,synthetic:syntheticNames.has(name)};}).sort((a,b)=>compareRows(a,b,state.tickerSort));
 }
 function renderTickers(){
   const body=document.querySelector('#tickerTable tbody');
   const rows=tickerRows();
   document.getElementById('detailTitle').textContent=state.strategy?`${state.strategy} · currency-pair detail`:'All strategies · currency-pair detail';
   document.getElementById('detailSub').textContent=`${rows.length} ticker${rows.length===1?'':'s'} · click a row to isolate ${state.strategy?'its':'cross-strategy'} history`;
-  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('');
+  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}${r.synthetic?'<span class="tag">Synthetic</span>':''}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('');
   body.querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{state.ticker=tr.dataset.name;render();});
   updateSortMarks('tickerTable',state.tickerSort);
 }
 function renderBars(){
   let rows;
-  if(state.strategy){rows=tickerRows().map(r=>({name:r.name,value:r.latest,type:'ticker'}));}
+  if(state.strategy&&state.ticker&&syntheticNames.has(state.ticker)){rows=syntheticDefinitions.get(state.ticker).map(name=>({name,value:metrics(byStrategyTicker.get(state.strategy+'\u0000'+name)||zeroSeries()).latest,type:'ticker'}));}
+  else if(state.strategy){rows=tickerRows().filter(r=>!r.synthetic).map(r=>({name:r.name,value:r.latest,type:'ticker'}));}
   else if(state.ticker){rows=strategies.filter(name=>tickersByStrategy.get(name)?.has(state.ticker)).map(name=>({name,value:metrics(byStrategyTicker.get(name+'\u0000'+state.ticker)).latest,type:'strategyTicker'}));}
   else{rows=strategyRows().map(r=>({name:r.name,value:r.latest,type:'strategy'}));}
   rows.sort((a,b)=>Math.abs(b.value)-Math.abs(a.value));
   const max=Math.max(1,...rows.map(r=>Math.abs(r.value)));
-  document.getElementById('barTitle').textContent=state.strategy?`Latest daily P&L by ticker · ${state.strategy}`:state.ticker?`Latest ${state.ticker} P&L by strategy`:'Latest daily P&L by strategy';
+  document.getElementById('barTitle').textContent=state.strategy&&state.ticker&&syntheticNames.has(state.ticker)?`Latest ${state.ticker} P&L by leg · ${state.strategy}`:state.strategy?`Latest daily P&L by ticker · ${state.strategy}`:state.ticker?`Latest ${state.ticker} P&L by strategy`:'Latest daily P&L by strategy';
   const el=document.getElementById('bars');
   el.innerHTML=rows.map(r=>{const width=50*Math.abs(r.value)/max;const cls=r.value>=0?'pos':'neg';return `<div class="bar-row" data-name="${esc(r.name)}" data-type="${r.type}"><div class="bar-name" title="${esc(r.name)}">${esc(r.name)}</div><div class="bar-track"><span class="bar-zero"></span><span class="bar ${cls}" style="width:${width}%"></span></div><div class="bar-value ${signClass(r.value)}">${fmt(r.value)}</div></div>`}).join('')||'<div class="empty">No values on the latest date.</div>';
   el.querySelectorAll('.bar-row').forEach(row=>row.onclick=()=>{if(row.dataset.type==='strategy'){state.strategy=row.dataset.name;state.ticker=null;}else if(row.dataset.type==='strategyTicker'){state.strategy=row.dataset.name;}else state.ticker=row.dataset.name;render();});

@@ -29,3 +29,11 @@ Open `index.html` in a browser. The generated file has no server or internet dep
 - Blank or null `MtM_PnL` values are treated as zero.
 
 The strategy table and ticker-detail table are sortable. Use the Strategy and Ticker selectors, or click a table row or composition bar, to view an exact strategy/ticker combination. With `Strategy` set to `Whole book`, selecting a ticker aggregates its daily and cumulative P&L across all strategies.
+
+Three view-only synthetic tickers are calculated for every date and strategy:
+
+- `BRLBRF = USDBRL + USDBRF`
+- `CNHCNY = USDCNH + USDCNY`
+- `KRWKRO = USDKRW + USDKRO`
+
+A missing leg contributes zero. Synthetic tickers are excluded from whole-book totals, strategy totals, actual-pair counts, and ordinary composition bars to prevent double-counting.

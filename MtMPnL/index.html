@@ -52,6 +52,7 @@
     tbody tr{cursor:pointer;transition:.12s background}
     tbody tr:hover{background:#f6f9ff}tbody tr.selected{background:var(--blue-soft)}
     .money{font-weight:680}.small{font-size:12px;color:var(--muted)}
+    .tag{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:999px;background:#eef3ff;color:#4869b2;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;vertical-align:1px}
     .chart-panel{min-height:626px}
     .chart-area{position:relative;padding:10px 16px 0;height:405px}
     #lineChart{display:block;width:100%;height:100%}
@@ -141,7 +142,7 @@
 </main>
 
 <script>
-const PAYLOAD = {"dates":["2026-09-01","2026-09-08","2026-09-15","2026-09-22","2026-09-30","2026-10-01","2026-10-07"],"rows":[["2026-09-01","Asia Carry","USDCNH",1250000.0],["2026-09-01","Asia Carry","USDHKD",420000.0],["2026-09-01","Commodity FX","AUDUSD",375000.0],["2026-09-01","Commodity FX","EURUSD",-120000.0],["2026-09-01","EM Value","USDZAR",260000.0],["2026-09-01","G10 Momentum","EURUSD",610000.0],["2026-09-01","G10 Momentum","USDJPY",-340000.0],["2026-09-01","LatAm RV","USDBRL",-780000.0],["2026-09-01","Scandi Macro","USDSEK",-185000.0],["2026-09-08","Asia Carry","USDCNH",1380000.0],["2026-09-08","Asia Carry","USDHKD",445000.0],["2026-09-08","Commodity FX","AUDUSD",410000.0],["2026-09-08","Commodity FX","EURUSD",-90000.0],["2026-09-08","EM Value","USDZAR",315000.0],["2026-09-08","G10 Momentum","EURUSD",540000.0],["2026-09-08","G10 Momentum","USDJPY",-210000.0],["2026-09-08","LatAm RV","USDBRL",-640000.0],["2026-09-08","Scandi Macro","USDSEK",-125000.0],["2026-09-15","Asia Carry","USDCNH",1295000.0],["2026-09-15","Asia Carry","USDHKD",470000.0],["2026-09-15","Commodity FX","AUDUSD",455000.0],["2026-09-15","Commodity FX","EURUSD",-145000.0],["2026-09-15","EM Value","USDZAR",280000.0],["2026-09-15","G10 Momentum","EURUSD",720000.0],["2026-09-15","G10 Momentum","USDJPY",-95000.0],["2026-09-15","LatAm RV","USDBRL",-420000.0],["2026-09-15","Scandi Macro","USDSEK",-65000.0],["2026-09-22","Asia Carry","USDCNH",1460000.0],["2026-09-22","Asia Carry","USDHKD",510000.0],["2026-09-22","Commodity FX","AUDUSD",390000.0],["2026-09-22","Commodity FX","EURUSD",-65000.0],["2026-09-22","EM Value","USDZAR",350000.0],["2026-09-22","G10 Momentum","EURUSD",830000.0],["2026-09-22","G10 Momentum","USDJPY",45000.0],["2026-09-22","LatAm RV","USDBRL",-255000.0],["2026-09-22","Scandi Macro","USDSEK",25000.0],["2026-09-30","Asia Carry","USDCNH",1525000.0],["2026-09-30","Asia Carry","USDHKD",485000.0],["2026-09-30","Commodity FX","AUDUSD",520000.0],["2026-09-30","Commodity FX","EURUSD",-110000.0],["2026-09-30","EM Value","USDZAR",425000.0],["2026-09-30","G10 Momentum","EURUSD",760000.0],["2026-09-30","G10 Momentum","USDJPY",180000.0],["2026-09-30","LatAm RV","USDBRL",-110000.0],["2026-09-30","Scandi Macro","USDSEK",95000.0],["2026-10-01","Asia Carry","USDCNH",1490000.0],["2026-10-01","Asia Carry","USDHKD",505000.0],["2026-10-01","Commodity FX","AUDUSD",565000.0],["2026-10-01","Commodity FX","EURUSD",-75000.0],["2026-10-01","EM Value","USDZAR",395000.0],["2026-10-01","G10 Momentum","EURUSD",805000.0],["2026-10-01","G10 Momentum","USDJPY",225000.0],["2026-10-01","LatAm RV","USDBRL",-45000.0],["2026-10-01","Scandi Macro","USDSEK",120000.0],["2026-10-07","Asia Carry","USDCNH",1615000.0],["2026-10-07","Asia Carry","USDHKD",535000.0],["2026-10-07","Commodity FX","AUDUSD",610000.0],["2026-10-07","Commodity FX","EURUSD",-90000.0],["2026-10-07","EM Value","USDZAR",470000.0],["2026-10-07","G10 Momentum","EURUSD",910000.0],["2026-10-07","G10 Momentum","USDJPY",155000.0],["2026-10-07","LatAm RV","USDBRL",85000.0],["2026-10-07","Scandi Macro","USDSEK",175000.0]],"source":"sample_mtm_pnl.csv","sourceRows":63,"headerDetected":true,"generatedAt":"2026-10-08 10:47 CST"};
+const PAYLOAD = {"dates":["2026-09-01","2026-09-08","2026-09-15","2026-09-22","2026-09-30","2026-10-01","2026-10-07"],"rows":[["2026-09-01","Asia Carry","USDCNH",1250000.0],["2026-09-01","Asia Carry","USDCNY",-210000.0],["2026-09-01","Asia Carry","USDHKD",420000.0],["2026-09-01","Commodity FX","AUDUSD",375000.0],["2026-09-01","Commodity FX","EURUSD",-120000.0],["2026-09-01","EM Value","USDKRO",-55000.0],["2026-09-01","EM Value","USDKRW",130000.0],["2026-09-01","EM Value","USDZAR",260000.0],["2026-09-01","G10 Momentum","EURUSD",610000.0],["2026-09-01","G10 Momentum","USDJPY",-340000.0],["2026-09-01","LatAm RV","USDBRF",90000.0],["2026-09-01","LatAm RV","USDBRL",-780000.0],["2026-09-01","Scandi Macro","USDSEK",-185000.0],["2026-09-08","Asia Carry","USDCNH",1380000.0],["2026-09-08","Asia Carry","USDCNY",-240000.0],["2026-09-08","Asia Carry","USDHKD",445000.0],["2026-09-08","Commodity FX","AUDUSD",410000.0],["2026-09-08","Commodity FX","EURUSD",-90000.0],["2026-09-08","EM Value","USDKRO",-60000.0],["2026-09-08","EM Value","USDKRW",145000.0],["2026-09-08","EM Value","USDZAR",315000.0],["2026-09-08","G10 Momentum","EURUSD",540000.0],["2026-09-08","G10 Momentum","USDJPY",-210000.0],["2026-09-08","LatAm RV","USDBRF",75000.0],["2026-09-08","LatAm RV","USDBRL",-640000.0],["2026-09-08","Scandi Macro","USDSEK",-125000.0],["2026-09-15","Asia Carry","USDCNH",1295000.0],["2026-09-15","Asia Carry","USDCNY",-185000.0],["2026-09-15","Asia Carry","USDHKD",470000.0],["2026-09-15","Commodity FX","AUDUSD",455000.0],["2026-09-15","Commodity FX","EURUSD",-145000.0],["2026-09-15","EM Value","USDKRO",-45000.0],["2026-09-15","EM Value","USDKRW",120000.0],["2026-09-15","EM Value","USDZAR",280000.0],["2026-09-15","G10 Momentum","EURUSD",720000.0],["2026-09-15","G10 Momentum","USDJPY",-95000.0],["2026-09-15","LatAm RV","USDBRF",60000.0],["2026-09-15","LatAm RV","USDBRL",-420000.0],["2026-09-15","Scandi Macro","USDSEK",-65000.0],["2026-09-22","Asia Carry","USDCNH",1460000.0],["2026-09-22","Asia Carry","USDCNY",-260000.0],["2026-09-22","Asia Carry","USDHKD",510000.0],["2026-09-22","Commodity FX","AUDUSD",390000.0],["2026-09-22","Commodity FX","EURUSD",-65000.0],["2026-09-22","EM Value","USDKRO",-65000.0],["2026-09-22","EM Value","USDKRW",155000.0],["2026-09-22","EM Value","USDZAR",350000.0],["2026-09-22","G10 Momentum","EURUSD",830000.0],["2026-09-22","G10 Momentum","USDJPY",45000.0],["2026-09-22","LatAm RV","USDBRF",45000.0],["2026-09-22","LatAm RV","USDBRL",-255000.0],["2026-09-22","Scandi Macro","USDSEK",25000.0],["2026-09-30","Asia Carry","USDCNH",1525000.0],["2026-09-30","Asia Carry","USDCNY",-225000.0],["2026-09-30","Asia Carry","USDHKD",485000.0],["2026-09-30","Commodity FX","AUDUSD",520000.0],["2026-09-30","Commodity FX","EURUSD",-110000.0],["2026-09-30","EM Value","USDKRO",-75000.0],["2026-09-30","EM Value","USDKRW",170000.0],["2026-09-30","EM Value","USDZAR",425000.0],["2026-09-30","G10 Momentum","EURUSD",760000.0],["2026-09-30","G10 Momentum","USDJPY",180000.0],["2026-09-30","LatAm RV","USDBRF",35000.0],["2026-09-30","LatAm RV","USDBRL",-110000.0],["2026-09-30","Scandi Macro","USDSEK",95000.0],["2026-10-01","Asia Carry","USDCNH",1490000.0],["2026-10-01","Asia Carry","USDCNY",-205000.0],["2026-10-01","Asia Carry","USDHKD",505000.0],["2026-10-01","Commodity FX","AUDUSD",565000.0],["2026-10-01","Commodity FX","EURUSD",-75000.0],["2026-10-01","EM Value","USDKRO",-68000.0],["2026-10-01","EM Value","USDKRW",165000.0],["2026-10-01","EM Value","USDZAR",395000.0],["2026-10-01","G10 Momentum","EURUSD",805000.0],["2026-10-01","G10 Momentum","USDJPY",225000.0],["2026-10-01","LatAm RV","USDBRF",30000.0],["2026-10-01","LatAm RV","USDBRL",-45000.0],["2026-10-01","Scandi Macro","USDSEK",120000.0],["2026-10-07","Asia Carry","USDCNH",1615000.0],["2026-10-07","Asia Carry","USDCNY",-250000.0],["2026-10-07","Asia Carry","USDHKD",535000.0],["2026-10-07","Commodity FX","AUDUSD",610000.0],["2026-10-07","Commodity FX","EURUSD",-90000.0],["2026-10-07","EM Value","USDKRO",-70000.0],["2026-10-07","EM Value","USDKRW",160000.0],["2026-10-07","EM Value","USDZAR",470000.0],["2026-10-07","G10 Momentum","EURUSD",910000.0],["2026-10-07","G10 Momentum","USDJPY",155000.0],["2026-10-07","LatAm RV","USDBRF",25000.0],["2026-10-07","LatAm RV","USDBRL",85000.0],["2026-10-07","Scandi Macro","USDSEK",175000.0]],"source":"sample_mtm_pnl.csv","sourceRows":91,"headerDetected":true,"generatedAt":"2026-10-08 10:54 CST"};
 const dates = PAYLOAD.dates;
 const strategies = [...new Set(PAYLOAD.rows.map(r => r[1]))].sort((a,b)=>a.localeCompare(b));
 const dateIndex = new Map(dates.map((d,i)=>[d,i]));
@@ -152,8 +153,15 @@ const byTicker = new Map();
 const byStrategyTicker = new Map();
 const tickersByStrategy = new Map();
 const allTickers = new Set();
+const syntheticDefinitions = new Map([
+  ['BRLBRF',['USDBRL','USDBRF']],
+  ['CNHCNY',['USDCNH','USDCNY']],
+  ['KRWKRO',['USDKRW','USDKRO']]
+]);
+const syntheticNames = new Set();
 
 for (const [date,strategy,ticker,value] of PAYLOAD.rows) {
+  if (syntheticDefinitions.has(ticker)) continue;
   const i = dateIndex.get(date);
   book[i] += value;
   if (!byStrategy.has(strategy)) byStrategy.set(strategy, zeroSeries());
@@ -166,6 +174,21 @@ for (const [date,strategy,ticker,value] of PAYLOAD.rows) {
   if (!tickersByStrategy.has(strategy)) tickersByStrategy.set(strategy, new Set());
   tickersByStrategy.get(strategy).add(ticker);
   allTickers.add(ticker);
+}
+
+const addSeries = seriesList => dates.map((_,i)=>seriesList.reduce((sum,series)=>sum+(series?.[i]||0),0));
+for (const [synthetic,legs] of syntheticDefinitions) {
+  const bookLegs=legs.filter(leg=>byTicker.has(leg)).map(leg=>byTicker.get(leg));
+  if (!bookLegs.length) continue;
+  byTicker.set(synthetic,addSeries(bookLegs));
+  allTickers.add(synthetic);
+  syntheticNames.add(synthetic);
+  for (const strategy of strategies) {
+    const strategyLegs=legs.map(leg=>byStrategyTicker.get(strategy+'\u0000'+leg)).filter(Boolean);
+    if (!strategyLegs.length) continue;
+    byStrategyTicker.set(strategy+'\u0000'+synthetic,addSeries(strategyLegs));
+    tickersByStrategy.get(strategy)?.add(synthetic);
+  }
 }
 
 const state = {strategy:null, ticker:null, strategySort:{key:'latest',dir:-1}, tickerSort:{key:'latest',dir:-1}, search:''};
@@ -218,7 +241,7 @@ function renderSelectors(){
   tickerSelect.disabled=false;
   const tickers=[...(state.strategy?tickersByStrategy.get(state.strategy)||[]:allTickers)].sort((a,b)=>a.localeCompare(b));
   const allLabel=state.strategy?'All tickers':'All tickers across strategies';
-  tickerSelect.innerHTML=`<option value="">${allLabel}</option>`+tickers.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
+  tickerSelect.innerHTML=`<option value="">${allLabel}</option>`+tickers.map(name=>`<option value="${esc(name)}">${esc(name)}${syntheticNames.has(name)?' · synthetic':''}</option>`).join('');
   tickerSelect.value=state.ticker||'';
 }
 function renderKpis(){
@@ -227,7 +250,7 @@ function renderKpis(){
   document.getElementById('kpis').innerHTML=items.map(([label,v,note])=>`<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value ${signClass(v)}">${fmt(v)}</div><div class="kpi-note">${note}</div></div>`).join('');
 }
 function strategyRows(){
-  return strategies.map(name=>{const m=metrics(byStrategy.get(name));return {...m,name,tickers:tickersByStrategy.get(name)?.size||0};});
+  return strategies.map(name=>{const m=metrics(byStrategy.get(name)||zeroSeries());const tickers=[...(tickersByStrategy.get(name)||[])].filter(ticker=>!syntheticNames.has(ticker)).length;return {...m,name,tickers};});
 }
 function compareRows(a,b,sort){
   const av=a[sort.key],bv=b[sort.key];
@@ -248,25 +271,26 @@ function renderStrategies(){
 }
 function tickerRows(){
   const tickers=state.strategy?[...(tickersByStrategy.get(state.strategy)||[])]:[...allTickers];
-  return tickers.map(name=>{const series=state.strategy?byStrategyTicker.get(state.strategy+'\u0000'+name):byTicker.get(name);const m=metrics(series||zeroSeries());return {...m,name};}).sort((a,b)=>compareRows(a,b,state.tickerSort));
+  return tickers.map(name=>{const series=state.strategy?byStrategyTicker.get(state.strategy+'\u0000'+name):byTicker.get(name);const m=metrics(series||zeroSeries());return {...m,name,synthetic:syntheticNames.has(name)};}).sort((a,b)=>compareRows(a,b,state.tickerSort));
 }
 function renderTickers(){
   const body=document.querySelector('#tickerTable tbody');
   const rows=tickerRows();
   document.getElementById('detailTitle').textContent=state.strategy?`${state.strategy} · currency-pair detail`:'All strategies · currency-pair detail';
   document.getElementById('detailSub').textContent=`${rows.length} ticker${rows.length===1?'':'s'} · click a row to isolate ${state.strategy?'its':'cross-strategy'} history`;
-  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('');
+  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}${r.synthetic?'<span class="tag">Synthetic</span>':''}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('');
   body.querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{state.ticker=tr.dataset.name;render();});
   updateSortMarks('tickerTable',state.tickerSort);
 }
 function renderBars(){
   let rows;
-  if(state.strategy){rows=tickerRows().map(r=>({name:r.name,value:r.latest,type:'ticker'}));}
+  if(state.strategy&&state.ticker&&syntheticNames.has(state.ticker)){rows=syntheticDefinitions.get(state.ticker).map(name=>({name,value:metrics(byStrategyTicker.get(state.strategy+'\u0000'+name)||zeroSeries()).latest,type:'ticker'}));}
+  else if(state.strategy){rows=tickerRows().filter(r=>!r.synthetic).map(r=>({name:r.name,value:r.latest,type:'ticker'}));}
   else if(state.ticker){rows=strategies.filter(name=>tickersByStrategy.get(name)?.has(state.ticker)).map(name=>({name,value:metrics(byStrategyTicker.get(name+'\u0000'+state.ticker)).latest,type:'strategyTicker'}));}
   else{rows=strategyRows().map(r=>({name:r.name,value:r.latest,type:'strategy'}));}
   rows.sort((a,b)=>Math.abs(b.value)-Math.abs(a.value));
   const max=Math.max(1,...rows.map(r=>Math.abs(r.value)));
-  document.getElementById('barTitle').textContent=state.strategy?`Latest daily P&L by ticker · ${state.strategy}`:state.ticker?`Latest ${state.ticker} P&L by strategy`:'Latest daily P&L by strategy';
+  document.getElementById('barTitle').textContent=state.strategy&&state.ticker&&syntheticNames.has(state.ticker)?`Latest ${state.ticker} P&L by leg · ${state.strategy}`:state.strategy?`Latest daily P&L by ticker · ${state.strategy}`:state.ticker?`Latest ${state.ticker} P&L by strategy`:'Latest daily P&L by strategy';
   const el=document.getElementById('bars');
   el.innerHTML=rows.map(r=>{const width=50*Math.abs(r.value)/max;const cls=r.value>=0?'pos':'neg';return `<div class="bar-row" data-name="${esc(r.name)}" data-type="${r.type}"><div class="bar-name" title="${esc(r.name)}">${esc(r.name)}</div><div class="bar-track"><span class="bar-zero"></span><span class="bar ${cls}" style="width:${width}%"></span></div><div class="bar-value ${signClass(r.value)}">${fmt(r.value)}</div></div>`}).join('')||'<div class="empty">No values on the latest date.</div>';
   el.querySelectorAll('.bar-row').forEach(row=>row.onclick=()=>{if(row.dataset.type==='strategy'){state.strategy=row.dataset.name;state.ticker=null;}else if(row.dataset.type==='strategyTicker'){state.strategy=row.dataset.name;}else state.ticker=row.dataset.name;render();});
