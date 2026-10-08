@@ -32,8 +32,8 @@ The strategy table and ticker-detail table are sortable. Use the Strategy and Ti
 
 Three view-only synthetic tickers are calculated for every date and strategy:
 
-- `BRLBRF = USDBRL + USDBRF`
-- `CNHCNY = USDCNH + USDCNY`
-- `KRWKRO = USDKRW + USDKRO`
+- `BRLBRF = USD/BRL + USD/BRF`
+- `CNHCNY = USD/CNH + USD/CNY`
+- `KRWKRO = USD/KRW + USD/KRO`
 
 A missing leg contributes zero. Synthetic tickers are excluded from whole-book totals, strategy totals, actual-pair counts, and ordinary composition bars to prevent double-counting.

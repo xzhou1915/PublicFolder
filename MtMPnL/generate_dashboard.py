@@ -272,9 +272,9 @@ const byStrategyTicker = new Map();
 const tickersByStrategy = new Map();
 const allTickers = new Set();
 const syntheticDefinitions = new Map([
-  ['BRLBRF',['USDBRL','USDBRF']],
-  ['CNHCNY',['USDCNH','USDCNY']],
-  ['KRWKRO',['USDKRW','USDKRO']]
+  ['BRLBRF',['USD/BRL','USD/BRF']],
+  ['CNHCNY',['USD/CNH','USD/CNY']],
+  ['KRWKRO',['USD/KRW','USD/KRO']]
 ]);
 const syntheticNames = new Set();
 
