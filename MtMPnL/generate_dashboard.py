@@ -613,17 +613,18 @@ function renderExpiryDistribution(){
   if(currencies.length!==1){showMessage(`Cannot aggregate this Ticker because it has multiple CCY1 units: ${currencies.join(', ')}.`);return;}
   const currency=currencies[0],grouped=new Map();
   for(const [,strategy,ticker,side,,amount,valueDate] of filtered){
-    if(!grouped.has(valueDate))grouped.set(valueDate,{date:valueDate,buy:0,sell:0,contributors:new Map()});
-    const row=grouped.get(valueDate),sideKey=side.toLowerCase();
+    const expiryMonth=valueDate.slice(0,7);
+    if(!grouped.has(expiryMonth))grouped.set(expiryMonth,{month:expiryMonth,buy:0,sell:0,contributors:new Map()});
+    const row=grouped.get(expiryMonth),sideKey=side.toLowerCase();
     row[sideKey]+=amount;
     const contributorKey=ticker+'\u0000'+strategy;
     if(!row.contributors.has(contributorKey))row.contributors.set(contributorKey,{ticker,strategy,buy:0,sell:0});
     row.contributors.get(contributorKey)[sideKey]+=amount;
   }
-  const data=[...grouped.values()].map(row=>({...row,net:row.buy-row.sell})).sort((a,b)=>a.date.localeCompare(b.date));
+  const data=[...grouped.values()].map(row=>({...row,net:row.buy-row.sell})).sort((a,b)=>a.month.localeCompare(b.month));
   empty.style.display='none';svg.style.display='block';
   const syntheticNote=syntheticNames.has(state.ticker)?' · underlying legs combined':'';
-  sub.textContent=`As of ${dates.at(-1)} · net Amount1 (Buy − Sell) in ${currency}${syntheticNote} · hover for contributors`;
+  sub.textContent=`As of ${dates.at(-1)} · net Amount1 (Buy − Sell) by ValueDT month in ${currency}${syntheticNote} · hover for contributors`;
   const pad={l:86,r:30,t:35,b:58},h=Math.max(285,area.clientHeight-20),w=Math.max(560,area.clientWidth-32,data.length*110+pad.l+pad.r);
   svg.style.width=w+'px';svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
   const plotHeight=h-pad.t-pad.b,plotWidth=w-pad.l-pad.r,maxAbs=Math.max(1,...data.map(row=>Math.abs(row.net)))*1.12;
@@ -636,16 +637,16 @@ function renderExpiryDistribution(){
   }
   data.forEach((row,index)=>{
     const yy=y(row.net),top=Math.min(yy,zeroY),height=Math.max(2,Math.abs(yy-zeroY)),fill=row.net>0?'#29a37a':row.net<0?'#e05b68':'#9aa5b4';
-    parts.push(`<rect x="${x(index)-barWidth/2}" y="${row.net===0?zeroY-1:top}" width="${barWidth}" height="${height}" rx="3" fill="${fill}" opacity=".9"/>`,`<text x="${x(index)}" y="${h-24}" text-anchor="middle" fill="#65738a" font-size="11">${row.date}</text>`,`<rect class="expiry-hit" data-index="${index}" x="${pad.l+index*slot}" y="${pad.t}" width="${slot}" height="${plotHeight}" fill="transparent"/>`);
+    parts.push(`<rect x="${x(index)-barWidth/2}" y="${row.net===0?zeroY-1:top}" width="${barWidth}" height="${height}" rx="3" fill="${fill}" opacity=".9"/>`,`<text x="${x(index)}" y="${h-24}" text-anchor="middle" fill="#65738a" font-size="11">${row.month}</text>`,`<rect class="expiry-hit" data-index="${index}" x="${pad.l+index*slot}" y="${pad.t}" width="${slot}" height="${plotHeight}" fill="transparent"/>`);
   });
-  svg.innerHTML=parts.join('');svg.setAttribute('aria-label',`${state.strategy||'Whole book'} / ${state.ticker} net position by ValueDT`);
+  svg.innerHTML=parts.join('');svg.setAttribute('aria-label',`${state.strategy||'Whole book'} / ${state.ticker} net position by expiry month`);
   const exactPosition=(value,signed=true)=>`${value<0?'−':signed&&value>0?'+':''}${Math.abs(value).toLocaleString(undefined,{maximumFractionDigits:0})} ${currency}`;
   svg.querySelectorAll('.expiry-hit').forEach(hit=>{
     hit.onmousemove=event=>{
       const row=data[Number(hit.dataset.index)];
       const contributors=[...row.contributors.values()].map(item=>({...item,net:item.buy-item.sell})).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
       const contributorHtml=contributors.map(item=>{const label=syntheticNames.has(state.ticker)?`${item.ticker} · ${item.strategy}`:item.strategy;return `<div class="contributor"><span class="contributor-label" title="${esc(label)}">${esc(label)}</span><b class="${signClass(item.net)}">${exactPosition(item.net)}</b></div>`;}).join('');
-      tip.innerHTML=`<strong>${row.date}</strong><div>Gross Buy: <b>${exactPosition(row.buy,false)}</b></div><div>Gross Sell: <b>${exactPosition(row.sell,false)}</b></div><div>Net: <b class="${signClass(row.net)}">${exactPosition(row.net)}</b></div><div class="small" style="margin-top:7px">Contributors</div>${contributorHtml}`;
+      tip.innerHTML=`<strong>${row.month}</strong><div>Gross Buy: <b>${exactPosition(row.buy,false)}</b></div><div>Gross Sell: <b>${exactPosition(row.sell,false)}</b></div><div>Net: <b class="${signClass(row.net)}">${exactPosition(row.net)}</b></div><div class="small" style="margin-top:7px">Contributors</div>${contributorHtml}`;
       tip.style.display='block';
       const rect=area.getBoundingClientRect();let left=event.clientX-rect.left+area.scrollLeft+14;
       if(left+315>area.scrollLeft+area.clientWidth)left-=330;

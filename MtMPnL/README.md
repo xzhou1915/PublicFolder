@@ -34,7 +34,7 @@ Open `index.html` in a browser. The generated file has no server or internet dep
   currency unit of `Amount1`.
 - Net position is calculated as gross Buy `Amount1` minus gross Sell `Amount1`.
 - `ValueDT` is the position expiry date. After selecting a Ticker, the expiry
-  chart plots its latest-date net `Amount1` by `ValueDT`.
+  chart plots its latest-date net `Amount1`, aggregated by calendar month.
 - At Whole-book level, the expiry chart aggregates the selected Ticker across
   strategies. Selecting both a Strategy and Ticker filters it to that Strategy.
 - Hovering an expiry bar shows gross Buy, gross Sell, net position, and the
