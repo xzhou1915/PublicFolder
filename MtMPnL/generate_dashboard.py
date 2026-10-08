@@ -338,22 +338,6 @@ HTML_TEMPLATE = r'''<!doctype html>
     </div>
   </section>
 
-  <section class="panel detail">
-    <div class="panel-head"><div><div class="panel-title" id="detailTitle">Currency-pair detail</div><div class="panel-sub" id="detailSub"></div></div></div>
-    <div class="table-wrap" id="detailWrap">
-      <table id="tickerTable">
-        <thead><tr>
-          <th data-key="name">Ticker <span class="sort-mark"></span></th>
-          <th data-key="latest"><span class="latest-date-label">__LATEST_DATE__</span> <span class="sort-mark"></span></th>
-          <th data-key="w1">1W P&amp;L <span class="sort-mark"></span></th>
-          <th data-key="mtd">MTD P&amp;L <span class="sort-mark"></span></th>
-          <th data-key="ytd">YTD P&amp;L <span class="sort-mark"></span></th>
-          <th data-key="cumulative">Cumulative P&amp;L <span class="sort-mark"></span></th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
   <section class="panel detail position-detail">
     <div class="panel-head"><div><div class="panel-title" id="positionTitle">Latest position breakdown</div><div class="panel-sub" id="positionSub"></div></div></div>
     <div class="table-wrap">
@@ -365,6 +349,22 @@ HTML_TEMPLATE = r'''<!doctype html>
           <th>Gross Buy</th>
           <th>Gross Sell</th>
           <th>Net Position</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+  <section class="panel detail">
+    <div class="panel-head"><div><div class="panel-title" id="detailTitle">Currency-pair detail</div><div class="panel-sub" id="detailSub"></div></div></div>
+    <div class="table-wrap" id="detailWrap">
+      <table id="tickerTable">
+        <thead><tr>
+          <th data-key="name">Ticker <span class="sort-mark"></span></th>
+          <th data-key="latest"><span class="latest-date-label">__LATEST_DATE__</span> <span class="sort-mark"></span></th>
+          <th data-key="w1">1W P&amp;L <span class="sort-mark"></span></th>
+          <th data-key="mtd">MTD P&amp;L <span class="sort-mark"></span></th>
+          <th data-key="ytd">YTD P&amp;L <span class="sort-mark"></span></th>
+          <th data-key="cumulative">Cumulative P&amp;L <span class="sort-mark"></span></th>
         </tr></thead>
         <tbody></tbody>
       </table>
