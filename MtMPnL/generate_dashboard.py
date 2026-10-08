@@ -474,8 +474,8 @@ for (const [synthetic,legs] of syntheticDefinitions) {
   allTickers.add(synthetic);
   syntheticNames.add(synthetic);
   for (const strategy of strategies) {
-    const strategyLegs=legs.map(leg=>byStrategyTicker.get(strategy+'\u0000'+leg)).filter(Boolean);
-    if (!strategyLegs.length) continue;
+    const strategyLegs=legs.map(leg=>byStrategyTicker.get(strategy+'\u0000'+leg));
+    if (strategyLegs.some(series=>!series)) continue;
     byStrategyTicker.set(strategy+'\u0000'+synthetic,addSeries(strategyLegs));
     tickersByStrategy.get(strategy)?.add(synthetic);
   }
@@ -657,13 +657,13 @@ function renderExpiryDistribution(){
 }
 function renderBars(){
   let rows;
-  if(state.strategy&&state.ticker&&syntheticNames.has(state.ticker)){rows=syntheticDefinitions.get(state.ticker).map(name=>({name,value:metrics(byStrategyTicker.get(state.strategy+'\u0000'+name)||zeroSeries()).latest,type:'ticker'}));}
+  if(state.strategy&&state.ticker){rows=[{name:state.ticker,value:metrics(byStrategyTicker.get(state.strategy+'\u0000'+state.ticker)||zeroSeries()).latest,type:'ticker'}];}
   else if(state.strategy){rows=tickerRows().map(r=>({name:r.name,value:r.latest,type:'ticker'}));}
   else if(state.ticker){rows=strategies.filter(name=>tickersByStrategy.get(name)?.has(state.ticker)).map(name=>({name,value:metrics(byStrategyTicker.get(name+'\u0000'+state.ticker)).latest,type:'strategyTicker'}));}
   else{rows=strategyRows().map(r=>({name:r.name,value:r.latest,type:'strategy'}));}
   rows.sort((a,b)=>Math.abs(b.value)-Math.abs(a.value));
   const max=Math.max(1,...rows.map(r=>Math.abs(r.value)));
-  document.getElementById('barTitle').textContent=state.strategy&&state.ticker&&syntheticNames.has(state.ticker)?`Latest ${state.ticker} P&L by leg · ${state.strategy}`:state.strategy?`Latest daily P&L by ticker · ${state.strategy}`:state.ticker?`Latest ${state.ticker} P&L by strategy`:'Latest daily P&L by strategy';
+  document.getElementById('barTitle').textContent=state.strategy?`Latest daily P&L by ticker · ${state.strategy}`:state.ticker?`Latest ${state.ticker} P&L by strategy`:'Latest daily P&L by strategy';
   const el=document.getElementById('bars');
   el.innerHTML=rows.map(r=>{const width=50*Math.abs(r.value)/max;const cls=r.value>=0?'pos':'neg';return `<div class="bar-row" data-name="${esc(r.name)}" data-type="${r.type}"><div class="bar-name" title="${esc(r.name)}">${esc(r.name)}</div><div class="bar-track"><span class="bar-zero"></span><span class="bar ${cls}" style="width:${width}%"></span></div><div class="bar-value ${signClass(r.value)}">${fmt(r.value)}</div></div>`}).join('')||'<div class="empty">No values on the latest date.</div>';
   el.querySelectorAll('.bar-row').forEach(row=>row.onclick=()=>{if(row.dataset.type==='strategy'){state.strategy=row.dataset.name;state.ticker=null;}else if(row.dataset.type==='strategyTicker'){state.strategy=row.dataset.name;}else state.ticker=row.dataset.name;render();});

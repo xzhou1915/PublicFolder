@@ -52,5 +52,8 @@ A missing leg contributes zero. Synthetic tickers are excluded from whole-book
 totals, strategy totals, and actual-pair counts to prevent double-counting. They
 are displayed alongside their underlying legs in a selected Strategy's latest
 P&L-by-Ticker bars, so those displayed bars should not be summed together.
+Within a Strategy, a synthetic Ticker is created only when both underlying legs
+are present. Selecting both a Strategy and Ticker reduces the latest P&L bar
+section to that one selected Ticker.
 When selected in the position breakdown, a synthetic ticker displays its two
 underlying ticker legs separately.
