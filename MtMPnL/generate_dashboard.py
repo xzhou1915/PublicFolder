@@ -16,6 +16,11 @@ from pathlib import Path
 CORE_COLUMNS = ("CobDate", "Strategy", "Ticker", "MtM_PnL")
 POSITION_COLUMNS = ("PS1", "CCY1", "Amount1")
 VALUE_DATE_COLUMN = "ValueDT"
+MACRO_1_STRATEGIES = {
+    "Asia Carry",
+    "Commodity FX",
+    "G10 Momentum",
+}
 
 
 def normalized_header(value: str) -> str:
@@ -345,13 +350,14 @@ HTML_TEMPLATE = r'''<!doctype html>
 <body>
 <main class="shell">
   <div class="top">
-    <div><h1>Strategy MtM P&amp;L</h1><div class="subtitle">Daily and cumulative performance by strategy and currency pair</div></div>
+    <div><h1>Strategy MtM P&amp;L</h1><div class="subtitle">Daily and cumulative performance by Macro group, strategy, and currency pair</div></div>
     <div class="asof"><strong id="asOf"></strong><span id="sourceMeta"></span></div>
   </div>
 
   <div class="nav-row">
     <div class="crumbs" id="crumbs"></div>
     <div class="filters">
+      <div class="filter-field"><label for="macroSelect">Macro group</label><select id="macroSelect"></select></div>
       <div class="filter-field"><label for="strategySelect">Strategy</label><select id="strategySelect"></select></div>
       <div class="filter-field"><label for="tickerSelect">Ticker</label><select id="tickerSelect" disabled></select></div>
     </div>
@@ -361,19 +367,19 @@ HTML_TEMPLATE = r'''<!doctype html>
   <section class="grid">
     <div class="panel">
       <div class="panel-head">
-        <div><div class="panel-title">Strategies</div><div class="panel-sub" id="strategyCount"></div></div>
-        <input class="search" id="strategySearch" placeholder="Search strategy" aria-label="Search strategy">
+        <div><div class="panel-title" id="summaryTitle">Macro groups</div><div class="panel-sub" id="strategyCount"></div></div>
+        <input class="search" id="strategySearch" placeholder="Search Macro group" aria-label="Search summary rows">
       </div>
       <div class="table-wrap">
         <table id="strategyTable">
           <thead><tr>
-            <th data-key="name">Strategy <span class="sort-mark"></span></th>
+            <th data-key="name"><span id="summaryNameHeader">Macro group</span> <span class="sort-mark"></span></th>
             <th data-key="latest"><span class="latest-date-label">__LATEST_DATE__</span> <span class="sort-mark"></span></th>
             <th data-key="w1">1W P&amp;L <span class="sort-mark"></span></th>
             <th data-key="mtd">MTD P&amp;L <span class="sort-mark"></span></th>
             <th data-key="ytd">YTD P&amp;L <span class="sort-mark"></span></th>
             <th data-key="cumulative">Cumulative P&amp;L <span class="sort-mark"></span></th>
-            <th data-key="tickers">Pairs <span class="sort-mark"></span></th>
+            <th data-key="count"><span id="summaryCountHeader">Strategies</span> <span class="sort-mark"></span></th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -435,12 +441,21 @@ const PAYLOAD = __PAYLOAD__;
 const dates = PAYLOAD.dates;
 const positionRows = PAYLOAD.positions || [];
 const strategies = [...new Set(PAYLOAD.rows.map(r => r[1]))].sort((a,b)=>a.localeCompare(b));
+const macroOrder = ['Macro 1','Macro 2'];
+const macro1Strategies = new Set(PAYLOAD.macro1Strategies || []);
+const macroForStrategy = new Map(strategies.map(strategy=>[strategy,macro1Strategies.has(strategy)?'Macro 1':'Macro 2']));
+const strategiesByMacro = new Map(macroOrder.map(name=>[name,new Set()]));
+for(const strategy of strategies)strategiesByMacro.get(macroForStrategy.get(strategy)).add(strategy);
+const macroGroups = macroOrder.filter(name=>strategiesByMacro.get(name).size);
 const dateIndex = new Map(dates.map((d,i)=>[d,i]));
 const zeroSeries = () => Array(dates.length).fill(0);
 const book = zeroSeries();
+const byMacro = new Map(macroGroups.map(name=>[name,zeroSeries()]));
 const byStrategy = new Map();
 const byTicker = new Map();
+const byMacroTicker = new Map();
 const byStrategyTicker = new Map();
+const tickersByMacro = new Map(macroGroups.map(name=>[name,new Set()]));
 const tickersByStrategy = new Map();
 const allTickers = new Set();
 const syntheticDefinitions = new Map([
@@ -453,26 +468,38 @@ const syntheticNames = new Set();
 for (const [date,strategy,ticker,value] of PAYLOAD.rows) {
   if (syntheticDefinitions.has(ticker)) continue;
   const i = dateIndex.get(date);
+  const macro=macroForStrategy.get(strategy);
   book[i] += value;
+  byMacro.get(macro)[i] += value;
   if (!byStrategy.has(strategy)) byStrategy.set(strategy, zeroSeries());
   byStrategy.get(strategy)[i] += value;
   if (!byTicker.has(ticker)) byTicker.set(ticker, zeroSeries());
   byTicker.get(ticker)[i] += value;
+  const macroKey = macro + '\u0000' + ticker;
+  if (!byMacroTicker.has(macroKey)) byMacroTicker.set(macroKey, zeroSeries());
+  byMacroTicker.get(macroKey)[i] += value;
   const key = strategy + '\u0000' + ticker;
   if (!byStrategyTicker.has(key)) byStrategyTicker.set(key, zeroSeries());
   byStrategyTicker.get(key)[i] += value;
   if (!tickersByStrategy.has(strategy)) tickersByStrategy.set(strategy, new Set());
   tickersByStrategy.get(strategy).add(ticker);
+  tickersByMacro.get(macro).add(ticker);
   allTickers.add(ticker);
 }
 
 const addSeries = seriesList => dates.map((_,i)=>seriesList.reduce((sum,series)=>sum+(series?.[i]||0),0));
 for (const [synthetic,legs] of syntheticDefinitions) {
-  const bookLegs=legs.filter(leg=>byTicker.has(leg)).map(leg=>byTicker.get(leg));
-  if (!bookLegs.length) continue;
+  const bookLegs=legs.map(leg=>byTicker.get(leg));
+  if (bookLegs.some(series=>!series)) continue;
   byTicker.set(synthetic,addSeries(bookLegs));
   allTickers.add(synthetic);
   syntheticNames.add(synthetic);
+  for (const macro of macroGroups) {
+    const macroLegs=legs.map(leg=>byMacroTicker.get(macro+'\u0000'+leg));
+    if (macroLegs.some(series=>!series)) continue;
+    byMacroTicker.set(macro+'\u0000'+synthetic,addSeries(macroLegs));
+    tickersByMacro.get(macro).add(synthetic);
+  }
   for (const strategy of strategies) {
     const strategyLegs=legs.map(leg=>byStrategyTicker.get(strategy+'\u0000'+leg));
     if (strategyLegs.some(series=>!series)) continue;
@@ -481,7 +508,7 @@ for (const [synthetic,legs] of syntheticDefinitions) {
   }
 }
 
-const state = {strategy:null, ticker:null, strategySort:{key:'latest',dir:-1}, tickerSort:{key:'latest',dir:-1}, search:''};
+const state = {macro:null, strategy:null, ticker:null, strategySort:{key:'latest',dir:-1}, tickerSort:{key:'latest',dir:-1}, search:''};
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const signClass = v => v == null || Math.abs(v) < 0.000001 ? 'neutral' : v > 0 ? 'positive' : 'negative';
 function fmt(v) {
@@ -516,28 +543,35 @@ function metrics(series) {
   return {latest:series.at(-1),w1:sumFrom(starts.w1),mtd:sumFrom(starts.mtd),ytd:sumFrom(starts.ytd),cumulative:sumFrom(0)};
 }
 function activeSeries() {
-  if (!state.strategy) return state.ticker ? byTicker.get(state.ticker) || zeroSeries() : book;
-  if (!state.ticker) return byStrategy.get(state.strategy) || zeroSeries();
-  return byStrategyTicker.get(state.strategy+'\u0000'+state.ticker) || zeroSeries();
+  if(state.strategy)return state.ticker?byStrategyTicker.get(state.strategy+'\u0000'+state.ticker)||zeroSeries():byStrategy.get(state.strategy)||zeroSeries();
+  if(state.macro)return state.ticker?byMacroTicker.get(state.macro+'\u0000'+state.ticker)||zeroSeries():byMacro.get(state.macro)||zeroSeries();
+  return state.ticker?byTicker.get(state.ticker)||zeroSeries():book;
 }
-function activeLabel() { return state.ticker ? `${state.strategy||'All strategies'} / ${state.ticker}` : state.strategy || 'Whole book'; }
+function activeLabel(){const scope=state.strategy||state.macro||'Whole book';return state.ticker?`${scope} / ${state.ticker}`:scope;}
 function metricCell(v){return `<td class="money ${signClass(v)}">${fmt(v)}</td>`}
 
 function renderCrumbs(){
-  const parts=[`<button class="crumb ${!state.strategy&&!state.ticker?'active':''}" data-level="book">Whole book</button>`];
+  const parts=[`<button class="crumb ${!state.macro&&!state.ticker?'active':''}" data-level="book">Whole book</button>`];
+  if(state.macro){parts.push('<span class="chev">›</span>',`<button class="crumb ${!state.strategy&&!state.ticker?'active':''}" data-level="macro">${esc(state.macro)}</button>`);}
   if(state.strategy){parts.push('<span class="chev">›</span>',`<button class="crumb ${!state.ticker?'active':''}" data-level="strategy">${esc(state.strategy)}</button>`);}
   if(state.ticker){parts.push('<span class="chev">›</span>',`<button class="crumb active" data-level="ticker">${esc(state.ticker)}</button>`);}
   const el=document.getElementById('crumbs');el.innerHTML=parts.join('');
-  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.dataset.level==='book'){state.strategy=null;state.ticker=null;}if(b.dataset.level==='strategy')state.ticker=null;render();});
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.dataset.level==='book'){state.macro=null;state.strategy=null;state.ticker=null;}if(b.dataset.level==='macro'){state.strategy=null;state.ticker=null;}if(b.dataset.level==='strategy')state.ticker=null;state.search='';render();});
 }
 function renderSelectors(){
+  const macroSelect=document.getElementById('macroSelect');
+  macroSelect.innerHTML='<option value="">Whole book</option>'+macroGroups.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
+  macroSelect.value=state.macro||'';
   const strategySelect=document.getElementById('strategySelect');
-  strategySelect.innerHTML='<option value="">Whole book</option>'+strategies.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
+  const scopedStrategies=state.macro?[...(strategiesByMacro.get(state.macro)||[])].sort((a,b)=>a.localeCompare(b)):[];
+  strategySelect.disabled=!state.macro;
+  strategySelect.innerHTML=`<option value="">${state.macro?'All strategies':'Select Macro group first'}</option>`+scopedStrategies.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');
   strategySelect.value=state.strategy||'';
   const tickerSelect=document.getElementById('tickerSelect');
   tickerSelect.disabled=false;
-  const tickers=[...(state.strategy?tickersByStrategy.get(state.strategy)||[]:allTickers)].sort((a,b)=>a.localeCompare(b));
-  const allLabel=state.strategy?'All tickers':'All tickers across strategies';
+  const scopedTickers=state.strategy?tickersByStrategy.get(state.strategy)||[]:state.macro?tickersByMacro.get(state.macro)||[]:allTickers;
+  const tickers=[...scopedTickers].sort((a,b)=>a.localeCompare(b));
+  const allLabel=state.strategy?'All tickers':state.macro?'All tickers in group':'All tickers across book';
   tickerSelect.innerHTML=`<option value="">${allLabel}</option>`+tickers.map(name=>`<option value="${esc(name)}">${esc(name)}${syntheticNames.has(name)?' · synthetic':''}</option>`).join('');
   tickerSelect.value=state.ticker||'';
 }
@@ -546,8 +580,11 @@ function renderKpis(){
   const items=[['Latest daily P&L',m.latest,dates.at(-1)],['1 week P&L',m.w1,`from ${dates[starts.w1]}`],['MTD P&L',m.mtd,`from ${dates[starts.mtd]}`],['YTD P&L',m.ytd,`from ${dates[starts.ytd]}`],['Cumulative P&L',m.cumulative,`from ${dates[0]}`]];
   document.getElementById('kpis').innerHTML=items.map(([label,v,note])=>`<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value ${signClass(v)}">${fmt(v)}</div><div class="kpi-note">${note}</div></div>`).join('');
 }
-function strategyRows(){
-  return strategies.map(name=>{const m=metrics(byStrategy.get(name)||zeroSeries());const tickers=[...(tickersByStrategy.get(name)||[])].filter(ticker=>!syntheticNames.has(ticker)).length;return {...m,name,tickers};});
+function strategyRows(names=strategies){
+  return [...names].map(name=>{const m=metrics(byStrategy.get(name)||zeroSeries());const count=[...(tickersByStrategy.get(name)||[])].filter(ticker=>!syntheticNames.has(ticker)).length;return {...m,name,count,type:'strategy'};});
+}
+function macroRows(){
+  return macroGroups.map(name=>{const m=metrics(byMacro.get(name)||zeroSeries());return {...m,name,count:strategiesByMacro.get(name).size,type:'macro'};});
 }
 function compareRows(a,b,sort){
   const av=a[sort.key],bv=b[sort.key];
@@ -559,21 +596,27 @@ function updateSortMarks(tableId,sort){
   document.querySelectorAll(`#${tableId} th`).forEach(th=>{const s=th.querySelector('.sort-mark');if(s)s.textContent=th.dataset.key===sort.key?(sort.dir===1?'▲':'▼'):'';});
 }
 function renderStrategies(){
+  const showingMacros=!state.macro,baseRows=showingMacros?macroRows():strategyRows(strategiesByMacro.get(state.macro)||[]);
   const query=state.search.toLowerCase();
-  const rows=strategyRows().filter(r=>r.name.toLowerCase().includes(query)).sort((a,b)=>compareRows(a,b,state.strategySort));
-  document.querySelector('#strategyTable tbody').innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.strategy===r.name?'selected':''}"><td title="${esc(r.name)}">${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}<td>${r.tickers}</td></tr>`).join('');
-  document.querySelectorAll('#strategyTable tbody tr').forEach(tr=>tr.onclick=()=>{state.strategy=tr.dataset.name;state.ticker=null;render();});
-  document.getElementById('strategyCount').textContent=`${rows.length} of ${strategies.length} strategies · click a row to drill down`;
+  const rows=baseRows.filter(r=>r.name.toLowerCase().includes(query)).sort((a,b)=>compareRows(a,b,state.strategySort));
+  document.getElementById('summaryTitle').textContent=showingMacros?'Macro groups':`${state.macro} · Strategies`;
+  document.getElementById('summaryNameHeader').textContent=showingMacros?'Macro group':'Strategy';
+  document.getElementById('summaryCountHeader').textContent=showingMacros?'Strategies':'Pairs';
+  const search=document.getElementById('strategySearch');search.placeholder=showingMacros?'Search Macro group':'Search Strategy';search.value=state.search;
+  document.querySelector('#strategyTable tbody').innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" data-type="${r.type}" class="${(r.type==='macro'?state.macro:state.strategy)===r.name?'selected':''}"><td title="${esc(r.name)}">${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}<td>${r.count}</td></tr>`).join('');
+  document.querySelectorAll('#strategyTable tbody tr').forEach(tr=>tr.onclick=()=>{if(tr.dataset.type==='macro'){state.macro=tr.dataset.name;state.strategy=null;}else state.strategy=tr.dataset.name;state.ticker=null;state.search='';render();});
+  document.getElementById('strategyCount').textContent=`${rows.length} of ${baseRows.length} ${showingMacros?'groups':'strategies'} · click a row to drill down`;
   updateSortMarks('strategyTable',state.strategySort);
 }
 function tickerRows(){
-  const tickers=state.strategy?[...(tickersByStrategy.get(state.strategy)||[])]:[...allTickers];
-  return tickers.map(name=>{const series=state.strategy?byStrategyTicker.get(state.strategy+'\u0000'+name):byTicker.get(name);const m=metrics(series||zeroSeries());return {...m,name,synthetic:syntheticNames.has(name)};}).sort((a,b)=>compareRows(a,b,state.tickerSort));
+  const tickers=state.strategy?[...(tickersByStrategy.get(state.strategy)||[])]:state.macro?[...(tickersByMacro.get(state.macro)||[])]:[...allTickers];
+  return tickers.map(name=>{const series=state.strategy?byStrategyTicker.get(state.strategy+'\u0000'+name):state.macro?byMacroTicker.get(state.macro+'\u0000'+name):byTicker.get(name);const m=metrics(series||zeroSeries());return {...m,name,synthetic:syntheticNames.has(name)};}).sort((a,b)=>compareRows(a,b,state.tickerSort));
 }
 function renderTickers(){
   const body=document.querySelector('#tickerTable tbody');
   const rows=tickerRows();
-  document.getElementById('detailTitle').textContent=state.strategy?`${state.strategy} · currency-pair detail`:'All strategies · currency-pair detail';
+  const scope=state.strategy||state.macro||'Whole book';
+  document.getElementById('detailTitle').textContent=`${scope} · currency-pair detail`;
   document.getElementById('detailSub').textContent=`${rows.length} ticker${rows.length===1?'':'s'} · click a row to isolate ${state.strategy?'its':'cross-strategy'} history`;
   body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}${r.synthetic?'<span class="tag">Synthetic</span>':''}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('');
   body.querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{state.ticker=tr.dataset.name;render();});
@@ -582,13 +625,14 @@ function renderTickers(){
 function renderPositions(){
   const body=document.querySelector('#positionTable tbody');
   const title=document.getElementById('positionTitle'),sub=document.getElementById('positionSub');
-  title.textContent=state.strategy||state.ticker?`${activeLabel()} · latest position breakdown`:'Latest position breakdown';
+  title.textContent=state.macro||state.strategy||state.ticker?`${activeLabel()} · latest position breakdown`:'Latest position breakdown';
   sub.textContent=`As of ${dates.at(-1)} · grouped by Ticker; CCY1 is the Amount1 unit`;
   if(!PAYLOAD.positionColumns){body.innerHTML='<tr><td colspan="6" class="empty">PS1, CCY1, and Amount1 are not present in this input file.</td></tr>';return;}
-  if(!state.strategy&&!state.ticker){body.innerHTML='<tr><td colspan="6" class="empty">Select a Strategy or Ticker to inspect its latest position.</td></tr>';return;}
+  if(!state.macro&&!state.strategy&&!state.ticker){body.innerHTML='<tr><td colspan="6" class="empty">Select a Macro group, Strategy, or Ticker to inspect its latest position.</td></tr>';return;}
   const selectedTickers=state.ticker?(syntheticNames.has(state.ticker)?new Set(syntheticDefinitions.get(state.ticker)):new Set([state.ticker])):null;
   const grouped=new Map();
   for(const [,strategy,ticker,side,currency,amount] of positionRows){
+    if(state.macro&&macroForStrategy.get(strategy)!==state.macro)continue;
     if(state.strategy&&strategy!==state.strategy)continue;
     if(selectedTickers&&!selectedTickers.has(ticker))continue;
     const key=strategy+'\u0000'+ticker+'\u0000'+currency;
@@ -601,13 +645,13 @@ function renderPositions(){
 function renderExpiryDistribution(){
   const area=document.getElementById('expiryChartArea'),svg=document.getElementById('expiryChart'),empty=document.getElementById('expiryEmpty'),tip=document.getElementById('expiryTooltip');
   const title=document.getElementById('expiryTitle'),sub=document.getElementById('expirySub');
-  title.textContent=state.ticker?`${state.strategy||'Whole book'} / ${state.ticker} · expiry distribution`:'Expiry distribution';
+  title.textContent=state.ticker?`${state.strategy||state.macro||'Whole book'} / ${state.ticker} · expiry distribution`:'Expiry distribution';
   tip.style.display='none';
   const showMessage=message=>{svg.style.display='none';empty.style.display='flex';empty.textContent=message;sub.textContent=`As of ${dates.at(-1)}`;};
   if(!PAYLOAD.valueDateColumn){showMessage('ValueDT is not present in this input file.');return;}
   if(!state.ticker){showMessage('Select a Ticker to view its expiry distribution.');return;}
   const selectedTickers=syntheticNames.has(state.ticker)?new Set(syntheticDefinitions.get(state.ticker)):new Set([state.ticker]);
-  const filtered=positionRows.filter(([,strategy,ticker,,,,valueDate])=>(!state.strategy||strategy===state.strategy)&&selectedTickers.has(ticker)&&valueDate);
+  const filtered=positionRows.filter(([,strategy,ticker,,,,valueDate])=>(!state.macro||macroForStrategy.get(strategy)===state.macro)&&(!state.strategy||strategy===state.strategy)&&selectedTickers.has(ticker)&&valueDate);
   if(!filtered.length){showMessage('No latest-date positions with ValueDT match this selection.');return;}
   const currencies=[...new Set(filtered.map(row=>row[4]))];
   if(currencies.length!==1){showMessage(`Cannot aggregate this Ticker because it has multiple CCY1 units: ${currencies.join(', ')}.`);return;}
@@ -639,7 +683,7 @@ function renderExpiryDistribution(){
     const yy=y(row.net),top=Math.min(yy,zeroY),height=Math.max(2,Math.abs(yy-zeroY)),fill=row.net>0?'#29a37a':row.net<0?'#e05b68':'#9aa5b4';
     parts.push(`<rect x="${x(index)-barWidth/2}" y="${row.net===0?zeroY-1:top}" width="${barWidth}" height="${height}" rx="3" fill="${fill}" opacity=".9"/>`,`<text x="${x(index)}" y="${h-24}" text-anchor="middle" fill="#65738a" font-size="11">${row.month}</text>`,`<rect class="expiry-hit" data-index="${index}" x="${pad.l+index*slot}" y="${pad.t}" width="${slot}" height="${plotHeight}" fill="transparent"/>`);
   });
-  svg.innerHTML=parts.join('');svg.setAttribute('aria-label',`${state.strategy||'Whole book'} / ${state.ticker} net position by expiry month`);
+  svg.innerHTML=parts.join('');svg.setAttribute('aria-label',`${state.strategy||state.macro||'Whole book'} / ${state.ticker} net position by expiry month`);
   const exactPosition=(value,signed=true)=>`${value<0?'−':signed&&value>0?'+':''}${Math.abs(value).toLocaleString(undefined,{maximumFractionDigits:0})} ${currency}`;
   svg.querySelectorAll('.expiry-hit').forEach(hit=>{
     hit.onmousemove=event=>{
@@ -659,14 +703,16 @@ function renderBars(){
   let rows;
   if(state.strategy&&state.ticker){rows=[{name:state.ticker,value:metrics(byStrategyTicker.get(state.strategy+'\u0000'+state.ticker)||zeroSeries()).latest,type:'ticker'}];}
   else if(state.strategy){rows=tickerRows().map(r=>({name:r.name,value:r.latest,type:'ticker'}));}
-  else if(state.ticker){rows=strategies.filter(name=>tickersByStrategy.get(name)?.has(state.ticker)).map(name=>({name,value:metrics(byStrategyTicker.get(name+'\u0000'+state.ticker)).latest,type:'strategyTicker'}));}
-  else{rows=strategyRows().map(r=>({name:r.name,value:r.latest,type:'strategy'}));}
+  else if(state.macro&&state.ticker){rows=[...(strategiesByMacro.get(state.macro)||[])].filter(name=>tickersByStrategy.get(name)?.has(state.ticker)).map(name=>({name,value:metrics(byStrategyTicker.get(name+'\u0000'+state.ticker)).latest,type:'strategyTicker'}));}
+  else if(state.macro){rows=strategyRows(strategiesByMacro.get(state.macro)||[]).map(r=>({name:r.name,value:r.latest,type:'strategy'}));}
+  else if(state.ticker){rows=macroGroups.filter(name=>tickersByMacro.get(name)?.has(state.ticker)).map(name=>({name,value:metrics(byMacroTicker.get(name+'\u0000'+state.ticker)).latest,type:'macroTicker'}));}
+  else{rows=macroRows().map(r=>({name:r.name,value:r.latest,type:'macro'}));}
   rows.sort((a,b)=>Math.abs(b.value)-Math.abs(a.value));
   const max=Math.max(1,...rows.map(r=>Math.abs(r.value)));
-  document.getElementById('barTitle').textContent=state.strategy?`Latest daily P&L by ticker · ${state.strategy}`:state.ticker?`Latest ${state.ticker} P&L by strategy`:'Latest daily P&L by strategy';
+  document.getElementById('barTitle').textContent=state.strategy?`Latest daily P&L by ticker · ${state.strategy}`:state.macro&&state.ticker?`Latest ${state.ticker} P&L by strategy · ${state.macro}`:state.macro?`Latest daily P&L by strategy · ${state.macro}`:state.ticker?`Latest ${state.ticker} P&L by Macro group`:'Latest daily P&L by Macro group';
   const el=document.getElementById('bars');
   el.innerHTML=rows.map(r=>{const width=50*Math.abs(r.value)/max;const cls=r.value>=0?'pos':'neg';return `<div class="bar-row" data-name="${esc(r.name)}" data-type="${r.type}"><div class="bar-name" title="${esc(r.name)}">${esc(r.name)}</div><div class="bar-track"><span class="bar-zero"></span><span class="bar ${cls}" style="width:${width}%"></span></div><div class="bar-value ${signClass(r.value)}">${fmt(r.value)}</div></div>`}).join('')||'<div class="empty">No values on the latest date.</div>';
-  el.querySelectorAll('.bar-row').forEach(row=>row.onclick=()=>{if(row.dataset.type==='strategy'){state.strategy=row.dataset.name;state.ticker=null;}else if(row.dataset.type==='strategyTicker'){state.strategy=row.dataset.name;}else state.ticker=row.dataset.name;render();});
+  el.querySelectorAll('.bar-row').forEach(row=>row.onclick=()=>{if(row.dataset.type==='macro'){state.macro=row.dataset.name;state.strategy=null;state.ticker=null;}else if(row.dataset.type==='macroTicker'){state.macro=row.dataset.name;state.strategy=null;}else if(row.dataset.type==='strategy'){state.strategy=row.dataset.name;state.ticker=null;}else if(row.dataset.type==='strategyTicker'){state.strategy=row.dataset.name;}else state.ticker=row.dataset.name;state.search='';render();});
 }
 function drawChart(){
   const svg=document.getElementById('lineChart'), box=svg.getBoundingClientRect(), w=Math.max(420,box.width),h=Math.max(300,box.height),pad={l:72,r:76,t:30,b:43};
@@ -710,7 +756,8 @@ document.getElementById('asOf').textContent=`As of ${dates.at(-1)}`;
 document.getElementById('sourceMeta').textContent=`${PAYLOAD.source} · ${PAYLOAD.sourceRows.toLocaleString()} source rows`;
 document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · ${PAYLOAD.positionColumns?'Position columns detected':'No position columns'} · ${PAYLOAD.valueDateColumn?'ValueDT detected':'No ValueDT'} · blank/null P&L treated as $0`;
 document.getElementById('strategySearch').oninput=e=>{state.search=e.target.value;renderStrategies();};
-document.getElementById('strategySelect').onchange=e=>{const next=e.target.value||null;if(next&&state.ticker&&!tickersByStrategy.get(next)?.has(state.ticker))state.ticker=null;state.strategy=next;render();};
+document.getElementById('macroSelect').onchange=e=>{const next=e.target.value||null;state.macro=next;state.strategy=null;state.search='';if(next&&state.ticker&&!tickersByMacro.get(next)?.has(state.ticker))state.ticker=null;render();};
+document.getElementById('strategySelect').onchange=e=>{const next=e.target.value||null;if(next&&state.ticker&&!tickersByStrategy.get(next)?.has(state.ticker))state.ticker=null;state.strategy=next;state.search='';render();};
 document.getElementById('tickerSelect').onchange=e=>{state.ticker=e.target.value||null;render();};
 document.querySelectorAll('#strategyTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.strategySort.key===key)state.strategySort.dir*=-1;else state.strategySort={key,dir:key==='name'?1:-1};renderStrategies();});
 document.querySelectorAll('#tickerTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.tickerSort.key===key)state.tickerSort.dir*=-1;else state.tickerSort={key,dir:key==='name'?1:-1};renderTickers();});
@@ -739,6 +786,7 @@ def build_dashboard(input_path: Path, output_path: Path) -> None:
         "positions": position_rows,
         "positionColumns": has_positions,
         "valueDateColumn": has_value_dates,
+        "macro1Strategies": sorted(MACRO_1_STRATEGIES),
         "source": input_path.name,
         "sourceRows": source_rows,
         "headerDetected": has_header,

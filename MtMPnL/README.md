@@ -20,6 +20,10 @@ python3 generate_dashboard.py /path/to/your_file.csv -o index.html
 
 Open `index.html` in a browser. The generated file has no server or internet dependency.
 
+Edit `MACRO_1_STRATEGIES` near the top of `generate_dashboard.py` to maintain
+the hard-coded Macro 1 Strategy names. Matching is exact and case-sensitive;
+every other Strategy is assigned to Macro 2.
+
 ## Dashboard behavior
 
 - `MtM_PnL` is treated as daily P&L.
@@ -29,6 +33,9 @@ Open `index.html` in a browser. The generated file has no server or internet dep
 - `Cumulative` is the sum of all available daily P&L in the input file.
 - Repeated rows for the same `CobDate` / `Strategy` / `Ticker` are summed.
 - Blank or null `MtM_PnL` values are treated as zero.
+- The drill-down hierarchy is Whole book → Macro group → Strategy → Ticker.
+- Whole book summarizes Macro 1 versus Macro 2. Selecting a Macro group filters
+  all charts, tables, positions, and expiry distributions to its Strategies.
 - `PS1` must be `Buy` or `Sell`; `Amount1` must be non-negative.
 - Latest positions are grouped by `Ticker`. `CCY1` is displayed only as the
   currency unit of `Amount1`.
@@ -36,20 +43,24 @@ Open `index.html` in a browser. The generated file has no server or internet dep
 - `ValueDT` is the position expiry date. After selecting a Ticker, the expiry
   chart plots its latest-date net `Amount1`, aggregated by calendar month.
 - At Whole-book level, the expiry chart aggregates the selected Ticker across
-  strategies. Selecting both a Strategy and Ticker filters it to that Strategy.
+  strategies. Macro group and Strategy selections progressively narrow it.
 - Hovering an expiry bar shows gross Buy, gross Sell, net position, and the
   contributing strategies. Synthetic Tickers combine their underlying legs.
 
-The strategy table and ticker-detail table are sortable. Use the Strategy and Ticker selectors, or click a table row or composition bar, to view an exact strategy/ticker combination. With `Strategy` set to `Whole book`, selecting a ticker aggregates its daily and cumulative P&L across all strategies.
+The summary and Ticker-detail tables are sortable. Use the Macro group,
+Strategy, and Ticker selectors—or click a table row or composition bar—to move
+through the hierarchy. Selecting a Ticker at Whole-book or Macro-group level
+aggregates its daily and cumulative P&L across the Strategies in that scope.
 
-Three view-only synthetic tickers are calculated for every date and strategy:
+Three view-only synthetic Tickers can be calculated:
 
 - `BRLBRF = USD/BRL + USD/BRF`
 - `CNHCNY = USD/CNH + USD/CNY`
 - `KRWKRO = USD/KRW + USD/KRO`
 
-A missing leg contributes zero. Synthetic tickers are excluded from whole-book
-totals, strategy totals, and actual-pair counts to prevent double-counting. They
+Synthetic tickers are created only when both required legs exist in the current
+book, Macro group, or Strategy scope. They are excluded from whole-book, Macro,
+Strategy totals, and actual-pair counts to prevent double-counting. They
 are displayed alongside their underlying legs in a selected Strategy's latest
 P&L-by-Ticker bars, so those displayed bars should not be summed together.
 Within a Strategy, a synthetic Ticker is created only when both underlying legs
