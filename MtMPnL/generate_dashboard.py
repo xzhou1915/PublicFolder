@@ -16,7 +16,7 @@ from pathlib import Path
 CORE_COLUMNS = ("CobDate", "Strategy", "Ticker", "MtM_PnL")
 POSITION_COLUMNS = ("PS1", "CCY1", "Amount1")
 VALUE_DATE_COLUMN = "ValueDT"
-MACRO_1_STRATEGIES = {
+FX_OPP_STRATEGIES = {
     "Asia Carry",
     "Commodity FX",
     "G10 Momentum",
@@ -441,9 +441,9 @@ const PAYLOAD = __PAYLOAD__;
 const dates = PAYLOAD.dates;
 const positionRows = PAYLOAD.positions || [];
 const strategies = [...new Set(PAYLOAD.rows.map(r => r[1]))].sort((a,b)=>a.localeCompare(b));
-const macroOrder = ['Macro 1','Macro 2'];
-const macro1Strategies = new Set(PAYLOAD.macro1Strategies || []);
-const macroForStrategy = new Map(strategies.map(strategy=>[strategy,macro1Strategies.has(strategy)?'Macro 1':'Macro 2']));
+const macroOrder = ['FX Opp','Macro FX-IR'];
+const fxOppStrategies = new Set(PAYLOAD.fxOppStrategies || []);
+const macroForStrategy = new Map(strategies.map(strategy=>[strategy,fxOppStrategies.has(strategy)?'FX Opp':'Macro FX-IR']));
 const strategiesByMacro = new Map(macroOrder.map(name=>[name,new Set()]));
 for(const strategy of strategies)strategiesByMacro.get(macroForStrategy.get(strategy)).add(strategy);
 const macroGroups = macroOrder.filter(name=>strategiesByMacro.get(name).size);
@@ -786,7 +786,7 @@ def build_dashboard(input_path: Path, output_path: Path) -> None:
         "positions": position_rows,
         "positionColumns": has_positions,
         "valueDateColumn": has_value_dates,
-        "macro1Strategies": sorted(MACRO_1_STRATEGIES),
+        "fxOppStrategies": sorted(FX_OPP_STRATEGIES),
         "source": input_path.name,
         "sourceRows": source_rows,
         "headerDetected": has_header,

@@ -20,9 +20,9 @@ python3 generate_dashboard.py /path/to/your_file.csv -o index.html
 
 Open `index.html` in a browser. The generated file has no server or internet dependency.
 
-Edit `MACRO_1_STRATEGIES` near the top of `generate_dashboard.py` to maintain
-the hard-coded Macro 1 Strategy names. Matching is exact and case-sensitive;
-every other Strategy is assigned to Macro 2.
+Edit `FX_OPP_STRATEGIES` near the top of `generate_dashboard.py` to maintain
+the hard-coded FX Opp Strategy names. Matching is exact and case-sensitive;
+every other Strategy is assigned to Macro FX-IR.
 
 ## Dashboard behavior
 
@@ -34,7 +34,7 @@ every other Strategy is assigned to Macro 2.
 - Repeated rows for the same `CobDate` / `Strategy` / `Ticker` are summed.
 - Blank or null `MtM_PnL` values are treated as zero.
 - The drill-down hierarchy is Whole book → Macro group → Strategy → Ticker.
-- Whole book summarizes Macro 1 versus Macro 2. Selecting a Macro group filters
+- Whole book summarizes FX Opp versus Macro FX-IR. Selecting a Macro group filters
   all charts, tables, positions, and expiry distributions to its Strategies.
 - `PS1` must be `Buy` or `Sell`; `Amount1` must be non-negative.
 - Latest positions are grouped by `Ticker`. `CCY1` is displayed only as the
