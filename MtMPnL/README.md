@@ -60,8 +60,10 @@ The P&L-by-Ticker table can be filtered by latest-date, 1W, MTD, YTD, or
 cumulative P&L. Enter the minimum absolute P&L in USD thousands; for example,
 `100` retains rows where the selected metric has an absolute value of at least
 `$100k`. This display filter does not alter totals, charts, positions, or
-selector choices. The table displays only available synthetic pairs and shows
-their pair names without an additional `Synthetic` label.
+selector choices. Normal currency pairs remain visible. For the BRL/BRF,
+CNH/CNY, and KRW/KRO basis families, the table replaces the two underlying
+legs with the available combined synthetic pair and shows its name without an
+additional `Synthetic` label.
 
 The Macro/Strategy summary has its own independent version of the same filter.
 At Whole-book level it filters Macro-group rows; after selecting a Macro group,

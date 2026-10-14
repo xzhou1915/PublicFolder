@@ -508,6 +508,7 @@ const syntheticDefinitions = new Map([
   ['CNHCNY',['USD/CNH','USD/CNY']],
   ['KRWKRO',['USD/KRW','USD/KRO']]
 ]);
+const syntheticLegNames = new Set([...syntheticDefinitions.values()].flat());
 const syntheticNames = new Set();
 
 for (const [date,strategy,ticker,value] of PAYLOAD.rows) {
@@ -664,14 +665,14 @@ function tickerRows(){
 }
 function renderTickers(){
   const body=document.querySelector('#tickerTable tbody');
-  const allRows=tickerRows().filter(row=>row.synthetic),threshold=state.pnlFilterThresholdK*1000;
+  const allRows=tickerRows().filter(row=>row.synthetic||!syntheticLegNames.has(row.name)),threshold=state.pnlFilterThresholdK*1000;
   const rows=allRows.filter(row=>Math.abs(row[state.pnlFilterMetric])>=threshold);
   const scope=state.strategy||state.macro||'Whole book';
   const metricLabels={latest:dates.at(-1),w1:'1W P&L',mtd:'MTD P&L',ytd:'YTD P&L',cumulative:'Cumulative P&L'};
   const filterNote=threshold?` · |${metricLabels[state.pnlFilterMetric]}| ≥ $${state.pnlFilterThresholdK.toLocaleString()}k`:'';
   document.getElementById('detailTitle').textContent=`${scope} · P&L by currency`;
-  document.getElementById('detailSub').textContent=`${rows.length} of ${allRows.length} synthetic pair${allRows.length===1?'':'s'}${filterNote} · click a row to isolate history`;
-  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('')||'<tr><td colspan="6" class="empty">No synthetic pairs meet the P&amp;L filter.</td></tr>';
+  document.getElementById('detailSub').textContent=`${rows.length} of ${allRows.length} currency row${allRows.length===1?'':'s'}${filterNote} · click a row to isolate history`;
+  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('')||'<tr><td colspan="6" class="empty">No currency rows meet the P&amp;L filter.</td></tr>';
   body.querySelectorAll('tr[data-name]').forEach(tr=>tr.onclick=()=>{state.ticker=tr.dataset.name;render();});
   updateSortMarks('tickerTable',state.tickerSort);
 }
