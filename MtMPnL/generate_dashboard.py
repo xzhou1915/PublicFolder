@@ -307,6 +307,8 @@ HTML_TEMPLATE = r'''<!doctype html>
     .panel-title{font-size:16px;font-weight:750}.panel-sub{font-size:12px;color:var(--muted);margin-top:2px}
     .search{width:180px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);outline:none;background:#fbfcfe}
     .search:focus{border-color:#9bb5f5;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+    .summary-controls{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .summary-controls .search{width:155px}
     .pnl-filter-controls{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;justify-content:flex-end}
     .pnl-filter-field{display:grid;gap:3px;color:var(--muted);font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.045em}
     .pnl-filter-field select{border:1px solid var(--line);border-radius:8px;padding:7px 28px 7px 9px;background:#fff;color:var(--text);outline:none;font-size:12px;text-transform:none;letter-spacing:0}
@@ -378,7 +380,21 @@ HTML_TEMPLATE = r'''<!doctype html>
     <div class="panel">
       <div class="panel-head">
         <div><div class="panel-title" id="summaryTitle">Macro groups</div><div class="panel-sub" id="strategyCount"></div></div>
-        <input class="search" id="strategySearch" placeholder="Search Macro group" aria-label="Search summary rows">
+        <div class="summary-controls">
+          <input class="search" id="strategySearch" placeholder="Search Macro group" aria-label="Search summary rows">
+          <label class="pnl-filter-field" for="strategyPnlFilterMetric"><span>Filter metric</span>
+            <select id="strategyPnlFilterMetric">
+              <option value="latest">__LATEST_DATE__</option>
+              <option value="w1">1W P&amp;L</option>
+              <option value="mtd">MTD P&amp;L</option>
+              <option value="ytd">YTD P&amp;L</option>
+              <option value="cumulative">Cumulative P&amp;L</option>
+            </select>
+          </label>
+          <label class="pnl-filter-field" for="strategyPnlFilterThreshold"><span>Minimum |P&amp;L|</span>
+            <span class="threshold-input"><span>$</span><input id="strategyPnlFilterThreshold" type="number" min="0" step="50" value="0" inputmode="decimal"><span>k</span></span>
+          </label>
+        </div>
       </div>
       <div class="table-wrap">
         <table id="strategyTable">
@@ -538,7 +554,7 @@ for (const [synthetic,legs] of syntheticDefinitions) {
   }
 }
 
-const state = {macro:null, strategy:null, ticker:null, strategySort:{key:'latest',dir:-1}, tickerSort:{key:'latest',dir:-1}, search:'',pnlFilterMetric:'latest',pnlFilterThresholdK:0};
+const state = {macro:null, strategy:null, ticker:null, strategySort:{key:'latest',dir:-1}, tickerSort:{key:'latest',dir:-1}, search:'',strategyPnlFilterMetric:'latest',strategyPnlFilterThresholdK:0,pnlFilterMetric:'latest',pnlFilterThresholdK:0};
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const signClass = v => v == null || Math.abs(v) < 0.000001 ? 'neutral' : v > 0 ? 'positive' : 'negative';
 function fmt(v) {
@@ -630,15 +646,17 @@ function updateSortMarks(tableId,sort){
 }
 function renderStrategies(){
   const showingMacros=!state.macro,baseRows=showingMacros?macroRows():strategyRows(strategiesByMacro.get(state.macro)||[]);
-  const query=state.search.toLowerCase();
-  const rows=baseRows.filter(r=>r.name.toLowerCase().includes(query)).sort((a,b)=>compareRows(a,b,state.strategySort));
+  const query=state.search.toLowerCase(),threshold=state.strategyPnlFilterThresholdK*1000;
+  const rows=baseRows.filter(r=>r.name.toLowerCase().includes(query)&&Math.abs(r[state.strategyPnlFilterMetric])>=threshold).sort((a,b)=>compareRows(a,b,state.strategySort));
+  const metricLabels={latest:dates.at(-1),w1:'1W P&L',mtd:'MTD P&L',ytd:'YTD P&L',cumulative:'Cumulative P&L'};
+  const filterNote=threshold?` · |${metricLabels[state.strategyPnlFilterMetric]}| ≥ $${state.strategyPnlFilterThresholdK.toLocaleString()}k`:'';
   document.getElementById('summaryTitle').textContent=showingMacros?'Macro groups':`${state.macro} · Strategies`;
   document.getElementById('summaryNameHeader').textContent=showingMacros?'Macro group':'Strategy';
   document.getElementById('summaryCountHeader').textContent=showingMacros?'Strategies':'Pairs';
   const search=document.getElementById('strategySearch');search.placeholder=showingMacros?'Search Macro group':'Search Strategy';search.value=state.search;
-  document.querySelector('#strategyTable tbody').innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" data-type="${r.type}" class="${(r.type==='macro'?state.macro:state.strategy)===r.name?'selected':''}"><td title="${esc(r.name)}">${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}<td>${r.count}</td></tr>`).join('');
-  document.querySelectorAll('#strategyTable tbody tr').forEach(tr=>tr.onclick=()=>{if(tr.dataset.type==='macro'){state.macro=tr.dataset.name;state.strategy=null;}else state.strategy=tr.dataset.name;state.ticker=null;state.search='';render();});
-  document.getElementById('strategyCount').textContent=`${rows.length} of ${baseRows.length} ${showingMacros?'groups':'strategies'} · click a row to drill down`;
+  document.querySelector('#strategyTable tbody').innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" data-type="${r.type}" class="${(r.type==='macro'?state.macro:state.strategy)===r.name?'selected':''}"><td title="${esc(r.name)}">${esc(r.name)}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}<td>${r.count}</td></tr>`).join('')||`<tr><td colspan="7" class="empty">No ${showingMacros?'Macro groups':'Strategies'} meet the search and P&amp;L filter.</td></tr>`;
+  document.querySelectorAll('#strategyTable tbody tr[data-name]').forEach(tr=>tr.onclick=()=>{if(tr.dataset.type==='macro'){state.macro=tr.dataset.name;state.strategy=null;}else state.strategy=tr.dataset.name;state.ticker=null;state.search='';render();});
+  document.getElementById('strategyCount').textContent=`${rows.length} of ${baseRows.length} ${showingMacros?'groups':'strategies'}${filterNote} · click a row to drill down`;
   updateSortMarks('strategyTable',state.strategySort);
 }
 function tickerRows(){
@@ -792,6 +810,8 @@ document.getElementById('asOf').textContent=`As of ${dates.at(-1)}`;
 document.getElementById('sourceMeta').textContent=`${PAYLOAD.source} · ${PAYLOAD.sourceRows.toLocaleString()} source rows`;
 document.getElementById('footer').textContent=`Generated ${PAYLOAD.generatedAt} · ${PAYLOAD.headerDetected?'Header detected':'Headerless sequence detected'} · MtM_PnL treated as daily P&L · ${PAYLOAD.positionColumns?'Position columns detected':'No position columns'} · ${PAYLOAD.valueDateColumn?'ValueDT detected':'No ValueDT'} · blank/null P&L treated as $0`;
 document.getElementById('strategySearch').oninput=e=>{state.search=e.target.value;renderStrategies();};
+document.getElementById('strategyPnlFilterMetric').onchange=e=>{state.strategyPnlFilterMetric=e.target.value;renderStrategies();};
+document.getElementById('strategyPnlFilterThreshold').oninput=e=>{const value=Number(e.target.value);state.strategyPnlFilterThresholdK=Number.isFinite(value)?Math.max(0,value):0;renderStrategies();};
 document.getElementById('macroSelect').onchange=e=>{const next=e.target.value||null;state.macro=next;state.strategy=null;state.search='';if(next&&state.ticker&&!tickersByMacro.get(next)?.has(state.ticker))state.ticker=null;render();};
 document.getElementById('strategySelect').onchange=e=>{const next=e.target.value||null;if(next){state.macro=macroForStrategy.get(next);if(state.ticker&&!tickersByStrategy.get(next)?.has(state.ticker))state.ticker=null;}state.strategy=next;state.search='';render();};
 document.getElementById('tickerSelect').onchange=e=>{state.ticker=e.target.value||null;render();};

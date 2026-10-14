@@ -62,6 +62,12 @@ cumulative P&L. Enter the minimum absolute P&L in USD thousands; for example,
 `$100k`. This display filter does not alter totals, charts, positions, or
 selector choices.
 
+The Macro/Strategy summary has its own independent version of the same filter.
+At Whole-book level it filters Macro-group rows; after selecting a Macro group,
+it filters that group's Strategy rows. Its search box and P&L threshold apply
+together. Like the Ticker filter, it changes only the displayed table rows and
+does not alter totals, charts, positions, selectors, or the Ticker table.
+
 Three view-only synthetic Tickers can be calculated:
 
 - `BRLBRF = USD/BRL + USD/BRF`
