@@ -36,6 +36,8 @@ every other Strategy is assigned to Macro FX-IR.
 - The drill-down hierarchy is Whole book → Macro group → Strategy → Ticker.
 - Whole book summarizes FX Opp versus Macro FX-IR. Selecting a Macro group filters
   all charts, tables, positions, and expiry distributions to its Strategies.
+- The top row places the Macro/Strategy summary beside the P&L-by-Ticker table.
+  The time-series panel sits below beside a compact latest-position table.
 - `PS1` must be `Buy` or `Sell`; `Amount1` must be non-negative.
 - Latest positions are grouped by `Ticker`. `CCY1` is displayed only as the
   currency unit of `Amount1`.
@@ -54,6 +56,11 @@ aggregates its daily and cumulative P&L across the Strategies in that scope.
 After selecting a Ticker, the Strategy selector is enabled and contains only
 Strategies that trade that Ticker. Selecting one automatically sets its parent
 group. For a synthetic Ticker, only Strategies containing both legs are shown.
+The P&L-by-Ticker table can be filtered by latest-date, 1W, MTD, YTD, or
+cumulative P&L. Enter the minimum absolute P&L in USD thousands; for example,
+`100` retains rows where the selected metric has an absolute value of at least
+`$100k`. This display filter does not alter totals, charts, positions, or
+selector choices.
 
 Three view-only synthetic Tickers can be calculated:
 

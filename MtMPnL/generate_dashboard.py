@@ -299,12 +299,20 @@ HTML_TEMPLATE = r'''<!doctype html>
     .kpi-value{font-size:25px;line-height:1.1;font-weight:760;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
     .kpi-note{font-size:11px;color:var(--muted);margin-top:7px}
     .positive{color:var(--green)!important}.negative{color:var(--red)!important}.neutral{color:var(--text)!important}
-    .grid{display:grid;grid-template-columns:minmax(460px,.95fr) minmax(560px,1.35fr);gap:16px;align-items:start}
+    .grid{display:grid;gap:16px;align-items:start}
+    .top-grid{grid-template-columns:minmax(560px,1fr) minmax(560px,1fr)}
+    .analysis-grid{grid-template-columns:minmax(650px,1.5fr) minmax(420px,.72fr);align-items:stretch;margin-top:16px}
     .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
     .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line2)}
     .panel-title{font-size:16px;font-weight:750}.panel-sub{font-size:12px;color:var(--muted);margin-top:2px}
     .search{width:180px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);outline:none;background:#fbfcfe}
     .search:focus{border-color:#9bb5f5;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+    .pnl-filter-controls{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .pnl-filter-field{display:grid;gap:3px;color:var(--muted);font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.045em}
+    .pnl-filter-field select{border:1px solid var(--line);border-radius:8px;padding:7px 28px 7px 9px;background:#fff;color:var(--text);outline:none;font-size:12px;text-transform:none;letter-spacing:0}
+    .threshold-input{display:flex;align-items:center;height:34px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 8px;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0}
+    .threshold-input input{width:62px;border:0;outline:0;padding:5px 4px;text-align:right;color:var(--text);background:transparent;font-variant-numeric:tabular-nums}
+    .pnl-filter-field select:focus,.threshold-input:focus-within{border-color:#9bb5f5;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
     .table-wrap{overflow:auto;max-height:570px}
     table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     th{position:sticky;top:0;z-index:2;background:#f8fafc;color:#617086;font-size:11px;text-transform:uppercase;letter-spacing:.035em;text-align:right;padding:10px 11px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
@@ -332,8 +340,10 @@ HTML_TEMPLATE = r'''<!doctype html>
     .bar-value{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
     .detail{margin-top:16px}
     .detail .table-wrap{max-height:420px}
-    .position-detail th{cursor:default}.position-detail td:first-child{max-width:none}
-    .position-detail td.num{font-size:15px;font-weight:700}
+    .position-detail{min-width:0}
+    .position-detail .table-wrap{max-height:548px}
+    .position-detail th{cursor:default;padding:8px 7px;font-size:10px}.position-detail td{padding:8px 7px;font-size:12px}.position-detail td:first-child{max-width:120px}
+    .position-detail td.num{font-size:13px;font-weight:700}
     .expiry-chart-area{position:relative;height:330px;overflow-x:auto;overflow-y:hidden;padding:12px 16px 8px}
     #expiryChart{display:none;height:100%}
     .expiry-empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:28px}
@@ -342,7 +352,7 @@ HTML_TEMPLATE = r'''<!doctype html>
     .expiry-tooltip .contributor-label{max-width:190px;overflow:hidden;text-overflow:ellipsis}
     .empty{padding:32px;text-align:center;color:var(--muted)}
     .footer{color:var(--muted);font-size:11px;margin-top:12px;text-align:right}
-    @media(max-width:1050px){.grid{grid-template-columns:1fr}.chart-panel{min-height:580px}.kpis{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:1180px){.top-grid,.analysis-grid{grid-template-columns:1fr}.analysis-grid{align-items:start}.chart-panel{min-height:580px}.kpis{grid-template-columns:repeat(3,1fr)}}
     @media(max-width:780px){.nav-row{display:block}.filters{margin-top:10px}.filter-field{flex:1}.filter-field select{width:100%;min-width:0}}
     @media(max-width:680px){.shell{padding:14px}.top{display:block}.asof{text-align:left;margin-top:10px}.kpis{grid-template-columns:repeat(2,1fr)}.grid{display:block}.panel{margin-bottom:14px}.search{width:145px}.kpi-value{font-size:21px}.chart-area{height:330px}}
   </style>
@@ -364,7 +374,7 @@ HTML_TEMPLATE = r'''<!doctype html>
   </div>
   <section class="kpis" id="kpis"></section>
 
-  <section class="grid">
+  <section class="grid top-grid">
     <div class="panel">
       <div class="panel-head">
         <div><div class="panel-title" id="summaryTitle">Macro groups</div><div class="panel-sub" id="strategyCount"></div></div>
@@ -386,51 +396,71 @@ HTML_TEMPLATE = r'''<!doctype html>
       </div>
     </div>
 
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="panel-title" id="detailTitle">P&amp;L by currency</div><div class="panel-sub" id="detailSub"></div></div>
+        <div class="pnl-filter-controls">
+          <label class="pnl-filter-field" for="pnlFilterMetric"><span>Filter metric</span>
+            <select id="pnlFilterMetric">
+              <option value="latest">__LATEST_DATE__</option>
+              <option value="w1">1W P&amp;L</option>
+              <option value="mtd">MTD P&amp;L</option>
+              <option value="ytd">YTD P&amp;L</option>
+              <option value="cumulative">Cumulative P&amp;L</option>
+            </select>
+          </label>
+          <label class="pnl-filter-field" for="pnlFilterThreshold"><span>Minimum |P&amp;L|</span>
+            <span class="threshold-input"><span>$</span><input id="pnlFilterThreshold" type="number" min="0" step="50" value="0" inputmode="decimal"><span>k</span></span>
+          </label>
+        </div>
+      </div>
+      <div class="table-wrap" id="detailWrap">
+        <table id="tickerTable">
+          <thead><tr>
+            <th data-key="name">Ticker <span class="sort-mark"></span></th>
+            <th data-key="latest"><span class="latest-date-label">__LATEST_DATE__</span> <span class="sort-mark"></span></th>
+            <th data-key="w1">1W P&amp;L <span class="sort-mark"></span></th>
+            <th data-key="mtd">MTD P&amp;L <span class="sort-mark"></span></th>
+            <th data-key="ytd">YTD P&amp;L <span class="sort-mark"></span></th>
+            <th data-key="cumulative">Cumulative P&amp;L <span class="sort-mark"></span></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid analysis-grid">
     <div class="panel chart-panel">
       <div class="panel-head"><div><div class="panel-title" id="chartTitle"></div><div class="panel-sub" id="chartSub"></div></div></div>
       <div class="chart-area" id="chartArea"><svg id="lineChart" role="img"></svg><div class="tooltip" id="tooltip"></div></div>
       <div class="bar-section"><div class="bar-title" id="barTitle"></div><div class="bars" id="bars"></div></div>
     </div>
-  </section>
 
-  <section class="panel detail position-detail">
-    <div class="panel-head"><div><div class="panel-title" id="positionTitle">Latest position breakdown</div><div class="panel-sub" id="positionSub"></div></div></div>
-    <div class="table-wrap">
-      <table id="positionTable">
-        <thead><tr>
-          <th>Ticker</th>
-          <th>Strategy</th>
-          <th>CCY1</th>
-          <th>Gross Buy</th>
-          <th>Gross Sell</th>
-          <th>Net Position</th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
+    <div class="panel position-detail">
+      <div class="panel-head"><div><div class="panel-title" id="positionTitle">Latest position breakdown</div><div class="panel-sub" id="positionSub"></div></div></div>
+      <div class="table-wrap">
+        <table id="positionTable">
+          <thead><tr>
+            <th>Ticker</th>
+            <th>Strategy</th>
+            <th>CCY1</th>
+            <th>Gross Buy</th>
+            <th>Gross Sell</th>
+            <th>Net Position</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
   </section>
+
   <section class="panel detail expiry-detail">
     <div class="panel-head"><div><div class="panel-title" id="expiryTitle">Expiry distribution</div><div class="panel-sub" id="expirySub"></div></div></div>
     <div class="expiry-chart-area" id="expiryChartArea">
       <div class="expiry-empty" id="expiryEmpty">Select a Ticker to view its expiry distribution.</div>
       <svg id="expiryChart" role="img"></svg>
       <div class="tooltip expiry-tooltip" id="expiryTooltip"></div>
-    </div>
-  </section>
-  <section class="panel detail">
-    <div class="panel-head"><div><div class="panel-title" id="detailTitle">Currency-pair detail</div><div class="panel-sub" id="detailSub"></div></div></div>
-    <div class="table-wrap" id="detailWrap">
-      <table id="tickerTable">
-        <thead><tr>
-          <th data-key="name">Ticker <span class="sort-mark"></span></th>
-          <th data-key="latest"><span class="latest-date-label">__LATEST_DATE__</span> <span class="sort-mark"></span></th>
-          <th data-key="w1">1W P&amp;L <span class="sort-mark"></span></th>
-          <th data-key="mtd">MTD P&amp;L <span class="sort-mark"></span></th>
-          <th data-key="ytd">YTD P&amp;L <span class="sort-mark"></span></th>
-          <th data-key="cumulative">Cumulative P&amp;L <span class="sort-mark"></span></th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
     </div>
   </section>
   <div class="footer" id="footer"></div>
@@ -508,7 +538,7 @@ for (const [synthetic,legs] of syntheticDefinitions) {
   }
 }
 
-const state = {macro:null, strategy:null, ticker:null, strategySort:{key:'latest',dir:-1}, tickerSort:{key:'latest',dir:-1}, search:''};
+const state = {macro:null, strategy:null, ticker:null, strategySort:{key:'latest',dir:-1}, tickerSort:{key:'latest',dir:-1}, search:'',pnlFilterMetric:'latest',pnlFilterThresholdK:0};
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const signClass = v => v == null || Math.abs(v) < 0.000001 ? 'neutral' : v > 0 ? 'positive' : 'negative';
 function fmt(v) {
@@ -617,12 +647,15 @@ function tickerRows(){
 }
 function renderTickers(){
   const body=document.querySelector('#tickerTable tbody');
-  const rows=tickerRows();
+  const allRows=tickerRows(),threshold=state.pnlFilterThresholdK*1000;
+  const rows=allRows.filter(row=>Math.abs(row[state.pnlFilterMetric])>=threshold);
   const scope=state.strategy||state.macro||'Whole book';
-  document.getElementById('detailTitle').textContent=`${scope} · currency-pair detail`;
-  document.getElementById('detailSub').textContent=`${rows.length} ticker${rows.length===1?'':'s'} · click a row to isolate ${state.strategy?'its':'cross-strategy'} history`;
-  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}${r.synthetic?'<span class="tag">Synthetic</span>':''}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('');
-  body.querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{state.ticker=tr.dataset.name;render();});
+  const metricLabels={latest:dates.at(-1),w1:'1W P&L',mtd:'MTD P&L',ytd:'YTD P&L',cumulative:'Cumulative P&L'};
+  const filterNote=threshold?` · |${metricLabels[state.pnlFilterMetric]}| ≥ $${state.pnlFilterThresholdK.toLocaleString()}k`:'';
+  document.getElementById('detailTitle').textContent=`${scope} · P&L by currency`;
+  document.getElementById('detailSub').textContent=`${rows.length} of ${allRows.length} ticker${allRows.length===1?'':'s'}${filterNote} · click a row to isolate history`;
+  body.innerHTML=rows.map(r=>`<tr data-name="${esc(r.name)}" class="${state.ticker===r.name?'selected':''}"><td>${esc(r.name)}${r.synthetic?'<span class="tag">Synthetic</span>':''}</td>${metricCell(r.latest)}${metricCell(r.w1)}${metricCell(r.mtd)}${metricCell(r.ytd)}${metricCell(r.cumulative)}</tr>`).join('')||'<tr><td colspan="6" class="empty">No Tickers meet the P&L filter.</td></tr>';
+  body.querySelectorAll('tr[data-name]').forEach(tr=>tr.onclick=()=>{state.ticker=tr.dataset.name;render();});
   updateSortMarks('tickerTable',state.tickerSort);
 }
 function renderPositions(){
@@ -762,6 +795,8 @@ document.getElementById('strategySearch').oninput=e=>{state.search=e.target.valu
 document.getElementById('macroSelect').onchange=e=>{const next=e.target.value||null;state.macro=next;state.strategy=null;state.search='';if(next&&state.ticker&&!tickersByMacro.get(next)?.has(state.ticker))state.ticker=null;render();};
 document.getElementById('strategySelect').onchange=e=>{const next=e.target.value||null;if(next){state.macro=macroForStrategy.get(next);if(state.ticker&&!tickersByStrategy.get(next)?.has(state.ticker))state.ticker=null;}state.strategy=next;state.search='';render();};
 document.getElementById('tickerSelect').onchange=e=>{state.ticker=e.target.value||null;render();};
+document.getElementById('pnlFilterMetric').onchange=e=>{state.pnlFilterMetric=e.target.value;renderTickers();};
+document.getElementById('pnlFilterThreshold').oninput=e=>{const value=Number(e.target.value);state.pnlFilterThresholdK=Number.isFinite(value)?Math.max(0,value):0;renderTickers();};
 document.querySelectorAll('#strategyTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.strategySort.key===key)state.strategySort.dir*=-1;else state.strategySort={key,dir:key==='name'?1:-1};renderStrategies();});
 document.querySelectorAll('#tickerTable th').forEach(th=>th.onclick=()=>{const key=th.dataset.key;if(state.tickerSort.key===key)state.tickerSort.dir*=-1;else state.tickerSort={key,dir:key==='name'?1:-1};renderTickers();});
 new ResizeObserver(()=>drawChart()).observe(document.getElementById('chartArea'));
