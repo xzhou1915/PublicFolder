@@ -407,9 +407,62 @@ mgXzqi9JEWh9AArTcTZOhZrWsgQlDtXLw5O2CwVKphUNZnfFur0l62UlgMfWi5Vy44XeFc8wPaMjPgK7
 5u7vQJbkA/H/RXU5Obj3vxZCjXhKfwIA"""
 
 
+TEMPLATE_UPDATES = (
+    (
+        """.history-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.history-head h2{margin:0;font-size:18px}
+.history-head p{margin:5px 0 0;color:var(--muted);font-size:12px}""",
+        """.history-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.history-head h2{margin:0;font-size:18px}
+.history-head p{margin:5px 0 0;color:var(--muted);font-size:12px}
+.history-tools,.history-filters{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.history-tools{gap:12px}
+.history-filter{display:grid;gap:3px;color:var(--muted);font-size:10px;font-weight:750;letter-spacing:.045em;text-transform:uppercase}
+.history-threshold{display:flex;align-items:center;height:34px;padding:0 8px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0}
+.history-threshold input{width:56px;padding:5px 4px;border:0;outline:0;background:transparent;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.history-threshold:focus-within{border-color:#8da7c2;box-shadow:0 0 0 3px rgba(36,99,235,.1)}""",
+    ),
+    (
+        """        <div class="history-dates"><span id="weekComparison">1W · —</span><span id="monthComparison">1M · —</span></div>""",
+        """        <div class="history-tools">
+          <div class="history-filters">
+            <label class="history-filter"><span>Min |Current Delta|</span><span class="history-threshold"><input id="historyDeltaFilter" type="number" min="0" step="1" value="5" inputmode="decimal" oninput="window.render()"><b>$m</b></span></label>
+            <label class="history-filter"><span>Min Current VaR</span><span class="history-threshold"><input id="historyVarFilter" type="number" min="0" step="50" value="100" inputmode="decimal" oninput="window.render()"><b>$k</b></span></label>
+          </div>
+          <div class="history-dates"><span id="weekComparison">1W · —</span><span id="monthComparison">1M · —</span></div>
+        </div>""",
+    ),
+    (
+        """    var summaryBody=document.getElementById("strategySummaryRows");summaryBody.innerHTML="";
+    rows.filter(function(item){
+      if(item.total)return true;
+      if(item.strategy==="Carry"||item.strategy==="Basis")return true;
+      return item.strategy==="Directional"&&(
+        (item.currentVar!==null&&item.currentVar>100000)||
+        (item.wd!==null&&Math.abs(item.wd)>5000000)
+      );""",
+        """    var summaryBody=document.getElementById("strategySummaryRows");summaryBody.innerHTML="";
+    var currentDeltaThreshold=Math.max(0,Number(document.getElementById("historyDeltaFilter").value)||0)*1000000;
+    var currentVarThreshold=Math.max(0,Number(document.getElementById("historyVarFilter").value)||0)*1000;
+    rows.filter(function(item){
+      if(item.total)return true;
+      if(item.strategy==="Carry"||item.strategy==="Basis")return true;
+      return item.strategy==="Directional"&&(
+        Math.abs(item.currentDelta)>currentDeltaThreshold||
+        (item.currentVar!==null&&item.currentVar>currentVarThreshold)
+      );""",
+    ),
+)
+
+
 def load_template() -> str:
     encoded = "".join(EMBEDDED_TEMPLATE_B64.split())
-    return gzip.decompress(base64.b64decode(encoded)).decode("utf-8")
+    template = gzip.decompress(base64.b64decode(encoded)).decode("utf-8")
+    for old, new in TEMPLATE_UPDATES:
+        if old not in template:
+            raise RuntimeError("Could not locate an FX history filter template hook.")
+        template = template.replace(old, new, 1)
+    return template
 
 
 def validate_csv(path: Path) -> str:
